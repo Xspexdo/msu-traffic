@@ -58,6 +58,18 @@ module.exports = function(io) {
         return res.status(400).json({ success: false, error: 'กรุณาระบุพิกัดสถานที่' });
       }
 
+      const isAnonymous = req.body.isAnonymous === true;
+      const userEmail = (req.user.email || '').toLowerCase().trim();
+      const isDev = req.user.isDev === true || userEmail === 'java5263@gmail.com';
+      const isMsu = userEmail.endsWith('@msu.ac.th');
+
+      let userBadge = '👤 Member';
+      if (isDev) {
+        userBadge = '👑 DEV';
+      } else if (isMsu) {
+        userBadge = '🎓 MSU';
+      }
+
       const reportData = {
         title: req.body.title || null,
         locationName: locationName || customLocation || 'จุดตรวจรอบ มมส',
@@ -68,15 +80,19 @@ module.exports = function(io) {
         type,
         direction: direction || 'ไม่ระบุฝั่งทาง',
         description: description || '',
-        severity: req.user.isDev ? 'high' : (severity || 'medium'),
+        severity: isDev ? 'high' : (severity || 'medium'),
         imageUrl: imageUrl || null,
+        isAnonymous: isAnonymous,
         reporter: {
           id: req.user.id,
-          name: req.user.name,
-          email: req.user.email,
-          picture: req.user.picture,
-          isDev: req.user.isDev || false,
-          role: req.user.role || 'student'
+          name: isAnonymous ? 'นิสิตนิรนาม' : req.user.name,
+          email: isAnonymous ? '' : req.user.email,
+          picture: isAnonymous ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60' : req.user.picture,
+          isDev: isDev,
+          isMsuStudent: isMsu,
+          isAnonymous: isAnonymous,
+          badge: userBadge,
+          role: isDev ? 'dev' : (isMsu ? 'student' : 'member')
         }
       };
 

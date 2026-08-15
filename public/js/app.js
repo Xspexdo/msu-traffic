@@ -280,9 +280,12 @@ class AppController {
           <div class="card-footer">
             <div class="card-reporter">
               <img class="reporter-avatar" src="${rep.reporter?.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60'}" alt="avatar">
-              <span>${rep.reporter?.name || 'นิสิต มมส'}</span>
+              <span style="font-weight: 600;">${rep.reporter?.name || 'นิสิต มมส'}</span>
+              ${rep.reporter?.isDev ? '<span style="background: #FEF3C7; color: #B45309; font-size: 0.65rem; font-weight: 800; padding: 1px 5px; border-radius: 4px; border: 1px solid #FDE68A;">👑 DEV</span>' : 
+                (rep.reporter?.isMsuStudent || (rep.reporter?.email && rep.reporter.email.endsWith('@msu.ac.th')) ? 
+                  '<span style="background: #FEF3C7; color: #B45309; font-size: 0.65rem; font-weight: 800; padding: 1px 5px; border-radius: 4px; border: 1px solid #FDE68A;">🎓 MSU</span>' : 
+                  '<span style="background: #F1F5F9; color: #475569; font-size: 0.65rem; font-weight: 800; padding: 1px 5px; border-radius: 4px; border: 1px solid #E2E8F0;">👤 Member</span>')}
               ${window.rankManager ? window.rankManager.getRankBadgeHtml(rep.reporter?.rank, 'xs') : ''}
-              ${isDevPost && !rep.reporter?.rank?.badgeClass?.includes('dev') ? '<span style="background: #FEF3C7; color: #B45309; font-size: 0.65rem; font-weight: 800; padding: 1px 5px; border-radius: 4px;">👑 DEV</span>' : ''}
             </div>
 
             <div class="card-actions">
@@ -419,6 +422,8 @@ class AppController {
       return;
     }
 
+    const isAnonymous = document.getElementById('reportIsAnonymous')?.checked || false;
+
     const payload = {
       type,
       locationName,
@@ -427,7 +432,8 @@ class AppController {
       lat: parseFloat(lat),
       lng: parseFloat(lng),
       direction,
-      description
+      description,
+      isAnonymous
     };
 
     try {

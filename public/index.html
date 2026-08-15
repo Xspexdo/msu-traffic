@@ -336,6 +336,17 @@
             <textarea class="form-control" id="reportDescription" placeholder="เช่น เจ้าหน้าที่ประมาณ 5 นาย เรียกมอไซค์ไม่ใส่หมวก, รถติดแถวยาวถึงสะพาน..."></textarea>
           </div>
 
+          <!-- 🕵️‍♂️ โพสต์แบบไม่เปิดเผยตัวตน (Anonymous Option) -->
+          <div style="background: #F8FAFC; border: 1.5px dashed #CBD5E1; padding: 0.75rem 0.95rem; border-radius: 10px; margin-top: 0.5rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+            <div>
+              <label for="reportIsAnonymous" style="font-size: 0.85rem; font-weight: 700; color: #1E293B; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.15rem;">
+                <span>🕵️‍♂️</span> โพสต์แบบไม่เปิดเผยตัวตน (ซ่อนชื่อและรูป)
+              </label>
+              <div style="font-size: 0.72rem; color: #64748B;">แสดงชื่อเป็น "นิสิตนิรนาม" แต่คุณยังสามารถแตะลากหมุดย้ายพิกัดหรือลบโพสต์ของตัวเองได้ตามปกติ</div>
+            </div>
+            <input type="checkbox" id="reportIsAnonymous" style="width: 20px; height: 20px; cursor: pointer; accent-color: #2563EB;">
+          </div>
+
         </div>
 
         <div class="modal-footer">
@@ -348,9 +359,9 @@
     </div>
   </div>
 
-  <!-- MODAL: เข้าสู่ระบบ / Login Modal (Google OAuth & Demo) -->
+  <!-- MODAL: เข้าสู่ระบบ / Login Modal (Google & MSU Official) -->
   <div class="modal-overlay" id="loginModal">
-    <div class="modal-container" style="max-width: 440px;">
+    <div class="modal-container" style="max-width: 420px;">
       <div class="modal-header">
         <div class="modal-title">
           <span>🔐</span>
@@ -361,61 +372,45 @@
 
       <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
         <div style="text-align: center;">
-          <div style="font-size: 2.5rem; margin-bottom: 0.25rem;">🔐</div>
+          <div style="font-size: 2.3rem; margin-bottom: 0.25rem;">🏛️</div>
           <h3 style="font-size: 1.15rem; font-weight: 800; color: #0F172A;">
             เข้าสู่ระบบ MSU Traffic
           </h3>
           <p id="loginModalMessage" style="font-size: 0.8rem; color: #64748B; margin-top: 0.2rem;">
-            เข้าสู่ระบบเพื่อโพสต์รายงานด่านหรือโหวตยืนยันข้อมูล
+            ลงชื่อเข้าใช้ด้วยบัญชี Google หรืออีเมล @msu.ac.th
           </p>
         </div>
 
-        <!-- 1. Google Direct Email Form -->
-        <form id="emailLoginForm" onsubmit="event.preventDefault(); const email = document.getElementById('loginEmailInput').value; const name = document.getElementById('loginNameInput').value; window.authManager.loginWithEmail(email, name);" style="display: flex; flex-direction: column; gap: 0.6rem; background: #F8FAFC; padding: 0.85rem; border-radius: 10px; border: 1px solid #E2E8F0;">
-          <div style="font-size: 0.82rem; font-weight: 700; color: #0F172A; display: flex; align-items: center; gap: 0.35rem;">
-            <span>✉️</span> <span>เข้าสู่ระบบด้วยอีเมล Google</span>
+        <!-- Badge Description Guide -->
+        <div style="background: #F1F5F9; border-radius: 10px; padding: 0.75rem 0.95rem; font-size: 0.75rem; color: #334155; display: flex; flex-direction: column; gap: 0.35rem;">
+          <div style="font-weight: 700; color: #0F172A; margin-bottom: 0.1rem;">🏷️ สิทธิ์และป้ายสถานะบัญชี:</div>
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span>• บัญชี <strong>@msu.ac.th</strong></span>
+            <span style="background: #FEF3C7; color: #B45309; font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 4px; font-size: 0.72rem;">🎓 MSU</span>
           </div>
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span>• บัญชี <strong>@gmail.com</strong> ทั่วไป</span>
+            <span style="background: #E2E8F0; color: #475569; font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 4px; font-size: 0.72rem;">👤 Member</span>
+          </div>
+        </div>
 
-          <input type="email" id="loginEmailInput" class="form-control" placeholder="เช่น java5263@gmail.com หรืออีเมลของคุณ" required style="font-size: 0.85rem; padding: 0.55rem 0.75rem;">
-          <input type="text" id="loginNameInput" class="form-control" placeholder="ชื่อที่ต้องการแสดง (ไม่บังคับ)" style="font-size: 0.85rem; padding: 0.55rem 0.75rem;">
-
-          <button type="submit" class="btn btn-primary" style="width: 100%; background: #2563EB; border: none; font-size: 0.85rem; padding: 0.55rem;">
-            <span>🚀 เข้าสู่ระบบทันที</span>
-          </button>
-        </form>
-
-        <!-- 2. Google Sign-In (GIS) Button -->
-        <div id="g_id_signin_container" style="display: flex; justify-content: center;"></div>
+        <!-- 1. Google Sign-In (GIS) Button (Official) -->
+        <div id="g_id_signin_container" style="display: flex; justify-content: center; width: 100%;"></div>
 
         <div style="display: flex; align-items: center; gap: 0.5rem; color: #94A3B8; font-size: 0.72rem;">
           <div style="flex: 1; height: 1px; background: #E2E8F0;"></div>
-          <span>หรือเลือกบัญชีทดสอบด่วน</span>
+          <span>หรือลงชื่อเข้าใช้ด้วยอีเมล</span>
           <div style="flex: 1; height: 1px; background: #E2E8F0;"></div>
         </div>
 
-        <!-- 3. One-Click Quick Logins -->
-        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-          <button class="btn btn-outline" style="width: 100%; border-color: #CBD5E1; color: #475569; font-size: 0.82rem;" onclick="window.authManager.loginWithDemo('นิสิต มมส')">
-            <span>🎓 เข้าสู่ระบบนิสิตทั่วไป (Demo Student)</span>
+        <!-- 2. Clean Email Sign-in (รองรับทั้ง @msu.ac.th และ @gmail.com) -->
+        <form id="emailLoginForm" onsubmit="event.preventDefault(); const email = document.getElementById('loginEmailInput').value; window.authManager.loginWithEmail(email);" style="display: flex; flex-direction: column; gap: 0.55rem;">
+          <input type="email" id="loginEmailInput" class="form-control" placeholder="ใส่อีเมลของคุณ เช่น user@msu.ac.th หรือ @gmail.com" required style="font-size: 0.85rem; padding: 0.6rem 0.75rem;">
+          
+          <button type="submit" class="btn btn-primary" style="width: 100%; background: #0F172A; border: none; font-size: 0.85rem; padding: 0.6rem; font-weight: 700;">
+            <span>เข้าสู่ระบบ</span>
           </button>
-        </div>
-
-        <!-- ⚙️ ตั้งค่า Google Cloud Client ID (Optional) -->
-        <div style="border-top: 1px solid #F1F5F9; padding-top: 0.5rem; text-align: center;">
-          <button type="button" class="btn btn-outline btn-sm" style="font-size: 0.72rem; color: #94A3B8; border: none;" onclick="const el = document.getElementById('googleClientIdBox'); el.style.display = el.style.display === 'none' ? 'block' : 'none';">
-            ⚙️ ใส่ Google Client ID ของคุณ (สำหรับปุ่ม Pop-up)
-          </button>
-          <div id="googleClientIdBox" style="display: none; margin-top: 0.4rem; text-align: left; background: #F8FAFC; padding: 0.6rem; border-radius: 8px; border: 1px solid #E2E8F0;">
-            <label style="font-size: 0.72rem; color: #64748B; font-weight: 600;">Google OAuth Client ID:</label>
-            <div style="display: flex; gap: 0.3rem; margin-top: 0.2rem;">
-              <input type="text" id="customClientIdInput" class="form-control" placeholder="xxxx.apps.googleusercontent.com" style="font-size: 0.75rem; padding: 0.35rem 0.5rem;">
-              <button type="button" class="btn btn-primary btn-sm" style="font-size: 0.75rem;" onclick="const val = document.getElementById('customClientIdInput').value; window.authManager.setGoogleClientId(val); alert('บันทึก Google Client ID เรียบร้อยแล้ว');">บันทึก</button>
-            </div>
-            <div style="font-size: 0.68rem; color: #94A3B8; margin-top: 0.3rem;">
-              สร้างได้ฟรีจาก <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color: #2563EB;">Google Cloud Console</a>
-            </div>
-          </div>
-        </div>
+        </form>
       </div>
 
       <div class="modal-footer" style="justify-content: center;">

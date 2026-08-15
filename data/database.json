@@ -654,7 +654,7 @@
       "direction": "ฝั่งขาเข้าตัวเมืองมหาสารคาม",
       "description": "ตรวจวัดแอลกอฮอล์และใบขับขี่ช่วงค่ำ เจ้าหน้าที่ประมาณ 6 นาย",
       "severity": "high",
-      "status": "active",
+      "status": "expired",
       "reporter": {
         "id": "user-google-104",
         "name": "Maha Sarakham Live",

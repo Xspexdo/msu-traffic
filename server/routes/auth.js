@@ -59,7 +59,7 @@ router.post('/google', (req, res) => {
       role: isDev ? 'dev' : (isMsu ? 'student' : 'member'),
       isDev: isDev,
       isMsuStudent: isMsu,
-      badge: isDev ? '👑 Developer / ผู้พัฒนาระบบ' : (isMsu ? '🎓 นิสิต ม.มหาสารคาม' : '👤 สมาชิก Google'),
+      badge: isDev ? '👑 Dev' : (isMsu ? '🎓 MSU' : '👤 Member'),
       verified: true,
       token: credential
     };
@@ -87,7 +87,7 @@ router.post('/email-login', (req, res) => {
   try {
     const { email, name } = req.body;
     if (!email || !email.includes('@')) {
-      return res.status(400).json({ success: false, error: 'กรุณากรอกอีเมลที่ถูกต้อง เช่น yourname@gmail.com' });
+      return res.status(400).json({ success: false, error: 'กรุณากรอกอีเมลที่ถูกต้อง เช่น yourname@gmail.com หรือ @msu.ac.th' });
     }
 
     const cleanEmail = email.toLowerCase().trim();
@@ -106,7 +106,7 @@ router.post('/email-login', (req, res) => {
       role: isDev ? 'dev' : (isMsu ? 'student' : 'member'),
       isDev: isDev,
       isMsuStudent: isMsu,
-      badge: isDev ? '👑 Developer / ผู้พัฒนาระบบ' : (isMsu ? '🎓 นิสิต ม.มหาสารคาม' : '👤 สมาชิกที่ยืนยันแล้ว'),
+      badge: isDev ? '👑 Dev' : (isMsu ? '🎓 MSU' : '👤 Member'),
       verified: true,
       token: sessionToken
     };
