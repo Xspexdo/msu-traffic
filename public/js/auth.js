@@ -9,7 +9,7 @@
 class AuthManager {
   constructor() {
     this.currentUser = null;
-    this.googleClientId = '954687901285-olc3vqh7s04iaqsjlv7h7uf3lifesfvd.apps.googleusercontent.com';
+    this.googleClientId = '227772048914-hkkop1m72p001squca2k7hbr18ptipos.apps.googleusercontent.com';
     this.devEmail = 'java5263@gmail.com';
     this.loadUserFromStorage();
   }

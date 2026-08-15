@@ -318,15 +318,21 @@ class MSUApp {
     const isMsuStudent = rep.reporter?.isMsuStudent || (rep.reporter?.email && rep.reporter.email.endsWith('@msu.ac.th'));
 
     let badgeHtml = '<span class="badge-member">👤 Member</span>';
-    if (isAnnouncement) badgeHtml = '<span class="badge-official">📢 MSU Traffic</span>';
+    if (isAnnouncement) badgeHtml = '<span class="badge-official">📢 ประกาศทางการ MSU Traffic</span>';
     else if (isDevPost) badgeHtml = '<span class="badge-dev">👑 DEV</span>';
     else if (isMsuStudent) badgeHtml = '<span class="badge-msu">🎓 MSU</span>';
 
     return `
-      <div class="report-card ${isCleared ? 'card-cleared' : ''}" data-id="${rep.id}">
+      <div class="report-card ${isAnnouncement ? 'card-announcement-official' : ''} ${isCleared ? 'card-cleared' : ''}" data-id="${rep.id}">
+        ${isAnnouncement ? `
+          <div class="announcement-card-banner">
+            <span class="announcement-banner-icon">📢</span>
+            <span class="announcement-banner-text">ประกาศแจ้งเตือนทางการจากผู้พัฒนา / ทีมงาน MSU Traffic</span>
+          </div>
+        ` : ''}
         <div class="card-header">
-          <span class="card-type-tag tag-${rep.type}">
-            <span>${icon}</span> ${typeName}
+          <span class="card-type-tag ${isAnnouncement ? 'tag-announcement' : `tag-${rep.type}`}">
+            <span>${isAnnouncement ? '📢' : icon}</span> ${isAnnouncement ? 'ประกาศแจ้งเตือน' : typeName}
           </span>
           <div class="card-time-group">
             <span class="card-post-time">🕒 โพสต์เมื่อ ${timeInfo.postTimeStr}</span>
@@ -340,45 +346,47 @@ class MSUApp {
         </div>
 
         ${rep.direction ? `<div class="card-direction">🧭 ${rep.direction}</div>` : ''}
-        ${rep.description ? `<div class="card-desc">${rep.description}</div>` : ''}
+        ${rep.description ? `<div class="card-desc ${isAnnouncement ? 'desc-announcement' : ''}">${rep.description}</div>` : ''}
 
         <div class="card-footer">
           <div class="card-reporter">
             <img class="reporter-avatar" src="${rep.reporter?.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60'}" alt="avatar">
-            <span style="font-weight: 600;">${rep.reporter?.name || 'นิสิต มมส'}</span>
+            <span style="font-weight: 600;">${isAnnouncement ? 'MSU Traffic' : (rep.reporter?.name || 'นิสิต มมส')}</span>
             ${badgeHtml}
           </div>
 
           <div class="card-actions">
             <!-- Pin Live Chat Button -->
-            <button class="btn-action-pill pill-chat" onclick="window.app.openPinChat('${rep.id}', event)" title="ห้องแชทสดประจำจุดนี้">
+            <button class="btn-action-pill pill-chat" onclick="window.app.openPinChat('${rep.id}', event)" title="ห้องแชทประจำจุดนี้">
               <span class="pill-icon">💬</span>
               <span class="pill-label">แชท</span>
               <span class="pill-count">${rep.chatCount || 0}</span>
             </button>
             <!-- Like Button -->
-            <button class="btn-action-pill pill-like ${hasLiked ? 'active' : ''}" onclick="window.app.likeReport('${rep.id}', event)" title="ขอบคุณผู้รายงาน">
+            <button class="btn-action-pill pill-like ${hasLiked ? 'active' : ''}" onclick="window.app.likeReport('${rep.id}', event)" title="รับทราบ / ถูกใจประกาศ">
               <span class="pill-icon">❤️</span>
               <span class="pill-count">${likesCount}</span>
             </button>
-            <!-- Upvote -->
-            <button class="btn-action-pill pill-upvote ${hasUpVoted ? 'active' : ''}" onclick="window.app.vote('${rep.id}', 'up', event)" title="ยืนยันว่ายังมีด่าน">
-              <span class="pill-icon">🛡️</span>
-              <span class="pill-label">ยังมีด่าน</span>
-              <span class="pill-count">${upVotes}</span>
-            </button>
-            <!-- Downvote -->
-            <button class="btn-action-pill pill-downvote ${hasDownVoted ? 'active' : ''}" onclick="window.app.vote('${rep.id}', 'down', event)" title="แจ้งว่าด่านยกแล้ว">
-              <span class="pill-icon">✨</span>
-              <span class="pill-label">ยกแล้ว</span>
-              <span class="pill-count">${downVotes}</span>
-            </button>
-            <!-- Report Button -->
-            <button class="btn-action-pill pill-report" onclick="window.app.openPinReportModal('${rep.id}', event)" title="รายงานหมุดไม่ถูกต้อง / หมุดเท็จ">
-              <span class="pill-icon">🚩</span>
-            </button>
+            ${!isAnnouncement ? `
+              <!-- Upvote -->
+              <button class="btn-action-pill pill-upvote ${hasUpVoted ? 'active' : ''}" onclick="window.app.vote('${rep.id}', 'up', event)" title="ยืนยันว่ายังมีด่าน">
+                <span class="pill-icon">🛡️</span>
+                <span class="pill-label">ยังมีด่าน</span>
+                <span class="pill-count">${upVotes}</span>
+              </button>
+              <!-- Downvote -->
+              <button class="btn-action-pill pill-downvote ${hasDownVoted ? 'active' : ''}" onclick="window.app.vote('${rep.id}', 'down', event)" title="แจ้งว่าด่านยกแล้ว">
+                <span class="pill-icon">✨</span>
+                <span class="pill-label">ยกแล้ว</span>
+                <span class="pill-count">${downVotes}</span>
+              </button>
+              <!-- Report Button -->
+              <button class="btn-action-pill pill-report" onclick="window.app.openPinReportModal('${rep.id}', event)" title="รายงานหมุดไม่ถูกต้อง / หมุดเท็จ">
+                <span class="pill-icon">🚩</span>
+              </button>
+            ` : ''}
             ${canDelete ? `
-              <button class="btn-action-pill pill-delete" title="ลบรายงานนี้" onclick="window.app.deleteReport('${rep.id}', event)">
+              <button class="btn-action-pill pill-delete" title="ลบประกาศนี้" onclick="window.app.deleteReport('${rep.id}', event)">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
             ` : ''}
