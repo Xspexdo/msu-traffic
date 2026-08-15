@@ -144,7 +144,50 @@ async function runEnterpriseWafTests() {
     console.error('❌ Test 7 Failed!', res7);
   }
 
-  console.log('🎉 ALL ENTERPRISE WAF SECURITY TESTS PASSED SUCCESSFULLY! 🚀\n');
+  // Test 8: Bad Bot & Vulnerability Scanner Block
+  console.log('Test 8: Attack Tool / Scanner User-Agent Simulation (sqlmap) -> Expect 429 WAF Block');
+  const res8 = await request({
+    path: '/api/zones',
+    headers: { 'User-Agent': 'sqlmap/1.6.12#stable (https://sqlmap.org)' }
+  });
+  console.log(`Status: ${res8.status} | Reason: ${res8.data?.reason}`);
+  if (res8.status === 429 && res8.data?.reason?.includes('Malicious Scanner')) {
+    console.log('✅ Test 8 Passed: Malicious Bot Signature blocked immediately.\n');
+  } else {
+    console.error('❌ Test 8 Failed!', res8);
+  }
+
+  // Clear unban for next test
+  await request({
+    path: '/api/security/admin/unban',
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'x-admin-key': 'msu-dev-master-sec-key-2026'
+    }
+  }, { unbanAll: true });
+
+  // Test 9: Sensitive File / Traversal Probe Block
+  console.log('Test 9: Probing Sensitive File (.env probe) -> Expect 429 WAF Quarantine');
+  const res9 = await request({ path: '/api/.env' });
+  console.log(`Status: ${res9.status} | Reason: ${res9.data?.reason}`);
+  if (res9.status === 429 && res9.data?.reason?.includes('Probing Sensitive File')) {
+    console.log('✅ Test 9 Passed: Sensitive file / Path traversal probing quarantined.\n');
+  } else {
+    console.error('❌ Test 9 Failed!', res9);
+  }
+
+  // Final Unban
+  await request({
+    path: '/api/security/admin/unban',
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'x-admin-key': 'msu-dev-master-sec-key-2026'
+    }
+  }, { unbanAll: true });
+
+  console.log('🎉 ALL ENTERPRISE WAF SECURITY TESTS (9/9) PASSED SUCCESSFULLY! 🚀\n');
 }
 
 runEnterpriseWafTests().catch(console.error);

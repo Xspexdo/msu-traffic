@@ -16,7 +16,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
   <!-- Main Stylesheet (with cache-busting) -->
-  <link rel="stylesheet" href="css/style.css?v=2.9.0">
+  <link rel="stylesheet" href="css/style.css?v=2.7.0">
 
   <!-- Google Identity Services (GIS) -->
   <script src="https://accounts.google.com/gsi/client" async defer onload="if(window.onGoogleLibraryLoad) window.onGoogleLibraryLoad()"></script>
@@ -137,7 +137,6 @@
               <button class="filter-chip" data-type="security">🚔 ตรวจค้น</button>
               <button class="filter-chip" data-type="traffic">🚗 รถติด</button>
               <button class="filter-chip" data-type="accident">⚠️ อุบัติเหตุ</button>
-              <button class="filter-chip" data-type="announcement">📢 ประกาศ</button>
             </div>
           </div>
           <div class="feed-list-container" id="feedListContainer">
@@ -455,16 +454,6 @@
                 <div class="type-option-text">
                   <span class="type-option-title">อุบัติเหตุ / กีดขวางทาง</span>
                   <span class="type-option-sub">โปรดระมัดระวัง</span>
-                </div>
-              </label>
-
-              <!-- 📢 หมุดประกาศทางการ (เฉพาะ Dev/Admin) -->
-              <label class="type-option-card type-announcement-card" id="reportTypeAnnouncementCard" style="display: none; border-color: #93C5FD; background: #EFF6FF;">
-                <input type="radio" name="checkpointType" value="announcement" style="display: none;">
-                <span class="type-option-icon">📢</span>
-                <div class="type-option-text">
-                  <span class="type-option-title" style="color: #1D4ED8; font-weight: 800;">📢 ปักหมุดประกาศ (MSU Traffic)</span>
-                  <span class="type-option-sub" style="color: #2563EB;">ข้อความประกาศ/แจ้งเตือนพิเศษ (เฉพาะ Admin)</span>
                 </div>
               </label>
             </div>
@@ -937,7 +926,6 @@
               <option value="security">ความมั่นคง</option>
               <option value="traffic">รถติด</option>
               <option value="accident">อุบัติเหตุ</option>
-              <option value="announcement">📢 ประกาศ (Official)</option>
             </select>
             <select id="devPinStatusFilter" class="form-control" onchange="window.devManager.filterPins()" style="width: auto; padding: 0.45rem; font-size: 0.8rem; border-radius: 8px;">
               <option value="all">ทุกสถานะ</option>
@@ -1192,26 +1180,26 @@
             </div>
           </div>
 
-          <!-- Chat Rooms Toggle Management Card -->
-          <div style="background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 14px; padding: 1.1rem 1.3rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.85rem;">
+          <!-- Chat Rooms Management Section (เปิด/ปิดห้องแชท) -->
+          <div style="background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 14px; padding: 1.2rem 1.3rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
               <div>
-                <div style="display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.3rem;">
-                  <span style="font-size: 1.1rem;">💬</span>
-                  <h4 style="font-size: 0.92rem; font-weight: 800; color: #0F172A; margin: 0;">จัดการเปิด/ปิดห้องแชต (เลือกรายห้องได้)</h4>
+                <div style="display: flex; align-items: center; gap: 0.45rem;">
+                  <span style="font-size: 1.25rem;">💬</span>
+                  <h4 style="font-size: 0.95rem; font-weight: 800; color: #0F172A; margin: 0;">จัดการเปิด-ปิดห้องแชต (เลือกรายห้อง)</h4>
                 </div>
-                <p style="font-size: 0.76rem; color: #64748B; margin: 0; line-height: 1.45;">
-                  สามารถเปิดหรือปิดห้องแชตรายห้องได้ เมื่อปิดผู้ใช้ทั่วไปจะเห็นข้อความ <strong>"ปิดปรับปรุง เร็วๆนี้"</strong> และไม่สามารถส่งข้อความได้
+                <p style="font-size: 0.76rem; color: #64748B; margin: 0.2rem 0 0 0;">
+                  เมื่อปิดห้องใด: ผู้ใช้ทั่วไปจะเห็นข้อความ <strong style="color: #EF4444;">"🚧 ปิดปรับปรุง เร็วๆนี้"</strong> และไม่สามารถส่งข้อความได้ (อัปเดตแบบเรียลไทม์)
                 </p>
               </div>
-              <button class="btn btn-outline btn-sm" onclick="window.devManager.loadChatRoomsSettings()" style="font-size: 0.72rem; padding: 4px 10px;">
-                🔄 รีเฟรช
+              <button type="button" class="btn btn-outline btn-xs" onclick="window.devManager.loadChatRoomsSettings()" style="font-weight: 700;">
+                🔄 รีเฟรชสถานะ
               </button>
             </div>
-            
+
             <!-- List of Chat Rooms with Toggles -->
-            <div id="devChatRoomsSettingsList">
-              <!-- Rendered by devManager.loadChatRoomsSettings() -->
+            <div id="devChatRoomsSettingsContainer" style="display: flex; flex-direction: column; gap: 0.65rem;">
+              <!-- Rendered dynamically by devManager.js -->
             </div>
           </div>
 
@@ -1343,14 +1331,14 @@
   <script src="/socket.io/socket.io.js"></script>
 
   <!-- Application Scripts (with cache-busting) -->
-  <script src="js/rateLimitAlert.js?v=3.0.0"></script>
-  <script src="js/auth.js?v=3.0.0"></script>
-  <script src="js/rankManager.js?v=3.0.0"></script>
-  <script src="js/chatManager.js?v=3.0.0"></script>
-  <script src="js/map.js?v=3.0.0"></script>
-  <script src="js/devManager.js?v=3.0.0"></script>
-  <script src="js/securityGatekeeper.js?v=3.0.0"></script>
-  <script src="js/app.js?v=3.0.0"></script>
+  <script src="js/rateLimitAlert.js?v=2.6.8"></script>
+  <script src="js/auth.js?v=2.6.8"></script>
+  <script src="js/rankManager.js?v=2.6.8"></script>
+  <script src="js/chatManager.js?v=2.6.8"></script>
+  <script src="js/map.js?v=2.6.8"></script>
+  <script src="js/devManager.js?v=2.6.8"></script>
+  <script src="js/securityGatekeeper.js?v=2.6.8"></script>
+  <script src="js/app.js?v=2.6.8"></script>
 
 
   <script>

@@ -386,5 +386,24 @@ router.get('/admin/audit-logs', (req, res) => {
   res.json({ success: true, count: logs.length, data: logs });
 });
 
+// 13. POST /api/security/admin/chat-rooms/toggle - เปิด/ปิดห้องแชท
+router.post('/admin/chat-rooms/toggle', (req, res) => {
+  if (!checkDevPermission(req)) {
+    return res.status(403).json({ success: false, error: 'DEV_PERMISSION_REQUIRED', message: 'คุณไม่มีสิทธิ์ Developer' });
+  }
+
+  const { roomId, enabled } = req.body;
+  if (!roomId || enabled === undefined) {
+    return res.status(400).json({ success: false, error: 'กรุณาระบุ roomId และ enabled (true/false)' });
+  }
+
+  const result = db.updateChatRoomStatus(roomId, enabled === true, 'dev_admin');
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+
+  res.json(result);
+});
+
 module.exports = router;
 

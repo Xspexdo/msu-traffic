@@ -71,15 +71,6 @@ module.exports = function(io) {
       const userEmail = (req.user.email || '').toLowerCase().trim();
       const isDev = req.user.isDev === true || userEmail === 'java5263@gmail.com';
 
-      // 🚫 ตรวจสอบสถานะห้องว่าปิดปรับปรุงหรือไม่
-      const targetRoom = (db.getChatRooms() || []).find(r => r.id === (roomId || 'general'));
-      if (targetRoom && targetRoom.enabled === false && !isDev) {
-        return res.status(403).json({
-          success: false,
-          error: 'ห้องแชตนี้ปิดปรับปรุงชั่วคราว เร็วๆ นี้'
-        });
-      }
-
       // ⏱️ ระบบกันสแปมในแชต (Anti-Spam 10s Cooldown) สำหรับผู้ใช้ทั่วไป
       if (!isDev) {
         const lastSent = userLastChatTimestamp.get(req.user.id) || 0;
@@ -283,39 +274,6 @@ module.exports = function(io) {
         messageId: req.params.id,
         roomId: result.roomId
       });
-    } catch (err) {
-      res.status(500).json({ success: false, error: err.message });
-    }
-  });
-
-  // 10. PATCH /api/chat/rooms/:roomId/status - เปิด/ปิดห้องแชต (เฉพาะ Dev)
-  router.patch('/rooms/:roomId/status', requireAuth, (req, res) => {
-    try {
-      const userEmail = (req.user.email || '').toLowerCase().trim();
-      const isDev = req.user.isDev === true || userEmail === 'java5263@gmail.com';
-      if (!isDev) {
-        return res.status(403).json({ success: false, error: 'สิทธิ์ไม่เพียงพอ (เฉพาะ Dev)' });
-      }
-
-      const { roomId } = req.params;
-      const { enabled } = req.body;
-
-      const result = db.toggleChatRoom(roomId, enabled);
-      if (!result.success) {
-        return res.status(400).json(result);
-      }
-
-      db.logAudit('TOGGLE_CHAT_ROOM', req.user.id, roomId, `Dev ${enabled ? 'เปิด' : 'ปิด'}ห้องแชต: ${roomId}`);
-
-      if (io) {
-        io.emit('chat_room_toggled', {
-          roomId,
-          enabled: result.room.enabled,
-          room: result.room
-        });
-      }
-
-      res.json({ success: true, data: result.room });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }

@@ -1090,91 +1090,6 @@ body {
 .tag-security { background: #EFF6FF; color: #1D4ED8; }
 .tag-traffic { background: #FFEDD5; color: #C2410C; }
 .tag-accident { background: #F3E8FF; color: #7E22CE; }
-.tag-announcement { background: linear-gradient(135deg, #1E40AF 0%, #2563EB 100%); color: #FFFFFF; font-weight: 800; }
-
-/* 📢 Official Announcement Map Marker (หมุดประกาศทางการ เด่นพิเศษ & เป็นข้อความหัวข้อ) */
-.marker-announcement {
-  width: 52px !important;
-  height: 52px !important;
-}
-
-.marker-announcement .mapcn-marker-inner {
-  border-color: #2563EB;
-  background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.5), 0 2px 6px rgba(0, 0, 0, 0.15);
-}
-
-.marker-announcement .mapcn-pulse-ring {
-  background: rgba(37, 99, 235, 0.35);
-}
-
-@keyframes mapcnBluePulse {
-  0% {
-    width: 44px;
-    height: 44px;
-    opacity: 0.85;
-    border: 2px solid rgba(37, 99, 235, 0.9);
-  }
-  100% {
-    width: 110px;
-    height: 110px;
-    opacity: 0;
-    border: 1px solid rgba(37, 99, 235, 0);
-  }
-}
-
-.marker-announcement .mapcn-pulse-ring {
-  animation: mapcnBluePulse 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-}
-
-.marker-announcement .mapcn-pulse-ring.ring-2 {
-  animation: mapcnBluePulse 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite 0.9s;
-}
-
-/* 🏷️ หมุดประกาศแสดงข้อความหัวข้อบนแผนที่เลย (Announcement Map Banner Tag) */
-.announcement-map-pill {
-  position: absolute;
-  top: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 100%);
-  color: #FFFFFF;
-  font-size: 0.72rem;
-  font-weight: 800;
-  padding: 3px 8px;
-  border-radius: 12px;
-  white-space: nowrap;
-  box-shadow: 0 3px 10px rgba(30, 58, 138, 0.4);
-  border: 1px solid #93C5FD;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  pointer-events: none;
-  z-index: 10;
-}
-
-.announcement-map-pill::after {
-  content: '';
-  position: absolute;
-  bottom: -4px;
-  left: 50%;
-  transform: translateX(-50%);
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 4px solid #1D4ED8;
-}
-
-/* 📢 Announcement Feed Card Style */
-.card-announcement {
-  border-left: 4px solid #2563EB !important;
-  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.08);
-}
-
-.card-announcement .card-location-title {
-  color: #1E3A8A;
-  font-weight: 800;
-}
 
 .card-time-group {
   display: flex;
@@ -1640,6 +1555,34 @@ body {
   background: var(--text-main);
   color: #FFFFFF;
   border-color: var(--text-main);
+}
+
+.chat-room-chip.chip-maintenance {
+  border-color: #FECACA;
+  background: #FFF5F5;
+  color: #991B1B;
+}
+
+.chat-room-chip.chip-maintenance.active {
+  background: #991B1B;
+  color: #FFFFFF;
+  border-color: #7F1D1D;
+}
+
+.room-maintenance-badge {
+  font-size: 0.62rem;
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 2px;
+}
+
+.chat-room-chip.chip-maintenance.active .room-maintenance-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .chat-room-header {
@@ -3526,51 +3469,4 @@ textarea.form-control {
   font-size: 0.7rem !important;
   color: var(--text-sub) !important;
   margin-top: 0.2rem;
-}
-
-/* ==========================================================================
-   CHAT ROOM MAINTENANCE & DISABLED STATES
-   ========================================================================== */
-.chat-room-chip.room-closed {
-  opacity: 0.75;
-  border-style: dashed;
-  border-color: #F59E0B;
-  background: #FFFBEB;
-}
-
-.chat-room-chip.room-closed:hover {
-  opacity: 1;
-}
-
-.room-closed-tag {
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: #B45309;
-  background: #FEF3C7;
-  padding: 1px 5px;
-  border-radius: 4px;
-  margin-left: 0.25rem;
-}
-
-.badge-maintenance {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: #B45309;
-  background: #FEF3C7;
-  padding: 2px 8px;
-  border-radius: 6px;
-  border: 1px solid #FDE68A;
-  margin-left: 0.4rem;
-  display: inline-block;
-  vertical-align: middle;
-}
-
-.form-disabled-maintenance {
-  opacity: 0.55;
-  pointer-events: none;
-  background: #F1F5F9 !important;
-}
-
-.chat-maintenance-screen {
-  animation: fadeIn 0.3s ease-out;
 }

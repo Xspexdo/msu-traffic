@@ -723,23 +723,36 @@ class Database {
   // 💬 Local Geofenced Chat Operations
   // ----------------------------------------------------
   getChatRooms() {
-    return this.data.chat_rooms.map(r => ({
-      ...r,
-      enabled: r.enabled !== false // default to true
-    }));
+    return this.data.chat_rooms || [];
   }
 
-  toggleChatRoom(roomId, enabled) {
-    const room = (this.data.chat_rooms || []).find(r => r.id === roomId);
-    if (!room) return { success: false, error: 'ไม่พบห้องแชตที่ระบุ' };
-    
-    room.enabled = enabled;
+  updateChatRoomStatus(roomId, enabled, adminId = 'dev_admin') {
+    if (!this.data.chat_rooms) return { success: false, error: 'ไม่พบรายการห้องแชท' };
+    const room = this.data.chat_rooms.find(r => r.id === roomId);
+    if (!room) return { success: false, error: 'ไม่พบห้องแชทที่ระบุ' };
+
+    room.enabled = enabled === true;
     this.saveData();
-    return { success: true, room };
+    this.logAudit('CHAT_ROOM_TOGGLE', adminId, roomId, `ปรับสถานะห้อง [${room.name}] เป็น: ${room.enabled ? 'เปิดใช้งาน' : 'ปิดปรับปรุง'}`);
+
+    if (this.io) {
+      this.io.emit('chat_rooms_updated', this.data.chat_rooms);
+      this.io.emit('chat_room_status_changed', {
+        roomId: room.id,
+        roomName: room.name,
+        enabled: room.enabled
+      });
+    }
+
+    return {
+      success: true,
+      room,
+      message: `ปรับสถานะห้อง ${room.name} เป็น ${room.enabled ? 'เปิดใช้งาน' : 'ปิดปรับปรุง (เร็วๆ นี้)'} เรียบร้อยแล้ว`
+    };
   }
 
   getChatMessages(roomId, limit = 50) {
-    const msgs = this.data.chat_messages
+    const msgs = (this.data.chat_messages || [])
       .filter(m => m.roomId === roomId)
       .slice(-limit);
     return msgs;
@@ -749,6 +762,16 @@ class Database {
     const cleanEmail = (sender.email || '').toLowerCase().trim();
     const isDev = sender.isDev === true || cleanEmail === 'java5263@gmail.com';
     const isMsu = cleanEmail.endsWith('@msu.ac.th');
+
+    // 🔒 ตรวจสอบว่าห้องเปิดใช้งานอยู่หรือไม่ (ถ้าปิดปรับปรุงอยู่ Dev ส่งได้ แต่ผู้ใช้ทั่วไปจะส่งไม่ได้)
+    const targetRoom = (this.data.chat_rooms || []).find(r => r.id === roomId);
+    if (targetRoom && targetRoom.enabled === false && !isDev) {
+      return {
+        success: false,
+        error: `🚧 ห้องแชต "${targetRoom.name}" อยู่ระหว่างปิดปรับปรุง เร็วๆนี้`,
+        isMaintenance: true
+      };
+    }
 
     // 🔒 2-Layer Geofence & MSU Domain Verification
     if (!isDev) {

@@ -18,11 +18,11 @@ class MSUMapManager {
     this.khamriangCoords = [16.2467, 103.2520]; // มอใหม่ ขามเรียง
     this.downtownCoords = [16.1868, 103.2982];  // มอเก่า ในเมือง
 
-    // Tile Providers (Multi-CDN High Availability)
+    // Tile Providers (100% Free & No AdBlock / Brave Block)
     this.tileUrls = {
-      google: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-      osm: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      carto: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+      light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+      dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      osm: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
     };
 
     this.reports = [];
@@ -46,23 +46,12 @@ class MSUMapManager {
         attributionControl: false
       });
 
-      // 2. Add Tile Layer (Default: Google Maps Vector Tiles - 100% Reliable in Thailand)
-      this.tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-        maxZoom: 20,
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+      // 2. Add Tile Layer (Default: CARTO Voyager Light)
+      this.tileLayer = L.tileLayer(this.tileUrls[this.currentTheme], {
+        subdomains: 'abcd',
+        maxZoom: 19,
+        detectRetina: true
       }).addTo(this.map);
-
-      // Fallback to OSM if Google is unreachable
-      this.tileLayer.on('tileerror', () => {
-        if (this.currentTheme !== 'osm') {
-          this.map.removeLayer(this.tileLayer);
-          this.tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            subdomains: ['a', 'b', 'c']
-          }).addTo(this.map);
-          this.currentTheme = 'osm';
-        }
-      });
 
       // 3. Zoom Control on Bottom Left (เพื่อไม่ให้ซ้อนทับกับกล่องอันดับมุมบนขวา)
       L.control.zoom({ position: 'bottomleft' }).addTo(this.map);
@@ -197,22 +186,6 @@ class MSUMapManager {
     this.map.flyTo(center, 15, { duration: 1.2 });
   }
 
-  // Update or create user location marker from GPS
-  updateUserLocationMarker(lat, lng, accuracy) {
-    if (!this.map || !lat || !lng) return;
-    if (this.userLocationMarker) {
-      this.userLocationMarker.setLatLng([lat, lng]);
-    } else {
-      const userIcon = L.divIcon({
-        className: 'user-gps-marker',
-        html: `<div style="width: 18px; height: 18px; background: #2563EB; border: 3px solid #FFFFFF; border-radius: 50%; box-shadow: 0 0 12px rgba(37,99,235,0.8);"></div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
-      });
-      this.userLocationMarker = L.marker([lat, lng], { icon: userIcon }).addTo(this.map);
-    }
-  }
-
   // Locate User GPS
   locateUser() {
     if (!navigator.geolocation) {
@@ -224,7 +197,19 @@ class MSUMapManager {
       (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        this.updateUserLocationMarker(lat, lng, pos.coords.accuracy);
+
+        if (this.userLocationMarker) {
+          this.userLocationMarker.setLatLng([lat, lng]);
+        } else {
+          const userIcon = L.divIcon({
+            className: 'user-gps-marker',
+            html: `<div style="width: 18px; height: 18px; background: #2563EB; border: 3px solid #FFFFFF; border-radius: 50%; box-shadow: 0 0 12px rgba(37,99,235,0.8);"></div>`,
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+          });
+          this.userLocationMarker = L.marker([lat, lng], { icon: userIcon }).addTo(this.map);
+        }
+
         this.map.flyTo([lat, lng], 16, { duration: 1.2 });
       },
       (err) => {
@@ -314,9 +299,8 @@ class MSUMapManager {
     reports.forEach(report => {
       if (!report.lat || !report.lng) return;
 
-      const isAnnouncement = report.type === 'announcement' || report.isAnnouncement || report.reporter?.isAnnouncement || report.reporter?.name === 'MSU Traffic';
       const isCleared = report.status === 'cleared' || report.status === 'expired';
-      const iconEmoji = isAnnouncement ? '📢' : this.getTypeIcon(report.type);
+      const iconEmoji = this.getTypeIcon(report.type);
       const timeAgo = this.formatTimeAgo(report.createdAt);
       const upVotes = report.votes?.up?.length || 0;
 
@@ -337,19 +321,9 @@ class MSUMapManager {
         dragBadgeHtml = '<span class="author-drag-badge" style="background:#F1F5F9; border-color:#CBD5E1; color:#94A3B8;" title="ย้ายครบ 3 ครั้งแล้ว">🔒</span>';
       }
 
-      // แสดงหัวข้อข้อความประกาศเด่นๆ บนแผนที่โดยตรง
-      const announcementTitleText = report.title || report.locationName || 'ประกาศด่วน';
-      const announcementPillHtml = isAnnouncement ? `
-        <div class="announcement-map-pill">
-          <span>📢</span>
-          <span>${announcementTitleText.length > 28 ? announcementTitleText.substring(0, 26) + '...' : announcementTitleText}</span>
-        </div>
-      ` : '';
-
       const customIcon = L.divIcon({
-        className: `mapcn-marker ${isAnnouncement ? 'marker-announcement' : ''} ${isCleared ? 'marker-cleared' : 'marker-active'} ${canDrag ? 'marker-can-drag' : ''} ${isAuthor ? 'marker-my-post' : ''}`,
+        className: `mapcn-marker ${isCleared ? 'marker-cleared' : 'marker-active'} ${canDrag ? 'marker-can-drag' : ''} ${isAuthor ? 'marker-my-post' : ''}`,
         html: `
-          ${announcementPillHtml}
           <div class="mapcn-marker-inner">
             <span class="mapcn-marker-icon">${iconEmoji}</span>
             ${!isCleared ? '<span class="mapcn-pulse-ring"></span><span class="mapcn-pulse-ring ring-2"></span>' : ''}
@@ -358,7 +332,7 @@ class MSUMapManager {
         `,
         iconSize: [52, 52],
         iconAnchor: [26, 26],
-        popupAnchor: [0, isAnnouncement ? -38 : -28]
+        popupAnchor: [0, -28]
       });
 
       const marker = L.marker([report.lat, report.lng], {
@@ -567,13 +541,18 @@ class MSUMapManager {
       case 'speed': return '📸';
       case 'traffic': return '🚗';
       case 'accident': return '⚠️';
-      case 'announcement': return '📢';
       default: return '📍';
     }
   }
 
   init() {
     this.initMap();
+  }
+
+  forceResize() {
+    if (this.map) {
+      this.map.invalidateSize();
+    }
   }
 
   switchCampus(campus) {

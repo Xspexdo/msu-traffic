@@ -313,7 +313,7 @@ class MSUApp {
     const likesCount = rep.likes?.length || 0;
     const hasLiked = currentUserId && rep.likes?.includes(currentUserId);
 
-    const isAnnouncement = rep.type === 'announcement' || rep.isAnnouncement || rep.reporter?.isAnnouncement || rep.reporter?.name === 'MSU Traffic';
+    const isAnnouncement = rep.isAnnouncement || rep.reporter?.isAnnouncement || rep.reporter?.name === 'MSU Traffic';
     const isDevPost = rep.reporter?.isDev || rep.reporter?.email === 'java5263@gmail.com';
     const isMsuStudent = rep.reporter?.isMsuStudent || (rep.reporter?.email && rep.reporter.email.endsWith('@msu.ac.th'));
 
@@ -323,7 +323,7 @@ class MSUApp {
     else if (isMsuStudent) badgeHtml = '<span class="badge-msu">🎓 MSU</span>';
 
     return `
-      <div class="report-card ${isAnnouncement ? 'card-announcement' : ''} ${isCleared ? 'card-cleared' : ''}" data-id="${rep.id}">
+      <div class="report-card ${isCleared ? 'card-cleared' : ''}" data-id="${rep.id}">
         <div class="card-header">
           <span class="card-type-tag tag-${rep.type}">
             <span>${icon}</span> ${typeName}
@@ -395,7 +395,6 @@ class MSUApp {
       case 'security': return 'ตรวจค้นความมั่นคง';
       case 'traffic': return 'รถติดสะสม';
       case 'accident': return 'อุบัติเหตุ';
-      case 'announcement': return '📢 ประกาศทางการ';
       default: return 'รายงานจราจร';
     }
   }
@@ -515,12 +514,11 @@ class MSUApp {
     }
 
     const lifespanHours = document.getElementById('reportLifespanHours')?.value || 6;
-    const isAnnouncement = (type === 'announcement') || document.getElementById('reportIsAnnouncement')?.checked || false;
+    const isAnnouncement = document.getElementById('reportIsAnnouncement')?.checked || false;
 
     const payload = {
       type,
       locationName,
-      title: type === 'announcement' ? (customLoc || locationName || '📢 ประกาศทางการจาก MSU Traffic') : null,
       customLocation: customLoc,
       campusZone,
       lat: parseFloat(lat),
@@ -528,7 +526,7 @@ class MSUApp {
       direction,
       description,
       lifespanHours: parseFloat(lifespanHours),
-      isAnonymous: isAnnouncement ? false : isAnonymous,
+      isAnonymous,
       isAnnouncement
     };
 
@@ -670,10 +668,6 @@ class MSUApp {
     const annBox = document.getElementById('reportAnnouncementBox');
     if (annBox) {
       annBox.style.display = isDev ? 'flex' : 'none';
-    }
-    const annCard = document.getElementById('reportTypeAnnouncementCard');
-    if (annCard) {
-      annCard.style.display = isDev ? 'flex' : 'none';
     }
     const annToggle = document.getElementById('reportIsAnnouncement');
     if (annToggle) annToggle.checked = false;

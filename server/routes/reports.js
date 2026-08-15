@@ -99,51 +99,38 @@ module.exports = function(io) {
         }
       }
 
-      const isAnnouncementPost = (type === 'announcement' || req.body.isAnnouncement === true) && isDev;
-
-      // 🚫 ป้องกันผู้ใช้ทั่วไปแอบส่ง type announcement หรือ isAnnouncement
-      if ((type === 'announcement' || req.body.isAnnouncement === true) && !isDev) {
-        return res.status(403).json({
-          success: false,
-          error: 'FORBIDDEN',
-          message: 'สิทธิ์การปักหมุดประกาศทางการสงวนไว้สำหรับ Admin / Dev เท่านั้น'
-        });
-      }
-
       let userBadge = '👤 Member';
       if (isDev) userBadge = '👑 DEV';
       else if (isMsu) userBadge = '🎓 MSU';
 
-      const announcementTitle = req.body.title || locationName || customLocation || '📢 ประกาศทางการจาก MSU Traffic';
-
       const newPin = db.addPin({
-        title: isAnnouncementPost ? announcementTitle : (req.body.title || null),
-        locationName: locationName || customLocation || (isAnnouncementPost ? 'ประกาศทางการ' : 'จุดตรวจรอบ มมส'),
+        title: req.body.title || null,
+        locationName: locationName || customLocation || 'จุดตรวจรอบ มมส',
         customLocation: customLocation || '',
         campusZone: campusZone || 'มอใหม่ (ขามเรียง)',
         lat: parseFloat(lat),
         lng: parseFloat(lng),
-        type: type,
-        direction: direction || '',
+        type,
+        direction: direction || 'ไม่ระบุฝั่งทาง',
         description: description || '',
         severity: isDev ? 'high' : (severity || 'medium'),
-        lifespanHours: req.body.lifespanHours || (isAnnouncementPost ? 24 : null),
+        lifespanHours: req.body.lifespanHours || null,
         imageUrl: imageUrl || null,
-        isAnonymous: isAnnouncementPost ? false : isAnon,
-        isAnnouncement: isAnnouncementPost,
+        isAnonymous: isAnon,
+        isAnnouncement: req.body.isAnnouncement === true && isDev,
         reporterId: req.user.id,
         reporter: {
           id: req.user.id,
-          name: isAnnouncementPost ? 'MSU Traffic' : (isAnon ? 'นิสิตนิรนาม' : req.user.name),
+          name: (req.body.isAnnouncement === true && isDev) ? 'MSU Traffic' : (isAnon ? 'นิสิตนิรนาม' : req.user.name),
           email: isAnon ? '' : req.user.email,
-          picture: isAnnouncementPost
+          picture: (req.body.isAnnouncement === true && isDev)
             ? 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=120&auto=format&fit=crop&q=80' 
             : (isAnon ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60' : req.user.picture),
           isDev: isDev,
           isMsuStudent: isMsu,
-          isAnonymous: isAnnouncementPost ? false : isAnon,
-          isAnnouncement: isAnnouncementPost,
-          badge: isAnnouncementPost ? '📢 MSU Traffic' : userBadge,
+          isAnonymous: isAnon,
+          isAnnouncement: req.body.isAnnouncement === true && isDev,
+          badge: (req.body.isAnnouncement === true && isDev) ? '📢 MSU Traffic' : userBadge,
           role: isDev ? 'dev' : (isMsu ? 'student' : 'member')
         }
       });

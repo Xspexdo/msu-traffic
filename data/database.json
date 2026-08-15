@@ -9,8 +9,8 @@
     "dev_java5263": {
       "id": "dev_java5263",
       "email": "java5263@gmail.com",
-      "name": "Java (Dev)",
-      "picture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
+      "name": "Java (Lead Dev)",
+      "picture": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80",
       "role": "dev",
       "badge": "👑 DEV",
       "trustScore": 100,
@@ -24,7 +24,7 @@
       "isDev": true,
       "status": "active",
       "createdAt": 1786777538446,
-      "lastActiveAt": 1786786310691
+      "lastActiveAt": 1786787396831
     },
     "google_108560811899542656924": {
       "id": "google_108560811899542656924",
@@ -45,6 +45,26 @@
       "status": "active",
       "createdAt": 1786777583917,
       "lastActiveAt": 1786780803530
+    },
+    "user_66010001_msu_ac_th": {
+      "id": "user_66010001_msu_ac_th",
+      "email": "66010001@msu.ac.th",
+      "name": "สมชาย นิสิต มมส",
+      "picture": "https://www.gravatar.com/avatar/136a368cbf3e4efa89c52b1867390808?d=identicon&s=120",
+      "role": "student",
+      "badge": "🎓 MSU",
+      "trustScore": 60,
+      "weeklyScore": 0,
+      "allTimeScore": 0,
+      "pinsCreated": 0,
+      "pinsVerified": 0,
+      "reportsCount": 0,
+      "accurateReports": 0,
+      "isMsuStudent": true,
+      "isDev": false,
+      "status": "active",
+      "createdAt": 1786787386294,
+      "lastActiveAt": 1786787396833
     }
   },
   "pins": [
@@ -698,6 +718,33 @@
       "details": "ล้างข้อมูลระบบ: [🎖️ ยศ, 🏆 แต้ม/คะแนน]",
       "ip": "127.0.0.1",
       "createdAt": 1786785923503
+    },
+    {
+      "id": "audit-1786787386294-aio",
+      "action": "USER_REGISTER",
+      "userId": "user_66010001_msu_ac_th",
+      "targetId": "users",
+      "details": "ผู้ใช้ลงทะเบียนใหม่ (66010001@msu.ac.th)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786787386294
+    },
+    {
+      "id": "audit-1786787396836-occ",
+      "action": "TOGGLE_CHAT_ROOM",
+      "userId": "dev_java5263",
+      "targetId": "marketplace",
+      "details": "Dev ปิดห้องแชต: marketplace",
+      "ip": "127.0.0.1",
+      "createdAt": 1786787396836
+    },
+    {
+      "id": "audit-1786788271573-erf",
+      "action": "CHAT_ROOM_TOGGLE",
+      "userId": "dev_admin",
+      "targetId": "marketplace",
+      "details": "ปรับสถานะห้อง [ซื้อ-ขาย (Market)] เป็น: ปิดปรับปรุง",
+      "ip": "127.0.0.1",
+      "createdAt": 1786788271573
     }
   ],
   "pin_chat_messages": []

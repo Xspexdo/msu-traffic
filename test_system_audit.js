@@ -233,6 +233,43 @@ async function runApiTests() {
     }
 
     // -------------------------------------------------------------------
+    // Cleanup: ลบ Audit Tester ออกจาก database ไม่ให้ทิ้งขยะ
+    // -------------------------------------------------------------------
+    console.log('\n🧹 Cleaning up Audit Tester data from database...');
+    try {
+      const dbPath = path.join(__dirname, 'data', 'database.json');
+      const dbData = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+      const AUDIT_ID = 'user_audit_test_msu_ac_th';
+
+      // Remove user
+      if (dbData.users && dbData.users[AUDIT_ID]) {
+        delete dbData.users[AUDIT_ID];
+        console.log('  ✅ Removed Audit Tester user');
+      }
+      // Remove pins
+      if (dbData.pins) {
+        dbData.pins = dbData.pins.filter(p => p.reporterId !== AUDIT_ID);
+      }
+      // Remove audit logs
+      if (dbData.audit_logs) {
+        dbData.audit_logs = dbData.audit_logs.filter(l => l.userId !== AUDIT_ID);
+      }
+      // Remove pin chat messages
+      if (dbData.pin_chat_messages) {
+        dbData.pin_chat_messages = dbData.pin_chat_messages.filter(m => m.senderId !== AUDIT_ID);
+      }
+      // Remove chat messages
+      if (dbData.chat_messages) {
+        dbData.chat_messages = dbData.chat_messages.filter(m => m.senderId !== AUDIT_ID);
+      }
+
+      fs.writeFileSync(dbPath, JSON.stringify(dbData, null, 2) + '\n');
+      console.log('  ✅ Database cleaned up successfully');
+    } catch (cleanupErr) {
+      console.error('  ⚠️ Cleanup warning:', cleanupErr.message);
+    }
+
+    // -------------------------------------------------------------------
     // Summary
     // -------------------------------------------------------------------
     console.log('\n=====================================================');

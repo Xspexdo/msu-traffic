@@ -92,7 +92,7 @@ class DevManager {
   // ⚙️ TAB 6: SYSTEM SETTINGS (ตั้งค่าระบบ)
   // ============================================================================
   loadSettingsState() {
-    // โหลดสถานะปุ่ม Donate จาก localStorage
+    // 1. โหลดสถานะปุ่ม Donate จาก localStorage
     const donateEnabled = localStorage.getItem('msu_donate_enabled');
     const toggle = document.getElementById('devDonateToggle');
     const label = document.getElementById('devDonateStatusLabel');
@@ -105,90 +105,87 @@ class DevManager {
       label.style.color = isEnabled ? '#10B981' : '#EF4444';
     }
 
-    // โหลดสถานะห้องแชตทั้งหมด
+    // 2. โหลดสถานะห้องแชททั้งหมด
     this.loadChatRoomsSettings();
   }
 
   async loadChatRoomsSettings() {
-    const listContainer = document.getElementById('devChatRoomsSettingsList');
-    if (!listContainer) return;
+    const container = document.getElementById('devChatRoomsSettingsContainer');
+    if (!container) return;
 
-    listContainer.innerHTML = '<div style="text-align: center; color: #94A3B8; font-size: 0.8rem; padding: 1rem;">กำลังโหลดรายการห้อง...</div>';
+    container.innerHTML = '<div style="text-align: center; color: #94A3B8; font-size: 0.8rem; padding: 1rem;">⏳ กำลังโหลดรายการห้องแชต...</div>';
 
     try {
       const res = await fetch('/api/chat/rooms');
       const data = await res.json();
-      if (data.success) {
-        listContainer.innerHTML = data.data.map(room => {
+
+      if (data.success && Array.isArray(data.data)) {
+        container.innerHTML = data.data.map(room => {
           const isRoomEnabled = room.enabled !== false;
           return `
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 0.9rem; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; margin-bottom: 0.5rem;">
-              <div style="display: flex; align-items: center; gap: 0.6rem;">
-                <span style="font-size: 1.3rem;">${room.icon}</span>
-                <div>
-                  <div style="font-weight: 700; font-size: 0.85rem; color: #0F172A;">${room.name}</div>
-                  <div style="font-size: 0.72rem; color: #64748B;">ID: ${room.id} • ${room.desc}</div>
+            <div style="background: #FFFFFF; border: 1.5px solid ${isRoomEnabled ? '#E2E8F0' : '#FECACA'}; border-radius: 12px; padding: 0.9rem 1.1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; transition: border-color 0.2s;">
+              <div style="flex: 1;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.2rem;">
+                  <span style="font-size: 1.25rem;">${room.icon || '💬'}</span>
+                  <strong style="font-size: 0.88rem; color: #0F172A;">${room.name}</strong>
+                  ${!isRoomEnabled ? '<span style="font-size: 0.68rem; font-weight: 700; color: #EF4444; background: #FEF2F2; padding: 2px 7px; border-radius: 6px; border: 1px solid #FCA5A5;">🚧 ปิดปรับปรุง เร็วๆนี้</span>' : ''}
                 </div>
+                <p style="font-size: 0.75rem; color: #64748B; margin: 0; line-height: 1.4;">${room.desc || ''}</p>
               </div>
-              <div style="display: flex; align-items: center; gap: 0.6rem;">
-                <span id="room-status-label-${room.id}" style="font-size: 0.72rem; font-weight: 700; color: ${isRoomEnabled ? '#10B981' : '#EF4444'};">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem; flex-shrink: 0;">
+                <label class="dev-toggle-switch" style="position: relative; display: inline-block; width: 48px; height: 26px; cursor: pointer;">
+                  <input type="checkbox" ${isRoomEnabled ? 'checked' : ''} onchange="window.devManager.toggleChatRoom('${room.id}', this.checked)" style="opacity: 0; width: 0; height: 0;">
+                  <span class="dev-toggle-slider" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #CBD5E1; border-radius: 26px; transition: 0.3s;"></span>
+                </label>
+                <span id="devRoomStatusLabel-${room.id}" style="font-size: 0.66rem; font-weight: 700; color: ${isRoomEnabled ? '#10B981' : '#EF4444'};">
                   ${isRoomEnabled ? 'เปิดใช้งาน' : 'ปิดปรับปรุง'}
                 </span>
-                <label class="dev-toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; margin: 0;">
-                  <input type="checkbox" ${isRoomEnabled ? 'checked' : ''} onchange="window.devManager.toggleRoomStatus('${room.id}', this.checked)" style="opacity: 0; width: 0; height: 0;">
-                  <span class="dev-toggle-slider" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #CBD5E1; border-radius: 24px; transition: 0.3s;"></span>
-                </label>
               </div>
             </div>
           `;
         }).join('');
+      } else {
+        container.innerHTML = '<div style="color: #EF4444; font-size: 0.8rem;">❌ ไม่สามารถโหลดรายการห้องแชทได้</div>';
       }
     } catch (e) {
-      console.error('Error loading chat rooms for settings:', e);
-      listContainer.innerHTML = '<div style="color: #EF4444; font-size: 0.8rem; padding: 0.5rem;">เกิดข้อผิดพลาดในการโหลดข้อมูลห้อง</div>';
+      console.error('Error loading chat rooms in dev:', e);
+      container.innerHTML = '<div style="color: #EF4444; font-size: 0.8rem;">❌ เกิดข้อผิดพลาดในการโหลดข้อมูลห้องแชท</div>';
     }
   }
 
-  async toggleRoomStatus(roomId, enabled) {
+  async toggleChatRoom(roomId, enabled) {
+    const label = document.getElementById(`devRoomStatusLabel-${roomId}`);
+    if (label) {
+      label.textContent = enabled ? 'เปิดใช้งาน' : 'ปิดปรับปรุง';
+      label.style.color = enabled ? '#10B981' : '#EF4444';
+    }
+
     try {
-      const res = await fetch(`/api/chat/rooms/${roomId}/status`, {
-        method: 'PATCH',
+      const res = await fetch('/api/security/admin/chat-rooms/toggle', {
+        method: 'POST',
         headers: this.getHeaders(),
-        body: JSON.stringify({ enabled })
+        body: JSON.stringify({ roomId, enabled })
       });
 
       const data = await res.json();
       if (data.success) {
-        const label = document.getElementById(`room-status-label-${roomId}`);
-        if (label) {
-          label.textContent = enabled ? 'เปิดใช้งาน' : 'ปิดปรับปรุง';
-          label.style.color = enabled ? '#10B981' : '#EF4444';
-        }
-
-        if (window.chatManager) {
-          const target = window.chatManager.rooms.find(r => r.id === roomId);
-          if (target) {
-            target.enabled = enabled;
-            window.chatManager.renderRoomsList();
-            if (window.chatManager.currentRoom === roomId) {
-              window.chatManager.updateRoomStatusUI();
-              window.chatManager.loadMessages(roomId);
-            }
-          }
-        }
-
         if (window.app) {
           window.app.showNotification(
-            enabled ? `✅ เปิดห้องแชต ${roomId} สำเร็จแล้ว` : `🛠️ ปิดห้องแชต ${roomId} (แสดงปิดปรับปรุง เร็วๆนี้)`,
+            enabled ? `🟢 เปิดห้องแชต ${data.room?.name || roomId} แล้ว` : `🚧 ปิดปรับปรุงห้องแชต ${data.room?.name || roomId} (เร็วๆนี้)`,
             enabled ? 'success' : 'warning'
           );
         }
+        // อัปเดตรายชื่อห้องใน chatManager ให้ทันสมัยทันที
+        if (window.chatManager) {
+          window.chatManager.loadRooms();
+        }
+        this.loadChatRoomsSettings();
       } else {
         alert(data.error || 'ไม่สามารถเปลี่ยนสถานะห้องได้');
         this.loadChatRoomsSettings();
       }
     } catch (e) {
-      console.error('Error toggling room status:', e);
+      console.error('Error toggling chat room:', e);
       alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
       this.loadChatRoomsSettings();
     }

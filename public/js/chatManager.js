@@ -44,6 +44,32 @@ class ChatManager {
       this.fetchResetStatus(); // อัปเดตเวลาสนทนาล่าสุด
     });
 
+    // 1.1 รับการเปลี่ยนสถานะห้องแชต (เปิด/ปิด ปรับปรุง เรียลไทม์)
+    socket.on('chat_rooms_updated', (updatedRooms) => {
+      if (Array.isArray(updatedRooms)) {
+        this.rooms = updatedRooms;
+        this.renderRoomsList();
+        this.updateRoomUIState();
+      }
+    });
+
+    socket.on('chat_room_status_changed', (data) => {
+      const room = this.rooms.find(r => r.id === data.roomId);
+      if (room) {
+        room.enabled = data.enabled;
+      }
+      this.renderRoomsList();
+      if (this.currentRoom === data.roomId) {
+        this.updateRoomUIState();
+        if (window.app) {
+          window.app.showNotification(
+            data.enabled ? `🟢 ห้องแชต "${data.roomName}" เปิดใช้งานแล้ว` : `🚧 ห้องแชต "${data.roomName}" ปิดปรับปรุง เร็วๆนี้`,
+            data.enabled ? 'info' : 'warning'
+          );
+        }
+      }
+    });
+
     // 2. รับแจ้งเตือนการแก้ไขข้อความ (Edit Message Real-time)
     socket.on('chat_message_edited', (updatedMsg) => {
       const idx = this.messages.findIndex(m => m.id === updatedMsg.id);
@@ -97,18 +123,6 @@ class ChatManager {
         }
         if (window.app) {
           window.app.showNotification(`🧹 ห้องแชตนี้ถูกล้างข้อความแล้ว (${data.reason || 'สำเร็จ'})`, 'info');
-        }
-      }
-    });
-
-    // 5. รับแจ้งเตือนการเปิด/ปิดห้องแชต (Toggle Room Status Real-time)
-    socket.on('chat_room_toggled', (data) => {
-      const room = this.rooms.find(r => r.id === data.roomId);
-      if (room) {
-        room.enabled = data.enabled;
-        this.renderRoomsList();
-        if (this.currentRoom === data.roomId) {
-          this.updateRoomStatusUI();
         }
       }
     });
@@ -207,6 +221,7 @@ class ChatManager {
       if (data.success) {
         this.rooms = data.data;
         this.renderRoomsList();
+        this.updateRoomUIState();
       }
     } catch (e) {
       console.error('Error loading chat rooms:', e);
@@ -220,10 +235,10 @@ class ChatManager {
     container.innerHTML = this.rooms.map(r => {
       const isClosed = r.enabled === false;
       return `
-        <button class="chat-room-chip ${r.id === this.currentRoom ? 'active' : ''} ${isClosed ? 'room-closed' : ''}" onclick="window.chatManager.switchRoom('${r.id}')">
+        <button class="chat-room-chip ${r.id === this.currentRoom ? 'active' : ''} ${isClosed ? 'chip-maintenance' : ''}" onclick="window.chatManager.switchRoom('${r.id}')">
           <span class="room-icon">${r.icon}</span>
           <span class="room-name">${r.name}</span>
-          ${isClosed ? '<span class="room-closed-tag">🛠️ ปิดปรับปรุง</span>' : ''}
+          ${isClosed ? '<span class="room-maintenance-badge" title="ปิดปรับปรุง เร็วๆนี้">🚧 ปิดปรับปรุง</span>' : ''}
         </button>
       `;
     }).join('');
@@ -237,40 +252,66 @@ class ChatManager {
     const roomObj = this.rooms.find(r => r.id === roomId);
     const titleElem = document.getElementById('chatCurrentRoomTitle');
     const descElem = document.getElementById('chatCurrentRoomDesc');
+    
     if (titleElem && roomObj) {
       const isClosed = roomObj.enabled === false;
-      titleElem.innerHTML = `${roomObj.icon} ${roomObj.name} ${isClosed ? '<span class="badge-maintenance">🛠️ ปิดปรับปรุง เร็วๆนี้</span>' : ''}`;
+      titleElem.innerHTML = `${roomObj.icon} ${roomObj.name} ${isClosed ? '<span style="font-size: 0.72rem; color: #DC2626; background: #FEF2F2; padding: 2px 8px; border-radius: 6px; border: 1px solid #FECACA; margin-left: 0.4rem; vertical-align: middle;">🚧 ปิดปรับปรุง เร็วๆนี้</span>' : ''}`;
     }
     if (descElem && roomObj) descElem.textContent = roomObj.desc;
 
-    this.updateRoomStatusUI();
+    this.updateRoomUIState();
     await this.loadMessages(roomId);
     this.fetchResetStatus();
   }
 
-  updateRoomStatusUI() {
+  updateRoomUIState() {
     const roomObj = this.rooms.find(r => r.id === this.currentRoom);
     const isClosed = roomObj && roomObj.enabled === false;
     const isDev = window.authManager?.isDev();
 
-    const chatForm = document.getElementById('chatForm');
-    const messageInput = document.getElementById('chatMessageInput');
+    const input = document.getElementById('chatMessageInput');
     const sendBtn = document.getElementById('chatSendBtn');
+    const form = document.getElementById('chatForm');
 
+    // ถ้าห้องปิดปรับปรุง และไม่ใช่ Dev
     if (isClosed && !isDev) {
-      if (chatForm) chatForm.classList.add('form-disabled-maintenance');
-      if (messageInput) {
-        messageInput.disabled = true;
-        messageInput.placeholder = '🛠️ ห้องแชตนี้ปิดปรับปรุง เร็วๆนี้...';
+      if (input) {
+        input.disabled = true;
+        input.placeholder = '🚧 ห้องนี้ปิดปรับปรุง เร็วๆนี้ (ไม่สามารถส่งข้อความได้)';
+        input.style.backgroundColor = '#F1F5F9';
+        input.style.cursor = 'not-allowed';
       }
-      if (sendBtn) sendBtn.disabled = true;
+      if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.style.opacity = '0.5';
+        sendBtn.style.cursor = 'not-allowed';
+      }
+    } else if (isClosed && isDev) {
+      // สำหรับ Dev: ให้พิมพ์ได้ พร้อมข้อความเตือน
+      if (input) {
+        input.disabled = false;
+        input.placeholder = '👑 [Dev Bypass] ห้องปิดปรับปรุงอยู่ แต่คุณสามารถทดสอบส่งข้อความได้...';
+        input.style.backgroundColor = '#FFFBEB';
+        input.style.cursor = 'text';
+      }
+      if (sendBtn) {
+        sendBtn.disabled = false;
+        sendBtn.style.opacity = '1';
+        sendBtn.style.cursor = 'pointer';
+      }
     } else {
-      if (chatForm) chatForm.classList.remove('form-disabled-maintenance');
-      if (messageInput) {
-        messageInput.disabled = false;
-        messageInput.placeholder = 'พิมพ์ข้อความ... (เฉพาะ @msu.ac.th ในเขต มมส)';
+      // สภาวะปกติ
+      if (input) {
+        input.disabled = false;
+        input.placeholder = 'พิมพ์ข้อความ... (เฉพาะ @msu.ac.th ในเขต มมส)';
+        input.style.backgroundColor = '';
+        input.style.cursor = 'text';
       }
-      if (sendBtn) sendBtn.disabled = false;
+      if (sendBtn && this.cooldownSeconds <= 0) {
+        sendBtn.disabled = false;
+        sendBtn.style.opacity = '1';
+        sendBtn.style.cursor = 'pointer';
+      }
     }
   }
 
@@ -280,21 +321,20 @@ class ChatManager {
 
     const roomObj = this.rooms.find(r => r.id === roomId);
     const isClosed = roomObj && roomObj.enabled === false;
-    const isDev = window.authManager?.isDev();
 
-    if (isClosed && !isDev) {
+    if (isClosed) {
       container.innerHTML = `
-        <div class="chat-maintenance-screen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 280px; text-align: center; padding: 2rem 1.5rem; color: #64748B;">
-          <div style="font-size: 3.5rem; margin-bottom: 1rem; animation: pulse 2s infinite;">🛠️</div>
-          <h3 style="font-size: 1.25rem; font-weight: 800; color: #0F172A; margin: 0 0 0.5rem 0; font-family: var(--font-heading);">
-            ปิดปรับปรุง เร็วๆนี้
+        <div class="chat-maintenance-banner" style="text-align: center; padding: 3.5rem 1.5rem; background: linear-gradient(135deg, #FFFBEB 0%, #FEF2F2 100%); border: 1.5px dashed #F87171; border-radius: 16px; margin: 1rem auto; max-width: 500px;">
+          <div style="font-size: 3rem; margin-bottom: 0.6rem; animation: pulse 2s infinite;">🚧</div>
+          <h3 style="font-size: 1.15rem; font-weight: 800; color: #991B1B; margin-bottom: 0.4rem;">
+            ห้องแชต "${roomObj?.name || 'นี้'}" ปิดปรับปรุง เร็วๆนี้
           </h3>
-          <p style="font-size: 0.85rem; color: #64748B; max-width: 320px; line-height: 1.6; margin: 0 0 1rem 0;">
-            ห้องแชต <strong>${roomObj ? roomObj.name : roomId}</strong> กำลังอยู่ระหว่างการปรับปรุงระบบเพื่อเพิ่มประสิทธิภาพ
+          <p style="font-size: 0.82rem; color: #78350F; line-height: 1.6; margin: 0 auto; max-width: 380px;">
+            ทีมงานกำลังพัฒนาและปรับปรุงระบบสำหรับห้องนี้ให้ดียิ่งขึ้น เพื่อประสบการณ์การใช้งานที่ดีที่สุดของชาว มมส
           </p>
-          <div style="display: inline-flex; align-items: center; gap: 0.4rem; background: #FEF3C7; color: #B45309; padding: 0.4rem 0.9rem; border-radius: 999px; font-size: 0.76rem; font-weight: 700; border: 1px solid #FDE68A;">
+          <div style="margin-top: 1rem; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.74rem; font-weight: 700; color: #B91C1C; background: #FFFFFF; padding: 0.4rem 0.9rem; border-radius: 20px; border: 1px solid #FECACA; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
             <span>⏳</span>
-            <span>โปรดติดตามการเปิดใช้งานเร็วๆ นี้</span>
+            <span>จะเปิดให้ใช้งานในเร็วๆ นี้ ขอบคุณครับ</span>
           </div>
         </div>
       `;
