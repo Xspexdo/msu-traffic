@@ -1,0 +1,23 @@
+{
+  "name": "msu-traffic",
+  "version": "1.0.0",
+  "description": "MSU Traffic - ระบบรายงานและแจ้งเตือนด่านรอบ ม.มหาสารคาม",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js"
+  },
+  "keywords": [
+    "msu",
+    "traffic",
+    "checkpoint",
+    "mahasarakham"
+  ],
+  "author": "MSU Traffic Team",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}

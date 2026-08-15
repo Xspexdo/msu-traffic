@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MSU Traffic - แจ้งเตือนด่านและสภาพจราจร ม.มหาสารคาม</title>
+  <meta name="description" content="ระบบรายงานและแจ้งเตือนจุดตั้งด่านตรวจ หมวกกันน็อก เป่าแอลกอฮอล์ และสภาพจราจรรอบ ม.มหาสารคาม (มมส) แบบ Real-time ด้วย mapcn Vector Engine">
+
+  <!-- Google Fonts: Prompt & Kanit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800&family=Prompt:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Leaflet CSS & JS (Bulletproof Map Engine) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Google Identity Services (GIS) for Google Sign-In -->
+  <script src="https://accounts.google.com/gsi/client" async defer onload="if(window.onGoogleLibraryLoad) window.onGoogleLibraryLoad()"></script>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <a href="#" class="nav-brand">
+      <div class="brand-badge">
+        <span>MSU</span>
+      </div>
+      <div class="brand-title">
+        <span class="brand-name">MSU Traffic</span>
+        <span class="brand-subtitle">มีด่านบอกด้วย • ม.มหาสารคาม (mapcn)</span>
+      </div>
+    </a>
+
+    <div class="nav-actions">
+      <!-- 🗂️ Layout Toggle Button (แมพบน-ฟีดล่าง vs แมพขวา-ฟีดซ้าย) -->
+      <button class="btn btn-outline btn-sm" id="layoutToggleBtn" title="สลับมุมมอง (แมพบน-ฟีดล่าง / แมพข้าง)" onclick="window.app.toggleLayout()">
+        <span id="layoutToggleIcon">🗂️ สลับมุมมอง</span>
+      </button>
+
+      <!-- 🏆 Leaderboard Button -->
+      <button class="btn btn-outline btn-sm" onclick="window.rankManager.openLeaderboardModal()" title="ตารางจัดอันดับผู้รายงานยอดเยี่ยม (Hall of Fame)">
+        <span>🏆 อันดับ</span>
+      </button>
+
+      <!-- ⚖️ ข้อกฎหมาย & พ.ร.บ.คอมฯ Button -->
+      <button class="btn btn-outline btn-sm" onclick="window.app.openLegalModal()" title="ข้อกำหนดการใช้งานและข้อกฎหมาย พ.ร.บ.คอมพิวเตอร์">
+        <span>⚖️ ข้อกฎหมาย</span>
+      </button>
+
+      <!-- Auth Container -->
+      <div id="navAuthContainer">
+        <button class="btn btn-outline btn-sm" onclick="window.authManager.openLoginModal()">
+          <span>🔑 เข้าสู่ระบบ</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Container (Default: Top-Map / Bottom-Feed) -->
+  <main class="app-container layout-top-bottom">
+
+    <!-- 1. Top Map View Container -->
+    <section class="map-view-container">
+      <div id="msu-map"></div>
+
+      <!-- Campus Switcher Floating Controls -->
+      <div class="map-campus-selector">
+        <button class="campus-btn active" data-campus="khamriang">📍 มอใหม่ (ขามเรียง)</button>
+        <button class="campus-btn" data-campus="downtown">📍 มอเก่า (ในเมือง)</button>
+      </div>
+
+      <!-- 🏆 Top-Right Floating Map Mini-Leaderboard (Top 1-3 + อันดับตัวเอง) Hideable -->
+      <div class="map-rank-overlay" id="mapRankOverlay">
+        <!-- Floating Header -->
+        <div class="map-rank-header" onclick="window.rankManager.toggleMapOverlay()">
+          <div class="map-rank-title-group">
+            <span class="map-rank-icon">🏆</span>
+            <span class="map-rank-title">อันดับยอดเยี่ยม (Top 3)</span>
+          </div>
+          <button class="map-rank-toggle-btn" id="mapRankToggleBtn" title="ซ่อน/แสดง อันดับบนแผนที่" onclick="event.stopPropagation(); window.rankManager.toggleMapOverlay()">
+            <span id="mapRankToggleIcon">✕</span>
+          </button>
+        </div>
+
+        <!-- Collapsible Content -->
+        <div class="map-rank-content" id="mapRankContent">
+          <!-- Top 1-3 Leaders List -->
+          <div class="map-rank-top3" id="mapRankTop3">
+            <div class="map-rank-loading">⏳ กำลังโหลดอันดับ...</div>
+          </div>
+
+          <!-- Divider -->
+          <div class="map-rank-divider"></div>
+
+          <!-- Current User Rank Row -->
+          <div class="map-rank-my-status" id="mapRankMyStatus">
+            <!-- Rendered dynamically by rankManager.js -->
+          </div>
+
+          <!-- View Full Hall of Fame Button -->
+          <button class="map-rank-all-btn" onclick="window.rankManager.openLeaderboardModal()">
+            <span>ดูตาราง Hall of Fame ทั้งหมด ➔</span>
+          </button>
+        </div>
+
+        <!-- Minimized Floating Pill when collapsed -->
+        <div class="map-rank-collapsed-pill" id="mapRankCollapsedPill" onclick="window.rankManager.toggleMapOverlay()" title="คลิกเพื่อเปิดดูอันดับ 1-3 บนแผนที่">
+          <span class="pill-icon">🏆</span>
+          <span class="pill-text" id="mapRankPillText">อันดับ 1-3</span>
+          <span class="pill-arrow">▲</span>
+        </div>
+      </div>
+
+      <!-- Live Ticker Bar at Bottom Left -->
+      <div class="live-ticker-bar" id="liveTickerBar">
+        <div class="live-dot"></div>
+        <span id="liveTickerText">กำลังเชื่อมต่อข้อมูลด่าน มมส แบบ Real-time...</span>
+      </div>
+
+      <!-- Floating Action Button (FAB) for Reporting Checkpoints -->
+      <button class="fab-report" onclick="window.app.openReportModal()">
+        <span>➕</span>
+        <span>รายงานด่าน</span>
+      </button>
+    </section>
+
+    <!-- 2. Bottom Checkpoint Feed & Statistics -->
+    <aside class="sidebar" id="sidebar">
+      <!-- Sidebar Header & Stats -->
+      <div class="sidebar-header">
+        <div class="quick-stats-bar">
+          <div class="stat-box">
+            <div class="stat-box-val stat-val-active" id="statActive">0</div>
+            <div class="stat-box-label">ด่านยังอยู่</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box-val stat-val-today" id="statToday">0</div>
+            <div class="stat-box-label">รายงานวันนี้</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box-val stat-val-cleared" id="statCleared">0</div>
+            <div class="stat-box-label">ยกด่านแล้ว</div>
+          </div>
+        </div>
+
+        <!-- Search & Filter Area -->
+        <div class="search-filter-wrapper">
+          <div class="search-input-group">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="searchInput" placeholder="ค้นหาจุดตั้งด่าน, สถานที่ เช่น ท่าขอนยาง, ป้าย มมส...">
+          </div>
+
+          <div class="filter-chips-scroll">
+            <button class="filter-chip active" data-type="all">ทั้งหมด</button>
+            <button class="filter-chip" data-type="helmet">👮‍♂️ หมวก/ใบขับขี่</button>
+            <button class="filter-chip" data-type="alcohol">🍺 เป่าแอล</button>
+            <button class="filter-chip" data-type="security">🚔 ตรวจค้น</button>
+            <button class="filter-chip" data-type="traffic">🚗 รถติด</button>
+            <button class="filter-chip" data-type="accident">⚠️ อุบัติเหตุ</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feed List (Multi-column responsive grid below map) -->
+      <div class="feed-list-container" id="feedListContainer">
+        <!-- Report Cards will be rendered here dynamically -->
+      </div>
+
+      <!-- Sidebar Footer Legal Disclaimer -->
+      <div class="sidebar-legal-footer" onclick="window.app.openLegalModal()" title="คลิกเพื่ออ่านข้อกำหนดการใช้งานและข้อกฎหมาย พ.ร.บ.คอมพิวเตอร์">
+        <span class="legal-icon">⚖️</span>
+        <span class="legal-text"><strong>ข้อกำหนด & พ.ร.บ.คอมพิวเตอร์</strong> • แพลตฟอร์มส่งเสริมความปลอดภัยทางถนนรอบ มมส</span>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="bottom-nav-bar">
+    <button class="bottom-nav-item active" data-tab="map" onclick="window.app.switchMobileTab('map')">
+      <span class="nav-icon">🗺️</span>
+      <span>แผนที่</span>
+    </button>
+    <button class="bottom-nav-item" data-tab="feed" onclick="window.app.switchMobileTab('feed')">
+      <span class="nav-icon">📋</span>
+      <span>ฟีดด่าน</span>
+    </button>
+    <button class="bottom-nav-item" data-tab="report" onclick="window.app.switchMobileTab('report')">
+      <span class="nav-icon" style="color: #EF4444; font-size: 1.4rem;">➕</span>
+      <span style="color: #EF4444; font-weight: 700;">รายงาน</span>
+    </button>
+    <button class="bottom-nav-item" data-tab="leaderboard" onclick="window.rankManager.openLeaderboardModal()">
+      <span class="nav-icon">🏆</span>
+      <span>อันดับ</span>
+    </button>
+    <button class="bottom-nav-item" data-tab="legal" onclick="window.app.openLegalModal()">
+      <span class="nav-icon">⚖️</span>
+      <span>กฎหมาย</span>
+    </button>
+    <button class="bottom-nav-item" data-tab="profile" onclick="window.app.switchMobileTab('profile')">
+      <span class="nav-icon">👤</span>
+      <span>บัญชี</span>
+    </button>
+  </nav>
+
+  <!-- MODAL: รายงานด่าน / Checkpoint Report Modal -->
+  <div class="modal-overlay" id="reportModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🚨</span>
+          <span>รายงานจุดตั้งด่าน / สภาพจราจร</span>
+        </div>
+        <button class="modal-close-btn" onclick="window.app.closeReportModal()">✕</button>
+      </div>
+
+      <form id="reportForm">
+        <div class="modal-body">
+          
+          <!-- Checkpoint Type Grid -->
+          <div class="form-group">
+            <label class="form-label">1. เลือกประเภทด่านหรือเหตุการณ์ *</label>
+            <div class="type-select-grid">
+              <label class="type-option-card">
+                <input type="radio" name="checkpointType" value="helmet" checked style="display: none;">
+                <span class="type-option-icon">👮‍♂️</span>
+                <div class="type-option-text">
+                  <span class="type-option-title">หมวก / ใบขับขี่</span>
+                  <span class="type-option-sub">ตรวจวินัยจราจร</span>
+                </div>
+              </label>
+
+              <label class="type-option-card">
+                <input type="radio" name="checkpointType" value="alcohol" style="display: none;">
+                <span class="type-option-icon">🍺</span>
+                <div class="type-option-text">
+                  <span class="type-option-title">เป่าแอลกอฮอล์</span>
+                  <span class="type-option-sub">ด่านตรวจแอลกอฮอล์</span>
+                </div>
+              </label>
+
+              <label class="type-option-card">
+                <input type="radio" name="checkpointType" value="security" style="display: none;">
+                <span class="type-option-icon">🚔</span>
+                <div class="type-option-text">
+                  <span class="type-option-title">ด่านตรวจค้น</span>
+                  <span class="type-option-sub">ความมั่นคง / รถแต่ง</span>
+                </div>
+              </label>
+
+              <label class="type-option-card">
+                <input type="radio" name="checkpointType" value="traffic" style="display: none;">
+                <span class="type-option-icon">🚗</span>
+                <div class="type-option-text">
+                  <span class="type-option-title">รถติดสะสม</span>
+                  <span class="type-option-sub">การจราจรหนาแน่น</span>
+                </div>
+              </label>
+
+              <label class="type-option-card">
+                <input type="radio" name="checkpointType" value="accident" style="display: none;">
+                <span class="type-option-icon">⚠️</span>
+                <div class="type-option-text">
+                  <span class="type-option-title">อุบัติเหตุ</span>
+                  <span class="type-option-sub">กีดขวางช่องทาง</span>
+                </div>
+              </label>
+
+              <label class="type-option-card">
+                <input type="radio" name="checkpointType" value="emission" style="display: none;">
+                <span class="type-option-icon">💨</span>
+                <div class="type-option-text">
+                  <span class="type-option-title">ควันดำ / ความเร็ว</span>
+                  <span class="type-option-sub">ตรวจมลพิษ / เรดาร์</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Location Preset Dropdown -->
+          <div class="form-group">
+            <label class="form-label" for="reportPresetZone">2. เลือกจุดยอดนิยมรอบ มมส</label>
+            <select class="form-control" id="reportPresetZone">
+              <option value="">-- เลือกจุดยอดนิยม หรือ ระบุเองด้านล่าง --</option>
+            </select>
+          </div>
+
+          <!-- Custom Location Name -->
+          <div class="form-group">
+            <label class="form-label" for="reportCustomLocation">หรือ ตั้งชื่อสถานที่เอง (ถ้าไม่มีในรายการด้านบน)</label>
+            <input type="text" class="form-control" id="reportCustomLocation" placeholder="เช่น หน้าหอพัก..., โค้งร้านอาหาร..., สี่แยก...">
+          </div>
+
+          <!-- Campus Zone Select -->
+          <div class="form-group">
+            <label class="form-label" for="reportCampusZone">โซนพื้นที่ มมส</label>
+            <select class="form-control" id="reportCampusZone">
+              <option value="มอใหม่ (ขามเรียง)">มอใหม่ (ขามเรียง)</option>
+              <option value="ท่าขอนยาง (รอบมอใหม่)">ท่าขอนยาง (รอบมอใหม่)</option>
+              <option value="มอเก่า (ในเมือง)">มอเก่า (ในเมือง)</option>
+              <option value="ถนนเลี่ยงเมือง">ถนนเลี่ยงเมือง / บายพาส</option>
+            </select>
+          </div>
+
+          <!-- Road Direction -->
+          <div class="form-group">
+            <label class="form-label" for="reportDirection">ฝั่งถนน / ทิศทางมุ่งหน้า</label>
+            <input type="text" class="form-control" id="reportDirection" placeholder="เช่น ฝั่งขาเข้ามอใหม่, ฝั่งมุ่งหน้าท่าขอนยาง, หน้าเซเว่น">
+          </div>
+
+          <!-- Coordinates (Lat / Lng) -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <div class="form-group">
+              <label class="form-label" style="font-size: 0.75rem; color: #64748B;">พิกัด ละติจูด (Lat)</label>
+              <input type="text" class="form-control" id="reportLat" readonly style="background: #F1F5F9; font-size: 0.8rem;">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size: 0.75rem; color: #64748B;">พิกัด ลองจิจูด (Lng)</label>
+              <input type="text" class="form-control" id="reportLng" readonly style="background: #F1F5F9; font-size: 0.8rem;">
+            </div>
+          </div>
+
+          <!-- ✋ Draggable GPS Helper Tip -->
+          <div style="background: #FEF3C7; border: 1px solid #FDE68A; padding: 0.5rem 0.75rem; border-radius: 8px; font-size: 0.75rem; color: #92400E; display: flex; align-items: center; gap: 0.4rem;">
+            <span>✋</span>
+            <span><strong>กัน GPS เพี้ยน:</strong> คุณสามารถ <strong>แตะลากหมุดบนแผนที่</strong> หรือ <strong>กดค้าง 2-3 วินาที</strong> บนจุดถนนที่ต้องการปักหมุดได้เลย</span>
+          </div>
+
+          <!-- Description -->
+          <div class="form-group">
+            <label class="form-label" for="reportDescription">รายละเอียดเพิ่มเติม (ถ้ามี)</label>
+            <textarea class="form-control" id="reportDescription" placeholder="เช่น เจ้าหน้าที่ประมาณ 5 นาย เรียกมอไซค์ไม่ใส่หมวก, รถติดแถวยาวถึงสะพาน..."></textarea>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="window.app.closeReportModal()">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary" style="background: #EF4444;">
+            <span>📢 โพสต์รายงานด่าน</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: เข้าสู่ระบบ / Login Modal (Google OAuth & Demo) -->
+  <div class="modal-overlay" id="loginModal">
+    <div class="modal-container" style="max-width: 440px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🔐</span>
+          <span>เข้าสู่ระบบ (Login)</span>
+        </div>
+        <button class="modal-close-btn" onclick="window.authManager.closeLoginModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div style="text-align: center;">
+          <div style="font-size: 2.5rem; margin-bottom: 0.25rem;">🔐</div>
+          <h3 style="font-size: 1.15rem; font-weight: 800; color: #0F172A;">
+            เข้าสู่ระบบ MSU Traffic
+          </h3>
+          <p id="loginModalMessage" style="font-size: 0.8rem; color: #64748B; margin-top: 0.2rem;">
+            เข้าสู่ระบบเพื่อโพสต์รายงานด่านหรือโหวตยืนยันข้อมูล
+          </p>
+        </div>
+
+        <!-- 1. Google Direct Email Form -->
+        <form id="emailLoginForm" onsubmit="event.preventDefault(); const email = document.getElementById('loginEmailInput').value; const name = document.getElementById('loginNameInput').value; window.authManager.loginWithEmail(email, name);" style="display: flex; flex-direction: column; gap: 0.6rem; background: #F8FAFC; padding: 0.85rem; border-radius: 10px; border: 1px solid #E2E8F0;">
+          <div style="font-size: 0.82rem; font-weight: 700; color: #0F172A; display: flex; align-items: center; gap: 0.35rem;">
+            <span>✉️</span> <span>เข้าสู่ระบบด้วยอีเมล Google</span>
+          </div>
+
+          <input type="email" id="loginEmailInput" class="form-control" placeholder="เช่น java5263@gmail.com หรืออีเมลของคุณ" required style="font-size: 0.85rem; padding: 0.55rem 0.75rem;">
+          <input type="text" id="loginNameInput" class="form-control" placeholder="ชื่อที่ต้องการแสดง (ไม่บังคับ)" style="font-size: 0.85rem; padding: 0.55rem 0.75rem;">
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; background: #2563EB; border: none; font-size: 0.85rem; padding: 0.55rem;">
+            <span>🚀 เข้าสู่ระบบทันที</span>
+          </button>
+        </form>
+
+        <!-- 2. Google Sign-In (GIS) Button -->
+        <div id="g_id_signin_container" style="display: flex; justify-content: center;"></div>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: #94A3B8; font-size: 0.72rem;">
+          <div style="flex: 1; height: 1px; background: #E2E8F0;"></div>
+          <span>หรือเลือกบัญชีทดสอบด่วน</span>
+          <div style="flex: 1; height: 1px; background: #E2E8F0;"></div>
+        </div>
+
+        <!-- 3. One-Click Quick Logins -->
+        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+          <button class="btn btn-outline" style="width: 100%; border-color: #CBD5E1; color: #475569; font-size: 0.82rem;" onclick="window.authManager.loginWithDemo('นิสิต มมส')">
+            <span>🎓 เข้าสู่ระบบนิสิตทั่วไป (Demo Student)</span>
+          </button>
+        </div>
+
+        <!-- ⚙️ ตั้งค่า Google Cloud Client ID (Optional) -->
+        <div style="border-top: 1px solid #F1F5F9; padding-top: 0.5rem; text-align: center;">
+          <button type="button" class="btn btn-outline btn-sm" style="font-size: 0.72rem; color: #94A3B8; border: none;" onclick="const el = document.getElementById('googleClientIdBox'); el.style.display = el.style.display === 'none' ? 'block' : 'none';">
+            ⚙️ ใส่ Google Client ID ของคุณ (สำหรับปุ่ม Pop-up)
+          </button>
+          <div id="googleClientIdBox" style="display: none; margin-top: 0.4rem; text-align: left; background: #F8FAFC; padding: 0.6rem; border-radius: 8px; border: 1px solid #E2E8F0;">
+            <label style="font-size: 0.72rem; color: #64748B; font-weight: 600;">Google OAuth Client ID:</label>
+            <div style="display: flex; gap: 0.3rem; margin-top: 0.2rem;">
+              <input type="text" id="customClientIdInput" class="form-control" placeholder="xxxx.apps.googleusercontent.com" style="font-size: 0.75rem; padding: 0.35rem 0.5rem;">
+              <button type="button" class="btn btn-primary btn-sm" style="font-size: 0.75rem;" onclick="const val = document.getElementById('customClientIdInput').value; window.authManager.setGoogleClientId(val); alert('บันทึก Google Client ID เรียบร้อยแล้ว');">บันทึก</button>
+            </div>
+            <div style="font-size: 0.68rem; color: #94A3B8; margin-top: 0.3rem;">
+              สร้างได้ฟรีจาก <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color: #2563EB;">Google Cloud Console</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content: center;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="window.authManager.closeLoginModal()">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ตารางอันดับผู้รายงานยอดเยี่ยม / Hall of Fame Leaderboard -->
+  <div class="modal-overlay" id="leaderboardModal">
+    <div class="modal-container" style="max-width: 520px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🏆</span>
+          <span>ตารางอันดับผู้รายงานยอดเยี่ยม (Hall of Fame)</span>
+        </div>
+        <button class="modal-close-btn" onclick="window.rankManager.closeLeaderboardModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem 1.25rem 0.5rem;">
+        <!-- Points Explainer Banner -->
+        <div style="background: #FEF3C7; border: 1px solid #FCD34D; border-radius: 8px; padding: 0.65rem 0.85rem; font-size: 0.74rem; color: #92400E; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+          <span style="font-size: 1.2rem;">🎖️</span>
+          <div>
+            <strong>เกณฑ์การสะสมคะแนนชื่อเสียง (EXP):</strong><br>
+            • โพสต์ด่าน: <strong>+15 EXP</strong> • มีคนเห็นด้วย: <strong>+10 EXP</strong> • ร่วมโหวตยืนยัน: <strong>+2 EXP</strong>
+          </div>
+        </div>
+
+        <!-- Leaderboard List Container -->
+        <div id="leaderboardList" style="min-height: 250px;">
+          <!-- Rendered dynamically by rankManager.js -->
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content: space-between; align-items: center;">
+        <div style="font-size: 0.72rem; color: #64748B;">
+          * อัปเดตอันดับแบบ Real-time ทุกครั้งที่มีการโหวต
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="window.rankManager.closeLeaderboardModal()">ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: โปรไฟล์ผู้ใช้ / Profile Modal (พร้อมระบบ Rank & EXP) -->
+  <div class="modal-overlay" id="profileModal">
+    <div class="modal-container" style="max-width: 440px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>👤</span>
+          <span>โปรไฟล์ & ยศของฉัน</span>
+        </div>
+        <button class="modal-close-btn" onclick="window.app.closeProfileModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="text-align: center; gap: 1rem;">
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <img id="profileAvatar" src="" alt="avatar" style="width: 76px; height: 76px; border-radius: 50%; border: 3px solid #F59E0B; margin: 0 auto 0.5rem; object-fit: cover;">
+          <h3 id="profileName" style="font-size: 1.15rem; font-weight: 800; color: #0F172A; margin: 0;">-</h3>
+          <p id="profileEmail" style="font-size: 0.8rem; color: #64748B; margin: 0.15rem 0 0.5rem;">-</p>
+          <div id="profileRankBadgeWrap" style="margin-bottom: 0.25rem;">
+            <!-- Rendered Rank Badge -->
+          </div>
+        </div>
+
+        <!-- EXP Progression Card -->
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 0.85rem; text-align: left;">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; font-weight: 700; color: #0F172A; margin-bottom: 0.35rem;">
+            <span id="profileExpLabel">ความคืบหน้า EXP:</span>
+            <span id="profileExpValue" style="color: #D97706; font-family: monospace;">0 EXP</span>
+          </div>
+
+          <div style="width: 100%; height: 8px; background: #E2E8F0; border-radius: 9999px; overflow: hidden; margin-bottom: 0.35rem;">
+            <div id="profileExpBarFill" style="height: 100%; width: 0%; background: linear-gradient(90deg, #F59E0B, #10B981); border-radius: 9999px; transition: width 0.5s ease;"></div>
+          </div>
+
+          <div id="profileNextRankHint" style="font-size: 0.68rem; color: #64748B; text-align: right;">
+            อีก 50 EXP เพื่อเลื่อนขั้นสู่ สายสืบ มมส
+          </div>
+        </div>
+
+        <!-- Community Stats Grid -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; text-align: center;">
+          <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.6rem 0.4rem;">
+            <div id="profileStatReports" style="font-size: 1.15rem; font-weight: 800; color: #0F172A; font-family: monospace;">0</div>
+            <div style="font-size: 0.68rem; color: #64748B;">📢 โพสต์รายงาน</div>
+          </div>
+          <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.6rem 0.4rem;">
+            <div id="profileStatUpvotes" style="font-size: 1.15rem; font-weight: 800; color: #10B981; font-family: monospace;">0</div>
+            <div style="font-size: 0.68rem; color: #64748B;">👍 คนเห็นด้วย</div>
+          </div>
+          <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.6rem 0.4rem;">
+            <div id="profileStatAccuracy" style="font-size: 1.15rem; font-weight: 800; color: #2563EB; font-family: monospace;">100%</div>
+            <div style="font-size: 0.68rem; color: #64748B;">⭐ ความแม่นยำ</div>
+          </div>
+        </div>
+
+        <button class="btn btn-outline btn-danger" style="width: 100%; font-size: 0.85rem;" onclick="window.authManager.logout(); window.app.closeProfileModal();">
+          <span>🚪 ออกจากระบบ (Logout)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ข้อกำหนดการใช้งาน & ข้อกฎหมาย พ.ร.บ. คอมพิวเตอร์ (Legal & Compliance Center) -->
+  <div class="modal-overlay" id="legalModal">
+    <div class="modal-container" style="max-width: 620px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>⚖️</span>
+          <span>ศูนย์ข้อมูลกฎหมาย: เว็บแจ้งด่านผิดกฎหมายหรือไม่?</span>
+        </div>
+        <button class="modal-close-btn" onclick="window.app.closeLegalModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="gap: 1rem; font-size: 0.82rem; line-height: 1.55; max-height: 75vh; overflow-y: auto;">
+        
+        <!-- Big Direct Answer Card -->
+        <div style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border: 2px solid #10B981; border-radius: 12px; padding: 1rem 1.15rem; color: #065F46;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+            <span style="font-size: 1.5rem;">🟢</span>
+            <h3 style="font-size: 1.05rem; font-weight: 800; color: #047857; margin: 0;">
+              คำตอบ: "ระบบนี้ไม่ผิดกฎหมาย และไม่ผิด พ.ร.บ. คอมพิวเตอร์"
+            </h3>
+          </div>
+          <p style="margin: 0; font-size: 0.8rem; color: #064E3B; line-height: 1.45;">
+            การรายงานตำแหน่งจุดตรวจหรือสภาพจราจรบนถนนสาธารณะ <strong>มีสถานะทางกฎหมายเช่นเดียวกับแอปพลิเคชันระดับโลก เช่น Google Maps, Waze, Apple Maps</strong> หรือเพจรายงานจราจร (จส.100, สวพ.91) เพราะด่านตรวจของเจ้าหน้าที่ตำรวจตามระเบียบสำนักงานตำรวจแห่งชาติ (สตช.) <strong>ต้องตั้งอย่างเปิดเผยในที่สาธารณะ มีป้ายไฟเตือนล่วงหน้า และมีกล้องบันทึก จึงไม่ใช่ "ความลับทางราชการ"</strong>
+          </p>
+        </div>
+
+        <!-- 3 Pillars Legal Analysis Table -->
+        <div style="border: 1px solid #E2E8F0; border-radius: 10px; overflow: hidden;">
+          <div style="background: #0F172A; color: #FFFFFF; padding: 0.65rem 0.95rem; font-weight: 800; font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>📜</span> <span>การพิจารณาตามข้อกฎหมายไทย 3 ฉบับหลัก</span>
+          </div>
+
+          <div style="padding: 0.85rem; display: flex; flex-direction: column; gap: 0.75rem; background: #FFFFFF;">
+            <!-- Pillar 1: Computer Crime Act -->
+            <div style="border-left: 3px solid #3B82F6; padding-left: 0.65rem;">
+              <strong style="color: #1E3A8A; font-size: 0.85rem;">1. พ.ร.บ. คอมพิวเตอร์ พ.ศ. 2550 (และแก้ไขเพิ่มเติม 2560)</strong>
+              <div style="font-size: 0.76rem; color: #475569; margin-top: 0.2rem;">
+                • <strong>ไม่กระทบความมั่นคง (ม.14(2)):</strong> ด่านตรวจวินัยจราจรรอบมหาวิทยาลัยเป็นข้อมูลสาธารณะ ไม่ใช่ยุทธการความมั่นคงลับระดับชาติ<br>
+                • <strong>ห้ามกุข่าว/ข้อมูลเท็จ (ม.14(1)):</strong> <u>ห้ามโพสต์แกล้งแจ้งด่านปลอม</u> ระบบมีระบบโหวตยืนยันความถูกต้องและแบนผู้ฝ่าฝืนทันที<br>
+                • <strong>ระบบระงับข้อมูล (ม.15 - Notice & Takedown):</strong> สมาชิกและแอดมินสามารถกดลบรายงานที่ไม่เหมาะสมได้แบบเรียลไทม์
+              </div>
+            </div>
+
+            <!-- Pillar 2: Criminal Code -->
+            <div style="border-left: 3px solid #F59E0B; padding-left: 0.65rem;">
+              <strong style="color: #92400E; font-size: 0.85rem;">2. ประมวลกฎหมายอาญา (มาตรา 86 - เรื่องผู้สนับสนุน)</strong>
+              <div style="font-size: 0.76rem; color: #475569; margin-top: 0.2rem;">
+                • การบอกตำแหน่งสถานที่ที่เกิดขึ้นใน <strong>"พื้นที่สาธารณะ (Public Space)"</strong> ให้ประชาชนทั่วไปทราบ ไม่ถือเป็นการช่วยผู้กระทำความผิดหลบหนี เพราะเป็นข้อเท็จจริงที่เห็นประจักษ์ได้ทั่วไป และไม่ได้เจาะจงช่วยเหลือผู้ต้องหาเฉพาะราย
+              </div>
+            </div>
+
+            <!-- Pillar 3: Traffic Act -->
+            <div style="border-left: 3px solid #10B981; padding-left: 0.65rem;">
+              <strong style="color: #065F46; font-size: 0.85rem;">3. พ.ร.บ. จราจรทางบก & วัตถุประสงค์เพื่อความปลอดภัย</strong>
+              <div style="font-size: 0.76rem; color: #475569; margin-top: 0.2rem;">
+                • แพลตฟอร์มนี้จัดทำขึ้นเพื่อ <strong>รณรงค์การขับขี่ปลอดภัย สวมหมวกนิรภัย 100% เมาไม่ขับ และการวางแผนหลีกเลี่ยงรถติด</strong> รอบ ม.มหาสารคาม โดยไม่สนับสนุนการกระทำผิดกฎหมายใดๆ
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Do's and Don'ts Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+          <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 0.65rem;">
+            <div style="font-weight: 800; color: #166534; font-size: 0.78rem; margin-bottom: 0.3rem;">
+              ✅ สิ่งที่ทำได้ (ถูกต้องตามกฎหมาย):
+            </div>
+            <ul style="margin: 0; padding-left: 1.1rem; font-size: 0.73rem; color: #15803D;">
+              <li>รายงานด่านตรวจหมวกนิรภัย/ใบขับขี่</li>
+              <li>รายงานสภาพรถติด น้ำท่วม อุบัติเหตุ</li>
+              <li>กดโหวต "👍 ยังอยู่" หรือ "🚀 ยกแล้ว"</li>
+              <li>เตือนเพื่อนนิสิตให้สวมหมวกนิรภัย</li>
+            </ul>
+          </div>
+
+          <div style="background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 0.65rem;">
+            <div style="font-weight: 800; color: #991B1B; font-size: 0.78rem; margin-bottom: 0.3rem;">
+              ❌ สิ่งที่ห้ามทำเด็ดขาด (ผิดกฎหมาย):
+            </div>
+            <ul style="margin: 0; padding-left: 1.1rem; font-size: 0.73rem; color: #B91C1C;">
+              <li>แกล้งโพสต์ด่านปลอม / ข้อมูลเท็จ</li>
+              <li>โพสต์ด่าทอ หมิ่นประมาทเจ้าหน้าที่</li>
+              <li>โพสต์ชักชวนทำผิดกฎหมายหรือแข่งรถ</li>
+              <li>ใช้บอทสแปมยิงถล่มระบบ (ผิด ม.10)</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Disclaimer Footer Note -->
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.65rem 0.85rem; font-size: 0.72rem; color: #64748B;">
+          <strong>ข้อปฏิเสธความรับผิดชอบ (Legal Disclaimer):</strong> ข้อมูลบนระบบเกิดจากการรายงานโดยผู้ใช้งาน (Crowdsourced Data) เพื่อเป็นประโยชน์สาธารณะ ผู้ขับขี่ทุกท่านมีหน้าที่ตามกฎหมายที่จะต้องปฏิบัติตามกฎจราจร พกใบอนุญาตขับขี่ สวมหมวกนิรภัย เมาไม่ขับ และปฏิบัติตามคำสั่งของเจ้าพนักงานจราจรอย่างเคร่งครัด
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="justify-content: space-between; align-items: center;">
+        <span style="font-size: 0.72rem; color: #64748B;">MSU Traffic Legal & Transparency Center</span>
+        <button type="button" class="btn btn-primary btn-sm" style="background: #047857;" onclick="window.app.closeLegalModal()">
+          <span>✓ เข้าใจข้อกฎหมายและปิดหน้าต่าง</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ความปลอดภัยและกันยิง (Enterprise WAF & Security Center) -->
+  <div class="modal-overlay" id="securityModal">
+    <div class="modal-container" style="max-width: 520px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🛡️</span>
+          <span>ศูนย์ความปลอดภัย WAF & ป้องกันการโจมตี</span>
+        </div>
+        <button class="modal-close-btn" onclick="window.app.closeSecurityModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="gap: 1rem;">
+        <!-- WAF Status Banner -->
+        <div style="background: linear-gradient(135deg, #0F172A, #1E293B); border: 1px solid #334155; border-radius: 10px; padding: 1rem; color: #FFFFFF;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="waf-pulse-dot" style="background: #10B981; box-shadow: 0 0 8px #10B981;"></span>
+              <span style="font-size: 0.78rem; font-weight: 800; color: #34D399; letter-spacing: 0.5px;">WAF ENGINE: ACTIVE</span>
+            </div>
+            <span style="font-size: 0.72rem; color: #94A3B8; font-family: monospace;">ENTERPRISE HIGH</span>
+          </div>
+
+          <div style="font-size: 0.82rem; color: #CBD5E1; line-height: 1.45;">
+            ระบบทำงานด้วย <strong>Multi-Tier Sliding Window Token Bucket</strong> เพื่อปกป้องเซิร์ฟเวอร์จากบอทเน็ต, สแปมคำขอ, และการโจมตีแบบ DDoS โดยไม่กระทบต่อผู้ใช้งานทั่วไป
+          </div>
+        </div>
+
+        <!-- Multi-Tier Rules Table -->
+        <div style="border: 1px solid #E2E8F0; border-radius: 10px; overflow: hidden; font-size: 0.78rem;">
+          <div style="background: #F8FAFC; padding: 0.6rem 0.85rem; font-weight: 700; color: #0F172A; border-bottom: 1px solid #E2E8F0; display: flex; align-items: center; gap: 0.35rem;">
+            <span>📋</span> <span>เกณฑ์การจำกัดความเร็วคำขอ (Multi-Tier Limits)</span>
+          </div>
+          
+          <div style="display: flex; flex-direction: column; divide-y: 1px solid #F1F5F9;">
+            <div style="padding: 0.55rem 0.85rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F1F5F9;">
+              <div>
+                <strong style="color: #1E293B;">Tier 1: การดูแผนที่ & อ่านฟีด (Read API)</strong><br>
+                <span style="font-size: 0.7rem; color: #64748B;">GET /api/reports, GET /api/zones</span>
+              </div>
+              <span style="font-weight: 700; color: #2563EB; font-family: monospace;">90 req/min</span>
+            </div>
+
+            <div style="padding: 0.55rem 0.85rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F1F5F9;">
+              <div>
+                <strong style="color: #1E293B;">Tier 2: รายงานด่าน & กดโหวต (Write API)</strong><br>
+                <span style="font-size: 0.7rem; color: #64748B;">POST /api/reports, POST /api/reports/:id/vote</span>
+              </div>
+              <span style="font-weight: 700; color: #D97706; font-family: monospace;">15 writes/min</span>
+            </div>
+
+            <div style="padding: 0.55rem 0.85rem; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong style="color: #1E293B;">Tier 3: ตรวจจับ Burst Attack (Anti-Flood)</strong><br>
+                <span style="font-size: 0.7rem; color: #64748B;">ยิงถี่เกิน 20 req/วินาที หรือยิงสแปมต่อเนื่อง</span>
+              </div>
+              <span style="font-weight: 700; color: #DC2626; font-family: monospace;">Auto Shield</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Graduated Penalty Explanation -->
+        <div style="background: #FEF3C7; border: 1px solid #FDE68A; border-radius: 8px; padding: 0.65rem 0.85rem; font-size: 0.75rem; color: #92400E; line-height: 1.45;">
+          <strong>มาตรการลงโทษตามระดับ (Graduated Escalation):</strong><br>
+          • ละเมิดครั้งที่ 1: Soft Throttle (15 วินาที)<br>
+          • ละเมิดซ้ำ: Cooldown (60 วินาที)<br>
+          • สแปมรุนแรง: Security Temporary Ban (300 วินาที)
+        </div>
+
+        <!-- Stress Testing Button -->
+        <div style="border-top: 1px solid #E2E8F0; padding-top: 0.75rem;">
+          <h4 style="font-size: 0.85rem; font-weight: 700; margin-bottom: 0.4rem; color: #0F172A;">ทดสอบการทำงานของระบบ WAF:</h4>
+          <p style="font-size: 0.74rem; color: #64748B; margin-bottom: 0.65rem;">
+            คุณสามารถทดลองกดปุ่มด้านล่างเพื่อจำลองการส่ง Traffic Burst จำนวน 30 Requests พร้อมกัน และดูหน้าจอ Enterprise Security Shield
+          </p>
+          <button class="btn btn-danger" style="width: 100%; font-size: 0.82rem; padding: 0.6rem;" onclick="window.rateLimitAlert.runBurstSimulation(30)">
+            <span>⚡ จำลองยิง Traffic Burst (30 Requests / วินาที)</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline btn-sm" onclick="window.app.closeSecurityModal()">ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.io Client -->
+  <script src="/socket.io/socket.io.js"></script>
+
+  <!-- Application Scripts -->
+  <script src="js/rateLimitAlert.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/rankManager.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/app.js"></script>
+
+  <script>
+    // Radio button selector effect for checkpoint types
+    document.querySelectorAll('.type-option-card').forEach(card => {
+      card.addEventListener('click', function() {
+        document.querySelectorAll('.type-option-card').forEach(c => c.classList.remove('selected'));
+        this.classList.add('selected');
+        const radio = this.querySelector('input[type="radio"]');
+        if (radio) radio.checked = true;
+      });
+    });
+
+    // Sound toggle helper
+    function toggleSound() {
+      if (window.app) {
+        window.app.soundEnabled = !window.app.soundEnabled;
+        const icon = document.getElementById('soundIcon');
+        if (icon) icon.textContent = window.app.soundEnabled ? '🔔' : '🔕';
+        window.app.showNotification(window.app.soundEnabled ? 'เปิดเสียงแจ้งเตือนแล้ว' : 'ปิดเสียงแจ้งเตือนแล้ว', 'info');
+      }
+    }
+
+    // Toggle Dark/Light Map Theme (mapcn)
+    function toggleMapTheme() {
+      if (window.mapManager) {
+        const theme = window.mapManager.toggleTheme();
+        const icon = document.getElementById('themeIcon');
+        if (icon) icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        if (window.app) {
+          window.app.showNotification(theme === 'dark' ? '🌙 เปลี่ยนเป็นแผนที่โหมดมืด (Dark Mode)' : '☀️ เปลี่ยนเป็นแผนที่โหมดสว่าง (Light Mode)', 'info');
+        }
+      }
+    }
+
+    // Toggle 3D Tilt View (mapcn)
+    function toggle3DView() {
+      if (window.mapManager) {
+        const is3D = window.mapManager.toggle3D();
+        const btn = document.getElementById('tiltToggleBtn');
+        if (btn) {
+          btn.style.background = is3D ? 'var(--primary)' : 'transparent';
+          btn.style.color = is3D ? '#FFFFFF' : 'var(--text-main)';
+        }
+        if (window.app) {
+          window.app.showNotification(is3D ? '📐 เปิดมุมมอง 3 มิติ (3D Tilt)' : '🗺️ กลับสู่มุมมอง 2 มิติปกติ', 'info');
+        }
+      }
+    }
+  </script>
+</body>
+</html>
