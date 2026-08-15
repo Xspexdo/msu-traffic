@@ -82,8 +82,7 @@ router.post('/google', (req, res) => {
   }
 });
 
-// 2. POST /api/auth/email-login - เข้าสู่ระบบด้วย Google Email โดยตรง (ใช้งานได้จริง 100%)
-router.post('/email-login', (req, res) => {
+const handleEmailLogin = (req, res) => {
   try {
     const { email, name } = req.body;
     if (!email || !email.includes('@')) {
@@ -120,6 +119,7 @@ router.post('/email-login', (req, res) => {
 
     res.json({
       success: true,
+      token: sessionToken,
       message: isDev ? '👑 เข้าสู่ระบบในฐานะ Developer สำเร็จแล้ว (สิทธิ์เต็ม)' : `ยินดีต้อนรับ ${displayName}`,
       user: user
     });
@@ -127,7 +127,10 @@ router.post('/email-login', (req, res) => {
     console.error('Email Login Error:', err);
     res.status(500).json({ success: false, error: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ' });
   }
-});
+};
+
+router.post('/email-login', handleEmailLogin);
+router.post('/email', handleEmailLogin);
 
 // 3. POST /api/auth/demo - เข้าสู่ระบบด่วน
 router.post('/demo', (req, res) => {

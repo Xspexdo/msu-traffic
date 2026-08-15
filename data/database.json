@@ -1,1124 +1,704 @@
 {
-  "reports": [
-    {
-      "id": "msu-rep-1786774518317-o5k2",
-      "title": "ด่านตรวจหมวกกันน็อก & ใบขับขี่",
-      "locationName": "สี่แยกบ้านขามเรียง",
-      "customLocation": "",
-      "campusZone": "มอใหม่ (ขามเรียง)",
-      "lat": 16.252,
-      "lng": 103.259,
-      "type": "helmet",
-      "direction": "ไม่ระบุฝั่งทาง",
-      "description": "ทดสอบการรับคะแนนชื่อเสียงจากการรายงานด่าน",
-      "imageUrl": null,
-      "severity": "medium",
-      "status": "active",
-      "reporter": {
-        "id": "student_rank_tester_1786774518316",
-        "name": "น้องนิสิตทดสอบยศ",
-        "email": "tester@msu.ac.th",
-        "picture": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60",
-        "isDev": false,
-        "role": "student",
-        "rank": {
-          "level": 2,
-          "key": "scout",
-          "name": "สายสืบ มมส",
-          "title": "Campus Scout",
-          "icon": "🥈",
-          "color": "#475569",
-          "badgeClass": "rank-silver",
-          "exp": 55,
-          "nextRank": "ผู้พิทักษ์ทางหลวง",
-          "pointsToNext": 95,
-          "progressPercent": 5
-        }
-      },
-      "createdAt": 1786774518317,
-      "updatedAt": 1786774518330,
-      "expiresAt": 1786785318317,
-      "votes": {
-        "up": [
-          "student_rank_tester_1786774518316",
-          "student_voter_1786774518319",
-          "helper_1_1786774518323",
-          "helper_2_1786774518326",
-          "helper_3_1786774518328"
-        ],
-        "down": []
-      }
-    },
-    {
-      "id": "msu-rep-1786774362214-5h4r",
-      "title": "ด่านตรวจหมวกกันน็อก & ใบขับขี่",
-      "locationName": "สี่แยกบ้านขามเรียง",
-      "customLocation": "",
-      "campusZone": "มอใหม่ (ขามเรียง)",
-      "lat": 16.252,
-      "lng": 103.259,
-      "type": "helmet",
-      "direction": "ไม่ระบุฝั่งทาง",
-      "description": "ทดสอบการรับคะแนนชื่อเสียงจากการรายงานด่าน",
-      "imageUrl": null,
-      "severity": "medium",
-      "status": "active",
-      "reporter": {
-        "id": "student_rank_tester_1786774362205",
-        "name": "น้องนิสิตทดสอบยศ",
-        "email": "tester@msu.ac.th",
-        "picture": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60",
-        "isDev": false,
-        "role": "student",
-        "rank": {
-          "level": 2,
-          "key": "scout",
-          "name": "สายสืบ มมส",
-          "title": "Campus Scout",
-          "icon": "🥈",
-          "color": "#475569",
-          "badgeClass": "rank-silver",
-          "exp": 55,
-          "nextRank": "ผู้พิทักษ์ทางหลวง",
-          "pointsToNext": 95,
-          "progressPercent": 5
-        }
-      },
-      "createdAt": 1786774362214,
-      "updatedAt": 1786774362233,
-      "expiresAt": 1786785162214,
-      "votes": {
-        "up": [
-          "student_rank_tester_1786774362205",
-          "student_voter_1786774362217",
-          "helper_1_1786774362222",
-          "helper_2_1786774362226",
-          "helper_3_1786774362230"
-        ],
-        "down": []
-      }
-    },
-    {
-      "id": "msu-rep-1786773942624-4vgn",
-      "title": "ด่านตรวจหมวกกันน็อก & ใบขับขี่",
-      "locationName": "สี่แยกบ้านขามเรียง",
-      "customLocation": "",
-      "campusZone": "มอใหม่ (ขามเรียง)",
-      "lat": 16.252,
-      "lng": 103.259,
-      "type": "helmet",
-      "direction": "ไม่ระบุฝั่งทาง",
-      "description": "ทดสอบการรับคะแนนชื่อเสียงจากการรายงานด่าน",
-      "imageUrl": null,
-      "severity": "medium",
-      "status": "active",
-      "reporter": {
-        "id": "student_rank_tester_1786773942615",
-        "name": "น้องนิสิตทดสอบยศ",
-        "email": "tester@msu.ac.th",
-        "picture": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60",
-        "isDev": false,
-        "role": "student",
-        "rank": {
-          "level": 2,
-          "key": "scout",
-          "name": "สายสืบ มมส",
-          "title": "Campus Scout",
-          "icon": "🥈",
-          "color": "#475569",
-          "badgeClass": "rank-silver",
-          "exp": 55,
-          "nextRank": "ผู้พิทักษ์ทางหลวง",
-          "pointsToNext": 95,
-          "progressPercent": 5
-        }
-      },
-      "createdAt": 1786773942624,
-      "updatedAt": 1786773942638,
-      "expiresAt": 1786784742624,
-      "votes": {
-        "up": [
-          "student_rank_tester_1786773942615",
-          "student_voter_1786773942627",
-          "helper_1_1786773942630",
-          "helper_2_1786773942634",
-          "helper_3_1786773942637"
-        ],
-        "down": []
-      }
-    },
-    {
-      "id": "msu-rep-1786773817658-o5gz",
-      "title": "ด่านตรวจหมวกกันน็อก & ใบขับขี่",
-      "locationName": "สี่แยกบ้านขามเรียง",
-      "customLocation": "",
-      "campusZone": "มอใหม่ (ขามเรียง)",
-      "lat": 16.252,
-      "lng": 103.259,
-      "type": "helmet",
-      "direction": "ไม่ระบุฝั่งทาง",
-      "description": "ทดสอบการรับคะแนนชื่อเสียงจากการรายงานด่าน",
-      "imageUrl": null,
-      "severity": "medium",
-      "status": "active",
-      "reporter": {
-        "id": "student_rank_tester_1786773817657",
-        "name": "น้องนิสิตทดสอบยศ",
-        "email": "tester@msu.ac.th",
-        "picture": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60",
-        "isDev": false,
-        "role": "student",
-        "rank": {
-          "level": 2,
-          "key": "scout",
-          "name": "สายสืบ มมส",
-          "title": "Campus Scout",
-          "icon": "🥈",
-          "color": "#475569",
-          "badgeClass": "rank-silver",
-          "exp": 55,
-          "nextRank": "ผู้พิทักษ์ทางหลวง",
-          "pointsToNext": 95,
-          "progressPercent": 5
-        }
-      },
-      "createdAt": 1786773817658,
-      "updatedAt": 1786773817672,
-      "expiresAt": 1786784617658,
-      "votes": {
-        "up": [
-          "student_rank_tester_1786773817657",
-          "student_voter_1786773817660",
-          "helper_1_1786773817663",
-          "helper_2_1786773817666",
-          "helper_3_1786773817670"
-        ],
-        "down": []
-      }
-    },
-    {
-      "id": "msu-rep-1786773810112-o4yl",
-      "title": "ด่านตรวจหมวกกันน็อก & ใบขับขี่",
-      "locationName": "สี่แยกบ้านขามเรียง",
-      "customLocation": "",
-      "campusZone": "มอใหม่ (ขามเรียง)",
-      "lat": 16.252,
-      "lng": 103.259,
-      "type": "helmet",
-      "direction": "ไม่ระบุฝั่งทาง",
-      "description": "ทดสอบการรับคะแนนชื่อเสียงจากการรายงานด่าน",
-      "imageUrl": null,
-      "severity": "medium",
-      "status": "active",
-      "reporter": {
-        "id": "student_rank_tester_1786773810103",
-        "name": "น้องนิสิตทดสอบยศ",
-        "email": "tester@msu.ac.th",
-        "picture": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60",
-        "isDev": false,
-        "role": "student",
-        "rank": {
-          "level": 1,
-          "key": "novice",
-          "name": "ผู้สัญจรมือใหม่",
-          "title": "Novice Scout",
-          "icon": "🥉",
-          "color": "#B45309",
-          "badgeClass": "rank-bronze",
-          "exp": 45,
-          "nextRank": "สายสืบ มมส",
-          "pointsToNext": 5,
-          "progressPercent": 90
-        }
-      },
-      "createdAt": 1786773810112,
-      "updatedAt": 1786773810125,
-      "expiresAt": 1786784610112,
-      "votes": {
-        "up": [
-          "student_rank_tester_1786773810103",
-          "student_voter_1786773810115",
-          "helper_1_1786773810119",
-          "helper_2_1786773810123"
-        ],
-        "down": []
-      }
-    },
-    {
-      "id": "msu-rep-1786773404581-ldx8",
-      "title": "ด่านตรวจวัดแอลกอฮอล์ (เป่าแอล)",
-      "locationName": "พิกัดที่ระบุบนแผนที่ มมส",
-      "customLocation": "",
-      "campusZone": "มอใหม่ (ขามเรียง)",
-      "lat": 16.24397151769513,
-      "lng": 103.25024127960206,
-      "type": "alcohol",
-      "direction": "ไม่ระบุฝั่งทาง",
-      "description": "",
-      "imageUrl": null,
-      "severity": "medium",
-      "status": "active",
-      "reporter": {
-        "id": "user_f1473a7e",
-        "name": "นิสิต มมส",
-        "email": "student_799@msu.ac.th",
-        "picture": "https://www.gravatar.com/avatar/613945d8e4ab60ffecf8b929498bca72?d=identicon&s=120",
-        "isDev": false,
-        "role": "student",
-        "rank": {
-          "level": 1,
-          "key": "novice",
-          "name": "ผู้สัญจรมือใหม่",
-          "title": "Novice Scout",
-          "icon": "🥉",
-          "color": "#B45309",
-          "badgeClass": "rank-bronze",
-          "exp": 0,
-          "nextRank": "สายสืบ มมส",
-          "pointsToNext": 50,
-          "progressPercent": 0
-        }
-      },
-      "createdAt": 1786773404581,
-      "updatedAt": 1786774103745,
-      "expiresAt": 1786784204581,
-      "votes": {
-        "up": [
-          "user_f1473a7e"
-        ],
-        "down": []
-      }
-    },
-    {
-      "id": "msu-rep-1786773385101-o6d4",
-      "title": "ด่านตรวจหมวกกันน็อก & ใบขับขี่",
-      "locationName": "พิกัดที่ระบุบนแผนที่ มมส",
-      "customLocation": "",
-      "campusZone": "มอใหม่ (ขามเรียง)",
-      "lat": 16.248872,
-      "lng": 103.255284,
-      "type": "helmet",
-      "direction": "ไม่ระบุฝั่งทาง",
-      "description": "",
-      "imageUrl": null,
-      "severity": "high",
-      "status": "active",
-      "reporter": {
-        "id": "google_115342561436087553952",
-        "name": "Java (Dev)",
-        "email": "java5263@gmail.com",
-        "picture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
-        "isDev": true,
-        "role": "dev",
-        "rank": {
-          "level": 99,
-          "key": "dev",
-          "name": "Developer / ผู้พัฒนาระบบ",
-          "title": "System Creator",
-          "icon": "👑",
-          "color": "#F59E0B",
-          "badgeClass": "rank-dev",
-          "exp": 1580,
-          "nextRank": null,
-          "pointsToNext": 0,
-          "progressPercent": 100
-        }
-      },
-      "createdAt": 1786773385101,
-      "updatedAt": 1786773385101,
-      "expiresAt": 1786784185101,
-      "votes": {
-        "up": [
-          "google_115342561436087553952"
-        ],
-        "down": []
-      }
-    },
-    {
-      "id": "msu-rep-1786773060777-fayu",
-      "title": "ด่านตรวจหมวกกันน็อก & ใบขับขี่",
-      "locationName": "วงเวียน",
-      "customLocation": "วงเวียน",
-      "campusZone": "มอใหม่ (ขามเรียง)",
-      "lat": 16.24120841927465,
-      "lng": 103.25410366058351,
-      "type": "helmet",
-      "direction": "ไม่ระบุฝั่งทาง",
-      "description": "",
-      "imageUrl": null,
-      "severity": "medium",
-      "status": "active",
-      "reporter": {
-        "id": "user_50b86e6b",
-        "name": "นิสิต มมส",
-        "email": "student_816@msu.ac.th",
-        "picture": "https://www.gravatar.com/avatar/2a08022221c4314e702cc49f7e839875?d=identicon&s=120",
-        "isDev": false,
-        "role": "student",
-        "rank": {
-          "level": 1,
-          "key": "novice",
-          "name": "ผู้สัญจรมือใหม่",
-          "title": "Novice Scout",
-          "icon": "🥉",
-          "color": "#B45309",
-          "badgeClass": "rank-bronze",
-          "exp": 0,
-          "nextRank": "สายสืบ มมส",
-          "pointsToNext": 50,
-          "progressPercent": 0
-        }
-      },
-      "createdAt": 1786773060777,
-      "updatedAt": 1786773275969,
-      "expiresAt": 1786783860777,
-      "votes": {
-        "up": [
-          "user_50b86e6b"
-        ],
-        "down": []
-      }
-    },
-    {
-      "id": "msu-rep-1786772893182-ae1f",
-      "title": "ด่านตรวจวัดแอลกอฮอล์ (เป่าแอล)",
-      "locationName": "สะพานข้ามคลองท่าขอนยาง (สะพานดำ)",
-      "customLocation": "",
-      "campusZone": "ท่าขอนยาง (รอบมอใหม่)",
-      "lat": 16.238,
-      "lng": 103.254,
-      "type": "alcohol",
-      "direction": "ฝั่งมุ่งหน้าท่าขอนยาง",
-      "description": "ทดสอบรายงานจุดตรวจเป่าแอลกอฮอล์",
-      "imageUrl": null,
-      "severity": "medium",
-      "status": "active",
-      "reporter": {
-        "id": "student-test-01",
-        "name": "นิสิตทดสอบ มมส",
-        "email": "test_msu@msu.ac.th",
-        "picture": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60",
-        "isDev": false,
-        "role": "student",
-        "rank": {
-          "level": 1,
-          "key": "novice",
-          "name": "ผู้สัญจรมือใหม่",
-          "title": "Novice Scout",
-          "icon": "🥉",
-          "color": "#B45309",
-          "badgeClass": "rank-bronze",
-          "exp": 0,
-          "nextRank": "สายสืบ มมส",
-          "pointsToNext": 50,
-          "progressPercent": 0
-        }
-      },
-      "createdAt": 1786772893182,
-      "updatedAt": 1786772893186,
-      "expiresAt": 1786783693182,
-      "votes": {
-        "up": [
-          "student-test-01"
-        ],
-        "down": []
-      }
-    },
-    {
-      "id": "msu-rep-1786772138837-tsw9",
-      "title": "ด่านตรวจวัดแอลกอฮอล์ (เป่าแอล)",
-      "locationName": "สะพานข้ามคลองท่าขอนยาง (สะพานดำ)",
-      "customLocation": "",
-      "campusZone": "ท่าขอนยาง (รอบมอใหม่)",
-      "lat": 16.238,
-      "lng": 103.254,
-      "type": "alcohol",
-      "direction": "ฝั่งมุ่งหน้าท่าขอนยาง",
-      "description": "ทดสอบรายงานจุดตรวจเป่าแอลกอฮอล์",
-      "imageUrl": null,
-      "severity": "medium",
-      "status": "active",
-      "reporter": {
-        "id": "student-test-01",
-        "name": "นิสิตทดสอบ มมส",
-        "email": "test_msu@msu.ac.th",
-        "picture": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60",
-        "rank": {
-          "level": 1,
-          "key": "novice",
-          "name": "ผู้สัญจรมือใหม่",
-          "title": "Novice Scout",
-          "icon": "🥉",
-          "color": "#B45309",
-          "badgeClass": "rank-bronze",
-          "exp": 0,
-          "nextRank": "สายสืบ มมส",
-          "pointsToNext": 50,
-          "progressPercent": 0
-        }
-      },
-      "createdAt": 1786772138837,
-      "updatedAt": 1786772138840,
-      "expiresAt": 1786782938837,
-      "votes": {
-        "up": [
-          "student-test-01"
-        ],
-        "down": []
-      }
-    },
-    {
-      "id": "msu-rep-1786771865818-mmul",
-      "title": "ด่านตรวจวัดแอลกอฮอล์ (เป่าแอล)",
-      "locationName": "สะพานข้ามคลองท่าขอนยาง (สะพานดำ)",
-      "customLocation": "",
-      "campusZone": "ท่าขอนยาง (รอบมอใหม่)",
-      "lat": 16.238,
-      "lng": 103.254,
-      "type": "alcohol",
-      "direction": "ฝั่งมุ่งหน้าท่าขอนยาง",
-      "description": "ทดสอบรายงานจุดตรวจเป่าแอลกอฮอล์",
-      "imageUrl": null,
-      "severity": "medium",
-      "status": "active",
-      "reporter": {
-        "id": "student-test-01",
-        "name": "นิสิตทดสอบ มมส",
-        "email": "test_msu@msu.ac.th",
-        "picture": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60",
-        "rank": {
-          "level": 1,
-          "key": "novice",
-          "name": "ผู้สัญจรมือใหม่",
-          "title": "Novice Scout",
-          "icon": "🥉",
-          "color": "#B45309",
-          "badgeClass": "rank-bronze",
-          "exp": 0,
-          "nextRank": "สายสืบ มมส",
-          "pointsToNext": 50,
-          "progressPercent": 0
-        }
-      },
-      "createdAt": 1786771865818,
-      "updatedAt": 1786771865821,
-      "expiresAt": 1786782665818,
-      "votes": {
-        "up": [
-          "student-test-01"
-        ],
-        "down": []
-      }
-    },
-    {
-      "id": "msu-rep-001",
-      "title": "ด่านตรวจหมวกกันน็อกและใบขับขี่",
-      "locationName": "หน้าป้าย มมส (มอใหม่ ขามเรียง)",
-      "customLocation": "",
-      "campusZone": "มอใหม่ (ขามเรียง)",
-      "lat": 16.2467,
-      "lng": 103.252,
-      "type": "helmet",
-      "direction": "ฝั่งขาเข้ามอใหม่ (มุ่งหน้าคณะวิทยาศาสตร์)",
-      "description": "เจ้าหน้าที่ตำรวจ สภ.เขวาใหญ่ ตั้งด่านตรวจหมวกกันน็อกและใบขับขี่ สวมหมวกกันน็อกและพกใบขับขี่ด้วยครับ",
-      "severity": "high",
-      "status": "active",
-      "reporter": {
-        "id": "user-google-101",
-        "name": "นิสิต มมส (สารคาม)",
-        "email": "msu_student@msu.ac.th",
-        "picture": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=60",
-        "rank": {
-          "level": 4,
-          "key": "veteran",
-          "name": "ยอดสายตรวจขามเรียง",
-          "title": "Khamriang Veteran",
-          "icon": "💎",
-          "color": "#2563EB",
-          "badgeClass": "rank-diamond",
-          "exp": 420,
-          "nextRank": "ตำนานมีด่านบอกด้วย",
-          "pointsToNext": 330,
-          "progressPercent": 18
-        }
-      },
-      "createdAt": 1786770354517,
-      "updatedAt": 1786770354517,
-      "expiresAt": 1786780854517,
-      "votes": {
-        "up": [
-          "user-002",
-          "user-003",
-          "user-004",
-          "user-005",
-          "user-006"
-        ],
-        "down": []
-      }
-    },
-    {
-      "id": "msu-rep-002",
-      "title": "ด่านตรวจความมั่นคง / รถแต่งท่อดัง",
-      "locationName": "สามแยกไฟแดงท่าขอนยาง",
-      "customLocation": "",
-      "campusZone": "ท่าขอนยาง (รอบมอใหม่)",
-      "lat": 16.2365,
-      "lng": 103.2562,
-      "type": "security",
-      "direction": "ฝั่งมุ่งหน้าข้ามสะพานเข้ามอใหม่",
-      "description": "มีเจ้าหน้าที่เรียกตรวจป้ายทะเบียน และอุปกรณ์ส่วนควบรถมอเตอร์ไซค์",
-      "severity": "medium",
-      "status": "active",
-      "reporter": {
-        "id": "user-google-102",
-        "name": "เด็กท่าขอนยาง",
-        "email": "takhonyang_rider@gmail.com",
-        "picture": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=60",
-        "rank": {
-          "level": 3,
-          "key": "warden",
-          "name": "ผู้พิทักษ์ทางหลวง",
-          "title": "Traffic Warden",
-          "icon": "🥇",
-          "color": "#D97706",
-          "badgeClass": "rank-gold",
-          "exp": 230,
-          "nextRank": "ยอดสายตรวจขามเรียง",
-          "pointsToNext": 120,
-          "progressPercent": 40
-        }
-      },
-      "createdAt": 1786768854517,
-      "updatedAt": 1786768854517,
-      "expiresAt": 1786779054517,
-      "votes": {
-        "up": [
-          "user-001",
-          "user-007",
-          "user-008"
-        ],
-        "down": []
-      }
-    },
-    {
-      "id": "msu-rep-003",
-      "title": "รถติดสะสมช่วงเลิกเรียน",
-      "locationName": "ถนนหลังมอ / โค้งเซเว่นคลองถม",
-      "customLocation": "",
-      "campusZone": "มอใหม่ (ขามเรียง)",
-      "lat": 16.247297733808562,
-      "lng": 103.24499487876894,
-      "type": "traffic",
-      "direction": "ทั้งสองฝั่งทาง",
-      "description": "มีรถส่งของจอดขวางและการจราจรหนาแน่น เคลื่อนตัวช้ามาก",
-      "severity": "low",
-      "status": "active",
-      "reporter": {
-        "id": "user-google-103",
-        "name": "Napat Dev",
-        "email": "napat.msu@gmail.com",
-        "picture": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=60",
-        "rank": {
-          "level": 2,
-          "key": "scout",
-          "name": "สายสืบ มมส",
-          "title": "Campus Scout",
-          "icon": "🥈",
-          "color": "#475569",
-          "badgeClass": "rank-silver",
-          "exp": 95,
-          "nextRank": "ผู้พิทักษ์ทางหลวง",
-          "pointsToNext": 55,
-          "progressPercent": 45
-        }
-      },
-      "createdAt": 1786770954517,
-      "updatedAt": 1786773294324,
-      "expiresAt": 1786777254517,
-      "votes": {
-        "up": [
-          "user-009"
-        ],
-        "down": []
-      }
-    },
-    {
-      "id": "msu-rep-004",
-      "title": "ด่านตรวจวินัยจราจรและตรวจวัดแอลกอฮอล์",
-      "locationName": "หน้าป้าย มมส (มอเก่า ในเมือง)",
-      "customLocation": "",
-      "campusZone": "มอเก่า (ในเมือง)",
-      "lat": 16.1868,
-      "lng": 103.2982,
-      "type": "alcohol",
-      "direction": "ฝั่งขาเข้าตัวเมืองมหาสารคาม",
-      "description": "ตรวจวัดแอลกอฮอล์และใบขับขี่ช่วงค่ำ เจ้าหน้าที่ประมาณ 6 นาย",
-      "severity": "high",
-      "status": "expired",
-      "reporter": {
-        "id": "user-google-104",
-        "name": "Maha Sarakham Live",
-        "email": "msulive@gmail.com",
-        "picture": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=60",
-        "rank": {
-          "level": 5,
-          "key": "legend",
-          "name": "ตำนานมีด่านบอกด้วย",
-          "title": "MSU Legend",
-          "icon": "👑",
-          "color": "#7C3AED",
-          "badgeClass": "rank-legend",
-          "exp": 840,
-          "nextRank": null,
-          "pointsToNext": 0,
-          "progressPercent": 100
-        }
-      },
-      "createdAt": 1786767054517,
-      "updatedAt": 1786767054517,
-      "expiresAt": 1786775454517,
-      "votes": {
-        "up": [
-          "user-010",
-          "user-011",
-          "user-012"
-        ],
-        "down": [
-          "user-013"
-        ]
-      }
-    }
-  ],
-  "bans": [],
-  "userStats": {
+  "season": 1,
+  "seasonName": "Season 1: ปฐมบทชาว มมส",
+  "seasonStart": 1786777538446,
+  "weekNumber": 1,
+  "weekStart": 1786777538446,
+  "weekEnd": 1787382338446,
+  "users": {
     "dev_java5263": {
       "id": "dev_java5263",
-      "name": "Java (Lead Dev)",
       "email": "java5263@gmail.com",
-      "picture": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80",
-      "isDev": true,
-      "exp": 1595,
-      "reportsCount": 43,
-      "upvotesReceived": 128,
-      "helpfulVotesGiven": 85,
-      "accuracyRate": 98,
-      "lastActive": 1786773819730
-    },
-    "user-google-104": {
-      "id": "user-google-104",
-      "name": "Maha Sarakham Live",
-      "email": "msulive@gmail.com",
-      "picture": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=60",
-      "isDev": false,
-      "exp": 840,
-      "reportsCount": 28,
-      "upvotesReceived": 76,
-      "helpfulVotesGiven": 45,
-      "accuracyRate": 96,
-      "lastActive": 1786770106531
-    },
-    "user-google-101": {
-      "id": "user-google-101",
-      "name": "นิสิต มมส (สารคาม)",
-      "email": "msu_student@msu.ac.th",
-      "picture": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=60",
-      "isDev": false,
-      "exp": 420,
-      "reportsCount": 15,
-      "upvotesReceived": 38,
-      "helpfulVotesGiven": 22,
-      "accuracyRate": 94,
-      "lastActive": 1786766506531
-    },
-    "user-google-102": {
-      "id": "user-google-102",
-      "name": "เด็กท่าขอนยาง",
-      "email": "takhonyang_rider@gmail.com",
-      "picture": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=60",
-      "isDev": false,
-      "exp": 230,
-      "reportsCount": 8,
-      "upvotesReceived": 21,
-      "helpfulVotesGiven": 14,
-      "accuracyRate": 91,
-      "lastActive": 1786759306531
-    },
-    "user-google-103": {
-      "id": "user-google-103",
-      "name": "Napat Dev",
-      "email": "napat.msu@gmail.com",
-      "picture": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=60",
-      "isDev": false,
-      "exp": 95,
-      "reportsCount": 4,
-      "upvotesReceived": 10,
-      "helpfulVotesGiven": 8,
-      "accuracyRate": 90,
-      "lastActive": 1786744906531
-    },
-    "user_f1473a7e": {
-      "id": "user_f1473a7e",
-      "name": "นิสิต มมส",
-      "email": "student_799@msu.ac.th",
-      "picture": "https://www.gravatar.com/avatar/613945d8e4ab60ffecf8b929498bca72?d=identicon&s=120",
-      "isDev": false,
-      "exp": 0,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 0,
-      "accuracyRate": 100,
-      "lastActive": 1786773714876
-    },
-    "google_115342561436087553952": {
-      "id": "google_115342561436087553952",
       "name": "Java (Dev)",
-      "email": "java5263@gmail.com",
       "picture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
+      "role": "dev",
+      "badge": "👑 DEV",
+      "trustScore": 100,
+      "weeklyScore": 0,
+      "allTimeScore": 0,
+      "pinsCreated": 0,
+      "pinsVerified": 0,
+      "reportsCount": 0,
+      "accurateReports": 0,
+      "isMsuStudent": true,
       "isDev": true,
-      "exp": 1580,
+      "status": "active",
+      "createdAt": 1786777538446,
+      "lastActiveAt": 1786786310691
+    },
+    "google_108560811899542656924": {
+      "id": "google_108560811899542656924",
+      "email": "69010371002@msu.ac.th",
+      "name": "ธนพล สิมสา",
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocIOP2BiauWSF29LJrtUqju4FvEHZ725uEdr0JJXR41HLGTgHNU=s96-c",
+      "role": "student",
+      "badge": "🎓 MSU",
+      "trustScore": 100,
+      "weeklyScore": 0,
+      "allTimeScore": 0,
+      "pinsCreated": 0,
+      "pinsVerified": 0,
       "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 0,
-      "accuracyRate": 100,
-      "lastActive": 1786773714877
-    },
-    "user_50b86e6b": {
-      "id": "user_50b86e6b",
-      "name": "นิสิต มมส",
-      "email": "student_816@msu.ac.th",
-      "picture": "https://www.gravatar.com/avatar/2a08022221c4314e702cc49f7e839875?d=identicon&s=120",
+      "accurateReports": 0,
+      "isMsuStudent": true,
       "isDev": false,
-      "exp": 0,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 0,
-      "accuracyRate": 100,
-      "lastActive": 1786773714877
-    },
-    "student-test-01": {
-      "id": "student-test-01",
-      "name": "นิสิตทดสอบ มมส",
-      "email": "test_msu@msu.ac.th",
-      "picture": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60",
-      "isDev": false,
-      "exp": 0,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 0,
-      "accuracyRate": 100,
-      "lastActive": 1786773714877
-    },
-    "student_rank_tester_1786773810103": {
-      "id": "student_rank_tester_1786773810103",
-      "name": "น้องนิสิตทดสอบยศ",
-      "email": "tester@msu.ac.th",
-      "picture": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60",
-      "isDev": false,
-      "exp": 45,
-      "reportsCount": 1,
-      "upvotesReceived": 3,
-      "helpfulVotesGiven": 0,
-      "accuracyRate": 100,
-      "lastActive": 1786773810124
-    },
-    "student_voter_1786773810115": {
-      "id": "student_voter_1786773810115",
-      "name": "เพื่อนนิสิตร่วมโหวต",
-      "email": "voter@msu.ac.th",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786773810117
-    },
-    "helper_1_1786773810119": {
-      "id": "helper_1_1786773810119",
-      "name": "ผู้ช่วยโหวต 1",
-      "email": "",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786773810121
-    },
-    "helper_2_1786773810123": {
-      "id": "helper_2_1786773810123",
-      "name": "ผู้ช่วยโหวต 2",
-      "email": "",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786773810124
-    },
-    "student_rank_tester_1786773817657": {
-      "id": "student_rank_tester_1786773817657",
-      "name": "น้องนิสิตทดสอบยศ",
-      "email": "tester@msu.ac.th",
-      "picture": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60",
-      "isDev": false,
-      "exp": 55,
-      "reportsCount": 1,
-      "upvotesReceived": 4,
-      "helpfulVotesGiven": 0,
-      "accuracyRate": 100,
-      "lastActive": 1786773817671
-    },
-    "student_voter_1786773817660": {
-      "id": "student_voter_1786773817660",
-      "name": "เพื่อนนิสิตร่วมโหวต",
-      "email": "voter@msu.ac.th",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786773817661
-    },
-    "helper_1_1786773817663": {
-      "id": "helper_1_1786773817663",
-      "name": "ผู้ช่วยโหวต 1",
-      "email": "",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786773817665
-    },
-    "helper_2_1786773817666": {
-      "id": "helper_2_1786773817666",
-      "name": "ผู้ช่วยโหวต 2",
-      "email": "",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786773817668
-    },
-    "helper_3_1786773817670": {
-      "id": "helper_3_1786773817670",
-      "name": "ผู้ช่วยโหวต 3",
-      "email": "",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786773817671
-    },
-    "student_rank_tester_1786773942615": {
-      "id": "student_rank_tester_1786773942615",
-      "name": "น้องนิสิตทดสอบยศ",
-      "email": "tester@msu.ac.th",
-      "picture": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60",
-      "isDev": false,
-      "exp": 55,
-      "reportsCount": 1,
-      "upvotesReceived": 4,
-      "helpfulVotesGiven": 0,
-      "accuracyRate": 100,
-      "lastActive": 1786773942638
-    },
-    "student_voter_1786773942627": {
-      "id": "student_voter_1786773942627",
-      "name": "เพื่อนนิสิตร่วมโหวต",
-      "email": "voter@msu.ac.th",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786773942628
-    },
-    "helper_1_1786773942630": {
-      "id": "helper_1_1786773942630",
-      "name": "ผู้ช่วยโหวต 1",
-      "email": "",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786773942631
-    },
-    "helper_2_1786773942634": {
-      "id": "helper_2_1786773942634",
-      "name": "ผู้ช่วยโหวต 2",
-      "email": "",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786773942635
-    },
-    "helper_3_1786773942637": {
-      "id": "helper_3_1786773942637",
-      "name": "ผู้ช่วยโหวต 3",
-      "email": "",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786773942638
-    },
-    "student_rank_tester_1786774362205": {
-      "id": "student_rank_tester_1786774362205",
-      "name": "น้องนิสิตทดสอบยศ",
-      "email": "tester@msu.ac.th",
-      "picture": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60",
-      "isDev": false,
-      "exp": 55,
-      "reportsCount": 1,
-      "upvotesReceived": 4,
-      "helpfulVotesGiven": 0,
-      "accuracyRate": 100,
-      "lastActive": 1786774362231
-    },
-    "student_voter_1786774362217": {
-      "id": "student_voter_1786774362217",
-      "name": "เพื่อนนิสิตร่วมโหวต",
-      "email": "voter@msu.ac.th",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786774362219
-    },
-    "helper_1_1786774362222": {
-      "id": "helper_1_1786774362222",
-      "name": "ผู้ช่วยโหวต 1",
-      "email": "",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786774362223
-    },
-    "helper_2_1786774362226": {
-      "id": "helper_2_1786774362226",
-      "name": "ผู้ช่วยโหวต 2",
-      "email": "",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786774362227
-    },
-    "helper_3_1786774362230": {
-      "id": "helper_3_1786774362230",
-      "name": "ผู้ช่วยโหวต 3",
-      "email": "",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786774362232
-    },
-    "student_rank_tester_1786774518316": {
-      "id": "student_rank_tester_1786774518316",
-      "name": "น้องนิสิตทดสอบยศ",
-      "email": "tester@msu.ac.th",
-      "picture": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60",
-      "isDev": false,
-      "exp": 55,
-      "reportsCount": 1,
-      "upvotesReceived": 4,
-      "helpfulVotesGiven": 0,
-      "accuracyRate": 100,
-      "lastActive": 1786774518329
-    },
-    "student_voter_1786774518319": {
-      "id": "student_voter_1786774518319",
-      "name": "เพื่อนนิสิตร่วมโหวต",
-      "email": "voter@msu.ac.th",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786774518321
-    },
-    "helper_1_1786774518323": {
-      "id": "helper_1_1786774518323",
-      "name": "ผู้ช่วยโหวต 1",
-      "email": "",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786774518324
-    },
-    "helper_2_1786774518326": {
-      "id": "helper_2_1786774518326",
-      "name": "ผู้ช่วยโหวต 2",
-      "email": "",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786774518327
-    },
-    "helper_3_1786774518328": {
-      "id": "helper_3_1786774518328",
-      "name": "ผู้ช่วยโหวต 3",
-      "email": "",
-      "picture": null,
-      "isDev": false,
-      "exp": 2,
-      "reportsCount": 0,
-      "upvotesReceived": 0,
-      "helpfulVotesGiven": 1,
-      "accuracyRate": 100,
-      "lastActive": 1786774518329
+      "status": "active",
+      "createdAt": 1786777583917,
+      "lastActiveAt": 1786780803530
     }
-  }
+  },
+  "pins": [
+    {
+      "id": "pin-1786784656974-jksgb",
+      "title": "รายงานด่าน หน้า มมส",
+      "locationName": "หน้า มมส",
+      "customLocation": "",
+      "campusZone": "มอใหม่ (ขามเรียง)",
+      "lat": 16.2468,
+      "lng": 103.252,
+      "type": "helmet",
+      "direction": "ขาเข้า",
+      "description": "ทดสอบ",
+      "imageUrl": null,
+      "severity": "medium",
+      "isAnonymous": false,
+      "isAnnouncement": false,
+      "reporterId": "test_user_1",
+      "reporter": {
+        "id": "test_user_1",
+        "name": "Tester",
+        "email": "test@msu.ac.th",
+        "isDev": false,
+        "isMsuStudent": true,
+        "isAnonymous": false,
+        "isAnnouncement": false,
+        "badge": "🎓 MSU",
+        "role": "student"
+      },
+      "likes": [],
+      "views": 1,
+      "votes": {
+        "up": [
+          "test_user_1"
+        ],
+        "down": []
+      },
+      "reports": [],
+      "status": "deleted",
+      "moveCount": 0,
+      "createdAt": 1786784656974,
+      "expiresAt": 1786806256974
+    },
+    {
+      "id": "pin-1786784113326-v854q",
+      "title": "รายงานด่าน Pin Tester Systems MSU Traffic",
+      "locationName": "Pin Tester Systems MSU Traffic",
+      "customLocation": "Pin Tester Systems MSU Traffic",
+      "campusZone": "มอใหม่ (ขามเรียง)",
+      "lat": 16.24552171001964,
+      "lng": 103.25034588575365,
+      "type": "accident",
+      "direction": "ไม่ระบุฝั่งทาง",
+      "description": "เป็นเพียงหมุด ปัก เพื่อเทส ระบบ MSU Traffic",
+      "imageUrl": null,
+      "severity": "high",
+      "isAnonymous": false,
+      "isAnnouncement": true,
+      "reporterId": "dev_java5263",
+      "reporter": {
+        "id": "dev_java5263",
+        "name": "MSU Traffic",
+        "email": "java5263@gmail.com",
+        "picture": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=120&auto=format&fit=crop&q=80",
+        "isDev": true,
+        "isMsuStudent": false,
+        "isAnonymous": false,
+        "isAnnouncement": true,
+        "badge": "📢 MSU Traffic",
+        "role": "dev",
+        "isOfficial": true
+      },
+      "likes": [],
+      "views": 1,
+      "votes": {
+        "up": [
+          "dev_java5263"
+        ],
+        "down": []
+      },
+      "reports": [],
+      "status": "active",
+      "moveCount": 0,
+      "createdAt": 1786784113326,
+      "expiresAt": 1786805713326
+    }
+  ],
+  "pin_reports": [],
+  "pin_likes": [],
+  "chat_rooms": [
+    {
+      "id": "general",
+      "name": "ทั่วไป (General)",
+      "icon": "💬",
+      "desc": "พูดคุยแลกเปลี่ยนข่าวสารทั่วไปรอบ มมส",
+      "msgCount": 0
+    },
+    {
+      "id": "marketplace",
+      "name": "ซื้อ-ขาย (Market)",
+      "icon": "🛍️",
+      "desc": "ส่งต่อของใช้ หนังสือ หอพัก อุปกรณ์การเรียน",
+      "msgCount": 0,
+      "enabled": true
+    },
+    {
+      "id": "friends",
+      "name": "หาเพื่อน (Find Friends)",
+      "icon": "👥",
+      "desc": "หาเพื่อนติว กินข้าว เล่นกีฬา กลับหอ",
+      "msgCount": 0
+    },
+    {
+      "id": "help",
+      "name": "ช่วยเหลือ & ของหาย (Help)",
+      "icon": "🆘",
+      "desc": "ของหาย ถามทาง ขอความช่วยเหลือนิสิต",
+      "msgCount": 0
+    },
+    {
+      "id": "events",
+      "name": "กิจกรรม (Events)",
+      "icon": "🎪",
+      "desc": "กิจกรรมรอบมหาวิทยาลัย คอนเสิร์ต งานคณะ",
+      "msgCount": 0
+    }
+  ],
+  "chat_messages": [],
+  "message_reports": [],
+  "warnings": [],
+  "bans": [],
+  "audit_logs": [
+    {
+      "id": "audit-init",
+      "action": "SEASON_1_LAUNCH",
+      "userId": "dev_java5263",
+      "targetId": "system",
+      "details": "เปิดตัวระบบ MSU Traffic & Campus Life Season 1 อย่างเป็นทางการ",
+      "createdAt": 1786777538446
+    },
+    {
+      "id": "audit-1786777583917-rm3",
+      "action": "USER_REGISTER",
+      "userId": "google_108560811899542656924",
+      "targetId": "users",
+      "details": "ผู้ใช้ลงทะเบียนใหม่ (69010371002@msu.ac.th)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786777583917
+    },
+    {
+      "id": "audit-1786778115589-esi",
+      "action": "DEV_PROFANITY_CENSORED",
+      "userId": "dev_java5263",
+      "targetId": "general",
+      "details": "Dev ส่งข้อความที่มีคำหยาบ (เซนเซอร์เป็น: ***)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786778115589
+    },
+    {
+      "id": "audit-1786778142003-47t",
+      "action": "PIN_CHAT_PROFANITY",
+      "userId": "dev_java5263",
+      "targetId": "pin-init-1",
+      "details": "บล็อกคำหยาบในแชท: ไอ้เหี้ย ควย ตั้งด่านทำไมวะ (ตรวจพบคำหยาบหรือการสแปมดัดแปลง ('ควย'))",
+      "ip": "127.0.0.1",
+      "createdAt": 1786778142003
+    },
+    {
+      "id": "audit-1786778142005-z9k",
+      "action": "PIN_CHAT_PROFANITY",
+      "userId": "dev_java5263",
+      "targetId": "pin-init-1",
+      "details": "บล็อกคำหยาบในแชท: พวก ค_ว_า_ย สั ส (ตรวจพบสระ/วรรณยุกต์/อักขระพิเศษกั้นคำหยาบ)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786778142005
+    },
+    {
+      "id": "audit-1786778144883-d5e",
+      "action": "PIN_CREATE",
+      "userId": "student_rank_tester_1786778144880",
+      "targetId": "pin-1786778144882-dwhxp",
+      "details": "ปักหมุดด่านใหม่: สี่แยกบ้านขามเรียง",
+      "ip": "127.0.0.1",
+      "createdAt": 1786778144883
+    },
+    {
+      "id": "audit-1786778150261-jk2",
+      "action": "PIN_MOVE",
+      "userId": "student_rank_tester_1786778144880",
+      "targetId": "pin-1786778144882-dwhxp",
+      "details": "ย้ายพิกัดหมุดเป็น [16.243889081580505, 103.24942588806154]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786778150261
+    },
+    {
+      "id": "audit-1786778151496-7bw",
+      "action": "PIN_MOVE",
+      "userId": "student_rank_tester_1786778144880",
+      "targetId": "pin-1786778144882-dwhxp",
+      "details": "ย้ายพิกัดหมุดเป็น [16.24421869850887, 103.25016617774965]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786778151496
+    },
+    {
+      "id": "audit-1786778152258-cvy",
+      "action": "PIN_MOVE",
+      "userId": "student_rank_tester_1786778144880",
+      "targetId": "pin-1786778144882-dwhxp",
+      "details": "ย้ายพิกัดหมุดเป็น [16.2441877969453, 103.25004816055298]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786778152258
+    },
+    {
+      "id": "audit-1786778405907-8fc",
+      "action": "PIN_CHAT_PROFANITY",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786778144882-dwhxp",
+      "details": "บล็อกคำหยาบในแชท: ไอ้เหี้ย ควย ตั้งด่านทำไมวะ (ตรวจพบคำหยาบหรือการสแปมดัดแปลง ('ควย'))",
+      "ip": "127.0.0.1",
+      "createdAt": 1786778405907
+    },
+    {
+      "id": "audit-1786778405909-n50",
+      "action": "PIN_CHAT_PROFANITY",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786778144882-dwhxp",
+      "details": "บล็อกคำหยาบในแชท: พวก ค_ว_า_ย สั ส (ตรวจพบสระ/วรรณยุกต์/อักขระพิเศษกั้นคำหยาบ)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786778405909
+    },
+    {
+      "id": "audit-1786778655413-x0z",
+      "action": "PIN_CHAT_PROFANITY",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786778144882-dwhxp",
+      "details": "บล็อกคำหยาบในแชท: ไอ้เหี้ย ควย ตั้งด่านทำไมวะ (ตรวจพบคำหยาบหรือการสแปมดัดแปลง ('ควย'))",
+      "ip": "127.0.0.1",
+      "createdAt": 1786778655413
+    },
+    {
+      "id": "audit-1786778655414-djx",
+      "action": "PIN_CHAT_PROFANITY",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786778144882-dwhxp",
+      "details": "บล็อกคำหยาบในแชท: พวก ค_ว_า_ย สั ส (ตรวจพบสระ/วรรณยุกต์/อักขระพิเศษกั้นคำหยาบ)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786778655414
+    },
+    {
+      "id": "audit-1786778947227-oo8",
+      "action": "PIN_CHAT_PROFANITY",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786778144882-dwhxp",
+      "details": "บล็อกคำหยาบในแชท: ไอ้เหี้ย ควย ตั้งด่านทำไมวะ (ตรวจพบคำหยาบหรือการสแปมดัดแปลง ('ควย'))",
+      "ip": "127.0.0.1",
+      "createdAt": 1786778947227
+    },
+    {
+      "id": "audit-1786778947229-562",
+      "action": "PIN_CHAT_PROFANITY",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786778144882-dwhxp",
+      "details": "บล็อกคำหยาบในแชท: พวก ค_ว_า_ย สั ส (ตรวจพบสระ/วรรณยุกต์/อักขระพิเศษกั้นคำหยาบ)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786778947229
+    },
+    {
+      "id": "audit-1786779609894-1jg",
+      "action": "PIN_MOVE",
+      "userId": "student_rank_tester_1786778144880",
+      "targetId": "pin-1786778144882-dwhxp",
+      "details": "ย้ายพิกัดหมุดเป็น [16.24446591084256, 103.25079917907715] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786779609894
+    },
+    {
+      "id": "audit-1786779612650-ayw",
+      "action": "PIN_MOVE",
+      "userId": "student_rank_tester_1786778144880",
+      "targetId": "pin-1786778144882-dwhxp",
+      "details": "ย้ายพิกัดหมุดเป็น [16.243899382117874, 103.25044512748718] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786779612650
+    },
+    {
+      "id": "audit-1786780224538-jp3",
+      "action": "PIN_MOVE",
+      "userId": "dev_java5263",
+      "targetId": "pin-init-1",
+      "details": "ย้ายพิกัดหมุดเป็น [16.245722568733456, 103.25210809707643] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786780224538
+    },
+    {
+      "id": "audit-1786780226231-2p4",
+      "action": "PIN_MOVE",
+      "userId": "dev_java5263",
+      "targetId": "pin-init-1",
+      "details": "ย้ายพิกัดหมุดเป็น [16.24644359832349, 103.25200080871583] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786780226231
+    },
+    {
+      "id": "audit-1786780301842-slf",
+      "action": "PIN_MOVE",
+      "userId": "dev_java5263",
+      "targetId": "pin-init-2",
+      "details": "ย้ายพิกัดหมุดเป็น [16.24138603500411, 103.2544255256653] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786780301842
+    },
+    {
+      "id": "audit-1786780308077-jv1",
+      "action": "PIN_MOVE",
+      "userId": "dev_java5263",
+      "targetId": "pin-init-2",
+      "details": "ย้ายพิกัดหมุดเป็น [16.241798061322257, 103.25399637222291] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786780308077
+    },
+    {
+      "id": "audit-1786780472690-k7f",
+      "action": "CHAT_DELETE",
+      "userId": "dev_java5263",
+      "targetId": "msg-1786777842344-rrco",
+      "details": "ยกเลิกข้อความในห้อง [general]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786780472690
+    },
+    {
+      "id": "audit-1786780663193-h94",
+      "action": "CHAT_DELETE",
+      "userId": "dev_java5263",
+      "targetId": "msg-1786778115589-gv7s",
+      "details": "ยกเลิกข้อความในห้อง [general]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786780663193
+    },
+    {
+      "id": "audit-1786781407627-34u",
+      "action": "DEV_CHAT_CLEARED",
+      "userId": "dev_java5263",
+      "targetId": "general",
+      "details": "Dev สั่งล้างข้อความในห้องแชท [general] (1 ข้อความ)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786781407627
+    },
+    {
+      "id": "audit-1786781522904-9iq",
+      "action": "SHEETS_CONFIG_UPDATE",
+      "userId": "dev-1",
+      "targetId": "google_sheets",
+      "details": "อัปเดตการตั้งค่า Google Sheets (Enabled: true)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786781522904
+    },
+    {
+      "id": "audit-1786781617938-ns3",
+      "action": "SHEETS_FULL_SYNC",
+      "userId": "dev_java5263",
+      "targetId": "google_sheets",
+      "details": "สั่ง Full Sync ข้อมูลทั้งหมดขึ้น Google Sheets สำเร็จ",
+      "ip": "127.0.0.1",
+      "createdAt": 1786781617938
+    },
+    {
+      "id": "audit-1786781636789-7nt",
+      "action": "SHEETS_FULL_SYNC",
+      "userId": "dev_java5263",
+      "targetId": "google_sheets",
+      "details": "สั่ง Full Sync ข้อมูลทั้งหมดขึ้น Google Sheets สำเร็จ",
+      "ip": "127.0.0.1",
+      "createdAt": 1786781636789
+    },
+    {
+      "id": "audit-1786781806443-9x6",
+      "action": "SHEETS_FULL_SYNC",
+      "userId": "dev_java5263",
+      "targetId": "google_sheets",
+      "details": "สั่ง Full Sync ข้อมูลทั้งหมดขึ้น Google Sheets สำเร็จ",
+      "ip": "127.0.0.1",
+      "createdAt": 1786781806443
+    },
+    {
+      "id": "audit-1786781920503-zcd",
+      "action": "SHEETS_CONFIG_UPDATE",
+      "userId": "dev_java5263",
+      "targetId": "google_sheets",
+      "details": "อัปเดตการตั้งค่า Google Sheets (Enabled: true)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786781920503
+    },
+    {
+      "id": "audit-1786781931891-u2y",
+      "action": "SHEETS_FULL_SYNC",
+      "userId": "dev_java5263",
+      "targetId": "google_sheets",
+      "details": "สั่ง Full Sync ข้อมูลทั้งหมดขึ้น Google Sheets สำเร็จ",
+      "ip": "127.0.0.1",
+      "createdAt": 1786781931891
+    },
+    {
+      "id": "audit-1786782082565-zr1",
+      "action": "SHEETS_CONFIG_UPDATE",
+      "userId": "dev_java5263",
+      "targetId": "google_sheets",
+      "details": "อัปเดตการตั้งค่า Google Sheets (Enabled: true)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786782082565
+    },
+    {
+      "id": "audit-1786782088496-tdv",
+      "action": "SHEETS_FULL_SYNC",
+      "userId": "dev_java5263",
+      "targetId": "google_sheets",
+      "details": "สั่ง Full Sync ข้อมูลทั้งหมดขึ้น Google Sheets สำเร็จ",
+      "ip": "127.0.0.1",
+      "createdAt": 1786782088496
+    },
+    {
+      "id": "audit-1786782341810-cka",
+      "action": "PIN_CREATE",
+      "userId": "dev-master",
+      "targetId": "pin-1786782341809-yfan4",
+      "details": "ปักหมุดด่านใหม่: หน้าป้าย มมส (ทดสอบ Realtime)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786782341810
+    },
+    {
+      "id": "audit-1786782446258-pss",
+      "action": "ADMIN_SYSTEM_RESET",
+      "userId": "dev_admin",
+      "targetId": "system",
+      "details": "ล้างข้อมูลระบบ: [📍 หมุด (4 จุด)]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786782446258
+    },
+    {
+      "id": "audit-1786782470898-7cl",
+      "action": "ADMIN_SYSTEM_RESET",
+      "userId": "dev_admin",
+      "targetId": "system",
+      "details": "ล้างข้อมูลระบบ: [📍 หมุด (0 จุด)]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786782470898
+    },
+    {
+      "id": "audit-1786782470902-fuw",
+      "action": "ADMIN_SYSTEM_RESET",
+      "userId": "dev_admin",
+      "targetId": "system",
+      "details": "ล้างข้อมูลระบบ: [🎖️ ยศ, 🏆 แต้ม/คะแนน, 📍 หมุด (0 จุด), 💬 แชท (0 ข้อความ)]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786782470902
+    },
+    {
+      "id": "audit-1786782473564-jjl",
+      "action": "PIN_CREATE",
+      "userId": "student-test-01",
+      "targetId": "pin-1786782473564-lxe59",
+      "details": "ปักหมุดด่านใหม่: สะพานข้ามคลองท่าขอนยาง (สะพานดำ)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786782473564
+    },
+    {
+      "id": "audit-1786782473693-dd1",
+      "action": "PIN_CHAT_PROFANITY",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786782473564-lxe59",
+      "details": "บล็อกคำหยาบในแชท: ไอ้เหี้ย ควย ตั้งด่านทำไมวะ (ตรวจพบคำหยาบหรือการสแปมดัดแปลง ('ควย'))",
+      "ip": "127.0.0.1",
+      "createdAt": 1786782473693
+    },
+    {
+      "id": "audit-1786782473695-agx",
+      "action": "PIN_CHAT_PROFANITY",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786782473564-lxe59",
+      "details": "บล็อกคำหยาบในแชท: พวก ค_ว_า_ย สั ส (ตรวจพบสระ/วรรณยุกต์/อักขระพิเศษกั้นคำหยาบ)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786782473695
+    },
+    {
+      "id": "audit-1786782473866-4gu",
+      "action": "PIN_CREATE",
+      "userId": "student_rank_tester_1786782473864",
+      "targetId": "pin-1786782473865-n4ksw",
+      "details": "ปักหมุดด่านใหม่: สี่แยกบ้านขามเรียง",
+      "ip": "127.0.0.1",
+      "createdAt": 1786782473866
+    },
+    {
+      "id": "audit-1786782582714-agr",
+      "action": "ADMIN_SYSTEM_RESET",
+      "userId": "dev_admin",
+      "targetId": "system",
+      "details": "ล้างข้อมูลระบบ: [📍 หมุด (2 จุด)]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786782582714
+    },
+    {
+      "id": "audit-1786782707201-y23",
+      "action": "ADMIN_SYSTEM_RESET",
+      "userId": "dev_admin",
+      "targetId": "system",
+      "details": "ล้างข้อมูลระบบ: [📍 หมุด (0 จุด)]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786782707201
+    },
+    {
+      "id": "audit-1786783252696-xtq",
+      "action": "ADMIN_SYSTEM_RESET",
+      "userId": "dev_admin",
+      "targetId": "system",
+      "details": "ล้างข้อมูลระบบ: [📍 หมุด (0 จุด)]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786783252696
+    },
+    {
+      "id": "audit-1786783352891-o6z",
+      "action": "ADMIN_SYSTEM_RESET",
+      "userId": "dev_admin",
+      "targetId": "system",
+      "details": "ล้างข้อมูลระบบ: [📍 หมุด (0 จุด)]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786783352891
+    },
+    {
+      "id": "audit-1786783508312-p4k",
+      "action": "ADMIN_SYSTEM_RESET",
+      "userId": "dev_admin",
+      "targetId": "system",
+      "details": "ล้างข้อมูลระบบ: [📍 หมุด (0 จุด)]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786783508312
+    },
+    {
+      "id": "audit-1786783633343-dd1",
+      "action": "PIN_CREATE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786783633342-t1ek2",
+      "details": "ปักหมุดด่านใหม่: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786783633343
+    },
+    {
+      "id": "audit-1786783653067-3vx",
+      "action": "PIN_MOVE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786783633342-t1ek2",
+      "details": "ย้ายพิกัดหมุดเป็น [16.241968021927025, 103.25307905673981] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786783653067
+    },
+    {
+      "id": "audit-1786783860824-z6l",
+      "action": "ADMIN_SYSTEM_RESET",
+      "userId": "dev_admin",
+      "targetId": "system",
+      "details": "ล้างข้อมูลระบบ: [📍 หมุด (1 จุด)]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786783860824
+    },
+    {
+      "id": "audit-1786784113327-adf",
+      "action": "PIN_CREATE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786784113326-v854q",
+      "details": "ปักหมุดด่านใหม่: Pin Tester Systems MSU Traffic",
+      "ip": "127.0.0.1",
+      "createdAt": 1786784113327
+    },
+    {
+      "id": "audit-1786784121465-rxj",
+      "action": "PIN_MOVE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786784113326-v854q",
+      "details": "ย้ายพิกัดหมุดเป็น [16.24552171001964, 103.25031101703645] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786784121465
+    },
+    {
+      "id": "audit-1786784209438-zf9",
+      "action": "PIN_MOVE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786784113326-v854q",
+      "details": "ย้ายพิกัดหมุดเป็น [16.24552171001964, 103.25034588575365] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786784209438
+    },
+    {
+      "id": "audit-1786784656975-kbl",
+      "action": "PIN_CREATE",
+      "userId": "test_user_1",
+      "targetId": "pin-1786784656974-jksgb",
+      "details": "ปักหมุดด่านใหม่: หน้า มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786784656975
+    },
+    {
+      "id": "audit-1786784998884-1il",
+      "action": "ADMIN_SYSTEM_RESET",
+      "userId": "dev_admin",
+      "targetId": "system",
+      "details": "ล้างข้อมูลระบบ: [🎖️ ยศ, 🏆 แต้ม/คะแนน, 💬 แชท (0 ข้อความ)]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786784998884
+    },
+    {
+      "id": "audit-1786785074227-gyy",
+      "action": "ADMIN_SYSTEM_RESET",
+      "userId": "dev_admin",
+      "targetId": "system",
+      "details": "ล้างข้อมูลระบบ: [🎖️ ยศ, 🏆 แต้ม/คะแนน]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786785074227
+    },
+    {
+      "id": "audit-1786785080126-hcp",
+      "action": "ADMIN_SYSTEM_RESET",
+      "userId": "dev_admin",
+      "targetId": "system",
+      "details": "ล้างข้อมูลระบบ: [🎖️ ยศ, 🏆 แต้ม/คะแนน]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786785080126
+    },
+    {
+      "id": "audit-1786785255922-4g8",
+      "action": "PIN_STATUS_CHANGE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786784656974-jksgb",
+      "details": "เปลี่ยนสถานะหมุดจาก active -> deleted",
+      "ip": "127.0.0.1",
+      "createdAt": 1786785255922
+    },
+    {
+      "id": "audit-1786785259102-32q",
+      "action": "PIN_STATUS_CHANGE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786784683151-blnrr",
+      "details": "เปลี่ยนสถานะหมุดจาก active -> deleted",
+      "ip": "127.0.0.1",
+      "createdAt": 1786785259102
+    },
+    {
+      "id": "audit-1786785923503-sh0",
+      "action": "ADMIN_SYSTEM_RESET",
+      "userId": "dev_admin",
+      "targetId": "system",
+      "details": "ล้างข้อมูลระบบ: [🎖️ ยศ, 🏆 แต้ม/คะแนน]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786785923503
+    }
+  ],
+  "pin_chat_messages": []
 }

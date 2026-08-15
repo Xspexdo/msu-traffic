@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const googleSheetsService = require('../services/googleSheetsService');
 
 const DB_DIR = path.join(__dirname, '../../data');
 const DB_FILE = path.join(DB_DIR, 'database.json');
@@ -9,13 +10,48 @@ if (!fs.existsSync(DB_DIR)) {
   fs.mkdirSync(DB_DIR, { recursive: true });
 }
 
-// 🎖️ MSU Traffic Rank Tiers
+// 🏛️ MSU Campus Coordinates for Geofencing
+const MSU_CENTER = {
+  lat: 16.2468,
+  lng: 103.2520,
+  khamriang: { lat: 16.2468, lng: 103.2520, radiusKm: 12.0 },
+  downtown: { lat: 16.1983, lng: 103.2798, radiusKm: 10.0 },
+  maxAllowedRadiusKm: 25.0 // รัศมีสูงสุดที่อนุญาตให้แชตได้
+};
+
+// 📐 Haversine Formula for Distance Calculation (km)
+function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radius of earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round((R * c) * 10) / 10;
+}
+
+// Check if user is in MSU Geofence
+function isInsideMSUGeofence(lat, lng) {
+  if (!lat || !lng) return { inZone: false, distanceKm: 999 };
+  const dKhamriang = calculateDistanceKm(lat, lng, MSU_CENTER.khamriang.lat, MSU_CENTER.khamriang.lng);
+  const dDowntown = calculateDistanceKm(lat, lng, MSU_CENTER.downtown.lat, MSU_CENTER.downtown.lng);
+  const minDistance = Math.min(dKhamriang, dDowntown);
+  return {
+    inZone: minDistance <= MSU_CENTER.maxAllowedRadiusKm,
+    distanceKm: minDistance,
+    nearCampus: dKhamriang <= dDowntown ? 'มอใหม่ (ขามเรียง)' : 'มอเก่า (ในเมือง)'
+  };
+}
+
+// 🎖️ Season 1 Rank Tiers
 const RANK_TIERS = [
-  { level: 1, key: 'novice', name: 'ผู้สัญจรมือใหม่', minExp: 0, maxExp: 49, icon: '🥉', color: '#B45309', badgeClass: 'rank-bronze', title: 'Novice Scout' },
-  { level: 2, key: 'scout', name: 'สายสืบ มมส', minExp: 50, maxExp: 149, icon: '🥈', color: '#475569', badgeClass: 'rank-silver', title: 'Campus Scout' },
-  { level: 3, key: 'warden', name: 'ผู้พิทักษ์ทางหลวง', minExp: 150, maxExp: 349, icon: '🥇', color: '#D97706', badgeClass: 'rank-gold', title: 'Traffic Warden' },
-  { level: 4, key: 'veteran', name: 'ยอดสายตรวจขามเรียง', minExp: 350, maxExp: 749, icon: '💎', color: '#2563EB', badgeClass: 'rank-diamond', title: 'Khamriang Veteran' },
-  { level: 5, key: 'legend', name: 'ตำนานมีด่านบอกด้วย', minExp: 750, maxExp: Infinity, icon: '👑', color: '#7C3AED', badgeClass: 'rank-legend', title: 'MSU Legend' }
+  { level: 1, key: 'novice', name: 'ผู้สัญจรมือใหม่', minExp: 0, maxExp: 99, icon: '🥉', color: '#B45309', badgeClass: 'rank-bronze', title: 'Novice Scout' },
+  { level: 2, key: 'scout', name: 'สายสืบ มมส', minExp: 100, maxExp: 299, icon: '🥈', color: '#475569', badgeClass: 'rank-silver', title: 'Campus Scout' },
+  { level: 3, key: 'warden', name: 'ผู้พิทักษ์ทางหลวง', minExp: 300, maxExp: 699, icon: '🥇', color: '#D97706', badgeClass: 'rank-gold', title: 'Traffic Warden' },
+  { level: 4, key: 'veteran', name: 'ยอดสายตรวจขามเรียง', minExp: 700, maxExp: 1499, icon: '💎', color: '#2563EB', badgeClass: 'rank-diamond', title: 'Khamriang Veteran' },
+  { level: 5, key: 'legend', name: 'ตำนานมีด่านบอกด้วย', minExp: 1500, maxExp: Infinity, icon: '👑', color: '#7C3AED', badgeClass: 'rank-legend', title: 'MSU Legend' }
 ];
 
 function calculateRank(exp = 0, isDev = false) {
@@ -69,725 +105,1520 @@ function calculateRank(exp = 0, isDev = false) {
     ...RANK_TIERS[0],
     exp: 0,
     nextRank: RANK_TIERS[1].name,
-    pointsToNext: 50,
+    pointsToNext: 100,
     progressPercent: 0
   };
 }
 
-// MSU Hotspots & Zones
-const MSU_ZONES = [
-  // โซน มอใหม่ (ขามเรียง)
-  {
-    id: 'khamriang-main-gate',
-    name: 'หน้าป้าย มมส (มอใหม่ ขามเรียง)',
-    campus: 'มอใหม่ (ขามเรียง)',
-    lat: 16.2467,
-    lng: 103.2520,
-    type: 'hotspot',
-    description: 'ถนนทางหลวง 2202 หน้าป้ายมหาวิทยาลัยมหาสารคาม'
-  },
-  {
-    id: 'khamriang-gate-1',
-    name: 'ประตู 1 มมส ใหม่ (ทางเข้าหลัก)',
-    campus: 'มอใหม่ (ขามเรียง)',
-    lat: 16.2429,
-    lng: 103.2505,
-    type: 'hotspot',
-    description: 'ประตูทางเข้าหลักข้างคณะการบัญชีและการจัดการ'
-  },
-  {
-    id: 'khamriang-forestry-roundabout',
-    name: 'วงเวียนป่าไม้ / ตลาดน้อย มมส',
-    campus: 'มอใหม่ (ขามเรียง)',
-    lat: 16.2450,
-    lng: 103.2555,
-    type: 'hotspot',
-    description: 'วงเวียนใน ม. ใกล้ตลาดน้อยและคณะสิ่งแวดล้อม'
-  },
-  {
-    id: 'takhonyang-intersection',
-    name: 'สามแยกไฟแดงท่าขอนยาง',
-    campus: 'ท่าขอนยาง (รอบมอใหม่)',
-    lat: 16.2365,
-    lng: 103.2562,
-    type: 'hotspot',
-    description: 'สามแยกไฟแดงหลักก่อนข้ามสะพานเข้ามอใหม่'
-  },
-  {
-    id: 'takhonyang-bridge',
-    name: 'สะพานข้ามคลองท่าขอนยาง (สะพานดำ)',
-    campus: 'ท่าขอนยาง (รอบมอใหม่)',
-    lat: 16.2380,
-    lng: 103.2540,
-    type: 'hotspot',
-    description: 'สะพานเชื่อมระหว่างท่าขอนยางกับทางเข้ามอใหม่'
-  },
-  {
-    id: 'khamriang-back-gate',
-    name: 'ถนนหลังมอ / โค้งเซเว่นคลองถม',
-    campus: 'มอใหม่ (ขามเรียง)',
-    lat: 16.2485,
-    lng: 103.2450,
-    type: 'hotspot',
-    description: 'โซนหอพักหลังมอ และทางออกไปบ้านดอนยม'
-  },
-  {
-    id: 'khamriang-four-corners',
-    name: 'สี่แยกบ้านขามเรียง',
-    campus: 'มอใหม่ (ขามเรียง)',
-    lat: 16.2520,
-    lng: 103.2590,
-    type: 'hotspot',
-    description: 'สี่แยกทางไปคณะสถาปัตยกรรมและโรงเรียนสาธิต มมส'
-  },
-  {
-    id: 'khamriang-taksila-bypass',
-    name: 'ถนนเลี่ยงเมือง มมส - แยกตักสิลา',
-    campus: 'ถนนเลี่ยงเมือง',
-    lat: 16.2290,
-    lng: 103.2680,
-    type: 'hotspot',
-    description: 'ถนนบายพาสเลี่ยงเมืองมหาสารคาม มุ่งหน้าไปร้อยเอ็ด/โกสุมพิสัย'
-  },
-
-  // โซน มอเก่า (ในเมือง)
-  {
-    id: 'downtown-main-gate',
-    name: 'หน้าป้าย มมส (มอเก่า ในเมือง)',
-    campus: 'มอเก่า (ในเมือง)',
-    lat: 16.1868,
-    lng: 103.2982,
-    type: 'hotspot',
-    description: 'หน้ามหาวิทยาลัยมหาสารคาม เขตพื้นที่ในเมือง ใกล้ มรภ.มค.'
-  },
-  {
-    id: 'downtown-clock-tower',
-    name: 'สี่แยกหอนาฬิกา / ศาลากลางเก่า',
-    campus: 'มอเก่า (ในเมือง)',
-    lat: 16.1835,
-    lng: 103.3005,
-    type: 'hotspot',
-    description: 'ใจกลางเมืองมหาสารคาม ใกล้ตลาดสดเทศบาล'
-  },
-  {
-    id: 'downtown-sermthai-plaza',
-    name: 'สี่แยกเสริมไทยพลาซ่า มอเก่า',
-    campus: 'มอเก่า (ในเมือง)',
-    lat: 16.1890,
-    lng: 103.3020,
-    type: 'hotspot',
-    description: 'สี่แยกไฟแดงหน้าห้างเสริมไทยพลาซ่าสาขาในเมือง'
-  },
-  {
-    id: 'downtown-technical-college',
-    name: 'หน้าวิทยาลัยเทคนิค / โรงเรียนผดุงนารี',
-    campus: 'มอเก่า (ในเมือง)',
-    lat: 16.1920,
-    lng: 103.2950,
-    type: 'hotspot',
-    description: 'ถนนนครสวรรค์ ใกล้วิทยาลัยอาชีวะและเทคนิค'
-  }
-];
-
-// Initial realistic seed reports
-function getSeedReports() {
+// Default Season 1 Data Template
+function getInitialData() {
   const now = Date.now();
-  return [
-    {
-      id: 'msu-rep-001',
-      title: 'ด่านตรวจหมวกกันน็อกและใบขับขี่',
-      locationName: 'หน้าป้าย มมส (มอใหม่ ขามเรียง)',
-      customLocation: '',
-      campusZone: 'มอใหม่ (ขามเรียง)',
-      lat: 16.2467,
-      lng: 103.2520,
-      type: 'helmet',
-      direction: 'ฝั่งขาเข้ามอใหม่ (มุ่งหน้าคณะวิทยาศาสตร์)',
-      description: 'เจ้าหน้าที่ตำรวจ สภ.เขวาใหญ่ ตั้งด่านตรวจหมวกกันน็อกและใบขับขี่ สวมหมวกกันน็อกและพกใบขับขี่ด้วยครับ',
-      severity: 'high',
-      status: 'active',
-      reporter: {
-        id: 'user-google-101',
-        name: 'นิสิต มมส (สารคาม)',
-        email: 'msu_student@msu.ac.th',
-        picture: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=60',
-        rank: calculateRank(420)
-      },
-      createdAt: now - (25 * 60 * 1000),
-      updatedAt: now - (25 * 60 * 1000),
-      expiresAt: now + (2.5 * 60 * 60 * 1000),
-      votes: {
-        up: ['user-002', 'user-003', 'user-004', 'user-005', 'user-006'],
-        down: []
-      }
-    },
-    {
-      id: 'msu-rep-002',
-      title: 'ด่านตรวจความมั่นคง / รถแต่งท่อดัง',
-      locationName: 'สามแยกไฟแดงท่าขอนยาง',
-      customLocation: '',
-      campusZone: 'ท่าขอนยาง (รอบมอใหม่)',
-      lat: 16.2365,
-      lng: 103.2562,
-      type: 'security',
-      direction: 'ฝั่งมุ่งหน้าข้ามสะพานเข้ามอใหม่',
-      description: 'มีเจ้าหน้าที่เรียกตรวจป้ายทะเบียน และอุปกรณ์ส่วนควบรถมอเตอร์ไซค์',
-      severity: 'medium',
-      status: 'active',
-      reporter: {
-        id: 'user-google-102',
-        name: 'เด็กท่าขอนยาง',
-        email: 'takhonyang_rider@gmail.com',
-        picture: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=60',
-        rank: calculateRank(230)
-      },
-      createdAt: now - (50 * 60 * 1000),
-      updatedAt: now - (50 * 60 * 1000),
-      expiresAt: now + (2 * 60 * 60 * 1000),
-      votes: {
-        up: ['user-001', 'user-007', 'user-008'],
-        down: []
-      }
-    },
-    {
-      id: 'msu-rep-003',
-      title: 'รถติดสะสมช่วงเลิกเรียน',
-      locationName: 'ถนนหลังมอ / โค้งเซเว่นคลองถม',
-      customLocation: '',
-      campusZone: 'มอใหม่ (ขามเรียง)',
-      lat: 16.2485,
-      lng: 103.2450,
-      type: 'traffic',
-      direction: 'ทั้งสองฝั่งทาง',
-      description: 'มีรถส่งของจอดขวางและการจราจรหนาแน่น เคลื่อนตัวช้ามาก',
-      severity: 'low',
-      status: 'active',
-      reporter: {
-        id: 'user-google-103',
-        name: 'Napat Dev',
-        email: 'napat.msu@gmail.com',
-        picture: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=60',
-        rank: calculateRank(95)
-      },
-      createdAt: now - (15 * 60 * 1000),
-      updatedAt: now - (15 * 60 * 1000),
-      expiresAt: now + (1.5 * 60 * 60 * 1000),
-      votes: {
-        up: ['user-009'],
-        down: []
-      }
-    },
-    {
-      id: 'msu-rep-004',
-      title: 'ด่านตรวจวินัยจราจรและตรวจวัดแอลกอฮอล์',
-      locationName: 'หน้าป้าย มมส (มอเก่า ในเมือง)',
-      customLocation: '',
-      campusZone: 'มอเก่า (ในเมือง)',
-      lat: 16.1868,
-      lng: 103.2982,
-      type: 'alcohol',
-      direction: 'ฝั่งขาเข้าตัวเมืองมหาสารคาม',
-      description: 'ตรวจวัดแอลกอฮอล์และใบขับขี่ช่วงค่ำ เจ้าหน้าที่ประมาณ 6 นาย',
-      severity: 'high',
-      status: 'active',
-      reporter: {
-        id: 'user-google-104',
-        name: 'Maha Sarakham Live',
-        email: 'msulive@gmail.com',
-        picture: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=60',
-        rank: calculateRank(620)
-      },
-      createdAt: now - (80 * 60 * 1000),
-      updatedAt: now - (80 * 60 * 1000),
-      expiresAt: now + (1 * 60 * 60 * 1000),
-      votes: {
-        up: ['user-010', 'user-011', 'user-012'],
-        down: ['user-013']
-      }
-    }
-  ];
-}
+  const weekInMs = 7 * 24 * 60 * 60 * 1000;
 
-// Initial Leaderboard Seed Data
-function getSeedUserStats() {
   return {
-    'dev_java5263': {
-      id: 'dev_java5263',
-      name: 'Java (Lead Developer)',
-      email: 'java5263@gmail.com',
-      picture: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
-      isDev: true,
-      exp: 1580,
-      reportsCount: 42,
-      upvotesReceived: 128,
-      helpfulVotesGiven: 85,
-      accuracyRate: 98,
-      lastActive: Date.now()
+    season: 1,
+    seasonName: 'Season 1: ปฐมบทชาว มมส',
+    seasonStart: now,
+    weekNumber: 1,
+    weekStart: now,
+    weekEnd: now + weekInMs,
+
+    users: {
+      "dev_java5263": {
+        id: "dev_java5263",
+        email: "java5263@gmail.com",
+        name: "Java (Lead Developer)",
+        picture: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80",
+        role: "dev",
+        badge: "👑 DEV",
+        trustScore: 100,
+        weeklyScore: 0,
+        allTimeScore: 500,
+        pinsCreated: 0,
+        pinsVerified: 0,
+        reportsCount: 0,
+        accurateReports: 0,
+        isMsuStudent: true,
+        isDev: true,
+        status: "active",
+        createdAt: now,
+        lastActiveAt: now
+      }
     },
-    'user-google-104': {
-      id: 'user-google-104',
-      name: 'Maha Sarakham Live',
-      email: 'msulive@gmail.com',
-      picture: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=60',
-      isDev: false,
-      exp: 840,
-      reportsCount: 28,
-      upvotesReceived: 76,
-      helpfulVotesGiven: 45,
-      accuracyRate: 96,
-      lastActive: Date.now() - 3600000
-    },
-    'user-google-101': {
-      id: 'user-google-101',
-      name: 'นิสิต มมส (สารคาม)',
-      email: 'msu_student@msu.ac.th',
-      picture: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=60',
-      isDev: false,
-      exp: 420,
-      reportsCount: 15,
-      upvotesReceived: 38,
-      helpfulVotesGiven: 22,
-      accuracyRate: 94,
-      lastActive: Date.now() - 7200000
-    },
-    'user-google-102': {
-      id: 'user-google-102',
-      name: 'เด็กท่าขอนยาง',
-      email: 'takhonyang_rider@gmail.com',
-      picture: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=60',
-      isDev: false,
-      exp: 230,
-      reportsCount: 8,
-      upvotesReceived: 21,
-      helpfulVotesGiven: 14,
-      accuracyRate: 91,
-      lastActive: Date.now() - 14400000
-    },
-    'user-google-103': {
-      id: 'user-google-103',
-      name: 'Napat Dev',
-      email: 'napat.msu@gmail.com',
-      picture: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=60',
-      isDev: false,
-      exp: 95,
-      reportsCount: 4,
-      upvotesReceived: 10,
-      helpfulVotesGiven: 8,
-      accuracyRate: 90,
-      lastActive: Date.now() - 28800000
-    }
+
+    pins: [
+      {
+        id: "pin-init-1",
+        title: "จุดตรวจหมวกกันน็อก หน้าป้าย มมส",
+        locationName: "หน้าป้าย มมส (มอใหม่ ขามเรียง)",
+        campusZone: "มอใหม่ (ขามเรียง)",
+        lat: 16.2467,
+        lng: 103.2520,
+        type: "helmet",
+        direction: "ฝั่งขาเข้ามอใหม่ (มุ่งหน้าคณะวิทยาศาสตร์)",
+        description: "ตรวจหมวกกันน็อกและใบขับขี่ ขับขี่ปลอดภัยสวมหมวกกันน็อกด้วยครับ",
+        imageUrl: null,
+        severity: "medium",
+        isAnonymous: false,
+        reporterId: "dev_java5263",
+        reporter: {
+          id: "dev_java5263",
+          name: "Java (Lead Dev)",
+          email: "java5263@gmail.com",
+          badge: "👑 DEV",
+          isDev: true,
+          isMsuStudent: true,
+          picture: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60"
+        },
+        likes: [],
+        views: 45,
+        votes: {
+          up: ["dev_java5263", "user_demo_1", "user_demo_2"],
+          down: []
+        },
+        reports: [],
+        status: "active",
+        createdAt: now - (35 * 60 * 1000), // 35 mins ago
+        expiresAt: now + (6 * 60 * 60 * 1000) // 6 hours decay
+      },
+      {
+        id: "pin-init-2",
+        title: "ตรวจเป่าแอลกอฮอล์ โค้งท่าขอนยาง",
+        locationName: "โค้งยูเทิร์น ท่าขอนยาง (หน้า 7-Eleven)",
+        campusZone: "ท่าขอนยาง (รอบมอใหม่)",
+        lat: 16.2398,
+        lng: 103.2612,
+        type: "alcohol",
+        direction: "ฝั่งมุ่งหน้าสะพานข้ามคลอง",
+        description: "จุดตรวจเข้มงวดช่วงกลางคืน เมาไม่ขับ กลับรถรับส่ง",
+        imageUrl: null,
+        severity: "high",
+        isAnonymous: true,
+        reporterId: "dev_java5263",
+        reporter: {
+          id: "dev_java5263",
+          name: "นิสิตนิรนาม",
+          email: "",
+          badge: "🎓 MSU",
+          isDev: false,
+          isMsuStudent: true,
+          picture: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60"
+        },
+        likes: [],
+        views: 28,
+        votes: {
+          up: ["user_demo_3"],
+          down: []
+        },
+        reports: [],
+        status: "active",
+        createdAt: now - (50 * 60 * 1000),
+        expiresAt: now + (8 * 60 * 60 * 1000)
+      }
+    ],
+
+    pin_reports: [],
+    pin_likes: [],
+
+    chat_rooms: [
+      { id: "general", name: "ทั่วไป (General)", icon: "💬", desc: "พูดคุยแลกเปลี่ยนข่าวสารทั่วไปรอบ มมส", msgCount: 0 },
+      { id: "marketplace", name: "ซื้อ-ขาย (Market)", icon: "🛍️", desc: "ส่งต่อของใช้ หนังสือ หอพัก อุปกรณ์การเรียน", msgCount: 0 },
+      { id: "friends", name: "หาเพื่อน (Find Friends)", icon: "👥", desc: "หาเพื่อนติว กินข้าว เล่นกีฬา กลับหอ", msgCount: 0 },
+      { id: "help", name: "ช่วยเหลือ & ของหาย (Help)", icon: "🆘", desc: "ของหาย ถามทาง ขอความช่วยเหลือนิสิต", msgCount: 0 },
+      { id: "events", name: "กิจกรรม (Events)", icon: "🎪", desc: "กิจกรรมรอบมหาวิทยาลัย คอนเสิร์ต งานคณะ", msgCount: 0 }
+    ],
+
+    chat_messages: [
+      {
+        id: "msg-welcome-1",
+        roomId: "general",
+        senderId: "dev_java5263",
+        senderName: "Java (Lead Dev)",
+        senderEmail: "java5263@gmail.com",
+        senderBadge: "👑 DEV",
+        senderPicture: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60",
+        text: "🎉 ยินดีต้อนรับสู่ห้อง Local Chat ของนิสิต มมส (Season 1)! ห้องแชตนี้จะเปิดให้เฉพาะบัญชี @msu.ac.th ที่อยู่ในรัศมีรอบ มมส เท่านั้นครับ",
+        isAnonymous: false,
+        location: { lat: 16.2468, lng: 103.2520, distKm: 0.0, inZone: true },
+        createdAt: now
+      }
+    ],
+
+    message_reports: [],
+    warnings: [],
+    bans: [],
+    audit_logs: [
+      {
+        id: "audit-init",
+        action: "SEASON_1_LAUNCH",
+        userId: "dev_java5263",
+        targetId: "system",
+        details: "เปิดตัวระบบ MSU Traffic & Campus Life Season 1 อย่างเป็นทางการ",
+        createdAt: now
+      }
+    ]
   };
 }
 
 class Database {
   constructor() {
-    this.data = {
-      reports: [],
-      userStats: {},
-      bans: []
-    };
-    this.load();
+    this.data = this.loadData();
+    this.io = null;
+    this.checkWeeklyReset();
+    this.checkPinDecay();
+    this.checkMidnightChatReset();
+    
+    // Background interval to decay pins, check weekly reset and midnight chat reset
+    setInterval(() => {
+      this.checkPinDecay();
+      this.checkWeeklyReset();
+      this.checkMidnightChatReset();
+    }, 60 * 1000);
   }
 
-  load() {
+  setSocketIO(io) {
+    this.io = io;
+  }
+
+  loadData() {
     try {
       if (fs.existsSync(DB_FILE)) {
         const raw = fs.readFileSync(DB_FILE, 'utf8');
-        this.data = JSON.parse(raw);
-        if (!this.data.userStats || Object.keys(this.data.userStats).length === 0) {
-          this.data.userStats = getSeedUserStats();
-          this.save();
+        const parsed = JSON.parse(raw);
+        // Ensure all Season 1 collections exist
+        if (!parsed.season || !parsed.chat_rooms || !parsed.users) {
+          const fresh = getInitialData();
+          this.saveData(fresh);
+          return fresh;
         }
-      } else {
-        this.data.reports = getSeedReports();
-        this.data.userStats = getSeedUserStats();
-        this.save();
+        return parsed;
       }
-    } catch (err) {
-      console.error('Error loading DB, initializing seed data:', err);
-      this.data.reports = getSeedReports();
-      this.data.userStats = getSeedUserStats();
-      this.save();
+    } catch (e) {
+      console.error('Error loading database, resetting to clean Season 1:', e);
     }
+    const init = getInitialData();
+    this.saveData(init);
+    return init;
   }
 
-  save() {
+  saveData(data = this.data) {
     try {
-      fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf8');
-    } catch (err) {
-      console.error('Error writing to DB file:', err);
+      fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf8');
+    } catch (e) {
+      console.error('Error saving database:', e);
     }
   }
 
-  // ==========================================
-  // 🎖️ USER RANK & REPUTATION ENGINE
-  // ==========================================
+  // ----------------------------------------------------
+  // ⏱️ Pin Decay Lifecycle Engine (หมดอายุอัตโนมัติ)
+  // ----------------------------------------------------
+  checkPinDecay() {
+    const now = Date.now();
+    let updated = false;
 
-  getUserStats(userId, fallbackInfo = {}) {
-    if (!userId) return null;
-    let user = this.data.userStats[userId];
+    this.data.pins.forEach(pin => {
+      if (pin.status === 'active') {
+        // 1. Check expiration timestamp (Decay)
+        if (pin.expiresAt && now > pin.expiresAt) {
+          pin.status = 'cleared';
+          updated = true;
+        }
+        // 2. Downvote threshold check (if downvotes >= 3 and downvotes > upvotes * 1.5)
+        const upCount = pin.votes?.up?.length || 0;
+        const downCount = pin.votes?.down?.length || 0;
+        if (downCount >= 3 && downCount > upCount * 1.5) {
+          pin.status = 'cleared';
+          updated = true;
+        }
+      }
+    });
 
-    if (!user) {
-      const isDev = fallbackInfo.isDev || fallbackInfo.email === 'java5263@gmail.com';
-      user = {
-        id: userId,
-        name: fallbackInfo.name || 'นิสิต มมส',
-        email: fallbackInfo.email || '',
-        picture: fallbackInfo.picture || null,
-        isDev: isDev,
-        exp: isDev ? 1580 : 0,
+    if (updated) {
+      this.saveData();
+    }
+  }
+
+  // ----------------------------------------------------
+  // 🏆 Daily Rank Reset Engine (รีเซ็ตทุก 1 วัน / 24 ชั่วโมง)
+  // ----------------------------------------------------
+  checkWeeklyReset() {
+    const now = Date.now();
+    const cycleEnd = this.data.dayEnd || this.data.weekEnd || 0;
+    if (now >= cycleEnd) {
+      this.data.dayNumber = (this.data.dayNumber || 1) + 1;
+      this.data.weekNumber = (this.data.weekNumber || 1) + 1;
+      this.data.dayStart = now;
+      this.data.dayEnd = now + (24 * 60 * 60 * 1000); // 1 วัน
+      this.data.weekEnd = this.data.dayEnd;
+
+      // Reset users active scores
+      Object.values(this.data.users).forEach(user => {
+        user.weeklyScore = 0;
+      });
+
+      this.saveData();
+      console.log(`🏆 [RANK ENGINE] Daily reset completed for Day ${this.data.dayNumber}`);
+      if (this.io) {
+        this.io.emit('leaderboard_update', this.getWeeklyLeaderboard(10));
+      }
+    }
+  }
+
+  // ----------------------------------------------------
+  // 👤 User & Trust Score Operations
+  // ----------------------------------------------------
+  getUser(userId) {
+    return this.data.users[userId] || null;
+  }
+
+  getOrCreateUser(userData) {
+    if (!userData || !userData.id) return null;
+    const now = Date.now();
+    const cleanEmail = (userData.email || '').toLowerCase().trim();
+    const isDev = userData.isDev || cleanEmail === 'java5263@gmail.com';
+    const isMsu = cleanEmail.endsWith('@msu.ac.th');
+
+    if (!this.data.users[userData.id]) {
+      const initialTrust = isDev ? 100 : (isMsu ? 60 : 30);
+      const userBadge = isDev ? '👑 DEV' : (isMsu ? '🎓 MSU' : '👤 Member');
+
+      this.data.users[userData.id] = {
+        id: userData.id,
+        email: cleanEmail,
+        name: userData.name || cleanEmail.split('@')[0],
+        picture: userData.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+        role: isDev ? 'dev' : (isMsu ? 'student' : 'member'),
+        badge: userBadge,
+        trustScore: initialTrust,
+        weeklyScore: 0,
+        allTimeScore: 0,
+        pinsCreated: 0,
+        pinsVerified: 0,
         reportsCount: 0,
-        upvotesReceived: 0,
-        helpfulVotesGiven: 0,
-        accuracyRate: 100,
-        lastActive: Date.now()
+        accurateReports: 0,
+        isMsuStudent: isMsu,
+        isDev: isDev,
+        status: 'active',
+        createdAt: now,
+        lastActiveAt: now
       };
-      this.data.userStats[userId] = user;
-      this.save();
+      this.saveData();
+      this.logAudit('USER_REGISTER', userData.id, 'users', `ผู้ใช้ลงทะเบียนใหม่ (${cleanEmail})`);
+    } else {
+      // Update last active
+      this.data.users[userData.id].lastActiveAt = now;
+      if (userData.name) this.data.users[userData.id].name = userData.name;
+      if (userData.picture) this.data.users[userData.id].picture = userData.picture;
+      this.saveData();
     }
 
-    // Attach computed rank object
-    const rank = calculateRank(user.exp, user.isDev);
+    const user = this.data.users[userData.id];
     return {
       ...user,
-      rank
+      rank: calculateRank(user.allTimeScore, user.isDev)
     };
   }
 
-  awardUserExp(userId, userInfo = {}, expAmount = 0, reason = '') {
-    if (!userId) return null;
-    let user = this.data.userStats[userId];
-
-    const isDev = userInfo.isDev || userInfo.email === 'java5263@gmail.com';
-
-    if (!user) {
-      user = {
-        id: userId,
-        name: userInfo.name || 'นิสิต มมส',
-        email: userInfo.email || '',
-        picture: userInfo.picture || null,
-        isDev: isDev,
-        exp: isDev ? 1580 : 0,
-        reportsCount: 0,
-        upvotesReceived: 0,
-        helpfulVotesGiven: 0,
-        accuracyRate: 100,
-        lastActive: Date.now()
-      };
-      this.data.userStats[userId] = user;
+  getUserStats(userId, initialUser = null) {
+    if (initialUser) {
+      return this.getOrCreateUser(initialUser);
     }
-
-    const oldRank = calculateRank(user.exp, user.isDev);
-    user.exp = Math.max(0, user.exp + expAmount);
-    user.lastActive = Date.now();
-
-    if (userInfo.name && userInfo.name !== user.name) user.name = userInfo.name;
-    if (userInfo.picture && userInfo.picture !== user.picture) user.picture = userInfo.picture;
-
-    const newRank = calculateRank(user.exp, user.isDev);
-    const leveledUp = newRank.level > oldRank.level;
-
-    this.save();
-
+    const user = this.data.users[userId];
+    if (!user) return null;
     return {
-      user: {
-        ...user,
-        rank: newRank
-      },
-      expGained: expAmount,
-      reason,
-      leveledUp,
-      oldRank,
-      newRank
+      ...user,
+      rank: calculateRank(user.allTimeScore, user.isDev)
     };
   }
 
-  getLeaderboard(limit = 10) {
-    const list = Object.values(this.data.userStats || {}).map(user => {
-      const rank = calculateRank(user.exp, user.isDev);
-      return {
-        ...user,
-        rank
-      };
-    });
-
-    // Sort by EXP descending
-    list.sort((a, b) => b.exp - a.exp);
-
-    // Assign placement rank numbers (1, 2, 3...)
-    return list.slice(0, limit).map((u, index) => ({
-      ...u,
-      placement: index + 1
-    }));
+  getUserById(id) {
+    if (!id) return null;
+    return this.data.users[id] || null;
   }
 
-  getRankTiers() {
-    return RANK_TIERS;
+  getUserByEmail(email) {
+    if (!email) return null;
+    const cleanEmail = email.toLowerCase().trim();
+    return Object.values(this.data.users).find(u => u.email === cleanEmail) || null;
   }
 
-  // ==========================================
-  // 📋 REPORTS MANAGEMENT
-  // ==========================================
+  updateTrustScore(userId, delta, reason = '') {
+    const user = this.data.users[userId];
+    if (!user || user.isDev) return;
 
-  // Get reports with filters
-  getReports({ zone = 'all', type = 'all', status = 'all', search = '' } = {}) {
-    this.checkExpirations();
-    let list = [...this.data.reports];
+    user.trustScore = Math.max(0, Math.min(100, (user.trustScore || 50) + delta));
+    this.saveData();
+    this.logAudit('TRUST_SCORE_UPDATE', userId, 'trust', `Trust Score ปรับเปลี่ยน ${delta > 0 ? '+' : ''}${delta} (${reason}) - ปัจจุบัน: ${user.trustScore}`);
+  }
 
-    // Ensure all reports have updated rank badges for their reporters
-    list = list.map(r => {
-      if (r.reporter && r.reporter.id) {
-        const stats = this.getUserStats(r.reporter.id, r.reporter);
-        if (stats && stats.rank) {
-          r.reporter.rank = stats.rank;
-        }
-      }
-      return r;
-    });
+  addScore(userId, points, reason = '') {
+    const user = this.data.users[userId];
+    if (!user) return;
 
-    if (zone && zone !== 'all') {
-      list = list.filter(r => r.campusZone.includes(zone) || r.locationName.includes(zone));
+    user.weeklyScore = Math.max(0, (user.weeklyScore || 0) + points);
+    user.allTimeScore = Math.max(0, (user.allTimeScore || 0) + points);
+    this.saveData();
+  }
+
+  // ----------------------------------------------------
+  // 📍 Pin Operations (Map & Traffic Alerts)
+  // ----------------------------------------------------
+  getPins(filters = {}) {
+    let list = this.data.pins.filter(p => p.status !== 'deleted');
+
+    if (filters.status) {
+      list = list.filter(p => p.status === filters.status);
     }
-
-    if (type && type !== 'all') {
-      list = list.filter(r => r.type === type);
+    if (filters.type && filters.type !== 'all') {
+      list = list.filter(p => p.type === filters.type);
     }
-
-    if (status && status !== 'all') {
-      list = list.filter(r => r.status === status);
+    if (filters.zone && filters.zone !== 'all') {
+      list = list.filter(p => p.campusZone === filters.zone);
     }
-
-    if (search && search.trim() !== '') {
-      const q = search.toLowerCase();
-      list = list.filter(r =>
-        (r.title && r.title.toLowerCase().includes(q)) ||
-        (r.locationName && r.locationName.toLowerCase().includes(q)) ||
-        (r.customLocation && r.customLocation.toLowerCase().includes(q)) ||
-        (r.description && r.description.toLowerCase().includes(q)) ||
-        (r.campusZone && r.campusZone.toLowerCase().includes(q))
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      list = list.filter(p =>
+        (p.title && p.title.toLowerCase().includes(q)) ||
+        (p.locationName && p.locationName.toLowerCase().includes(q)) ||
+        (p.direction && p.direction.toLowerCase().includes(q)) ||
+        (p.description && p.description.toLowerCase().includes(q))
       );
     }
 
-    // Sort by latest created
+    // Sort newest first
     return list.sort((a, b) => b.createdAt - a.createdAt);
   }
 
-  getReportById(id) {
-    const report = this.data.reports.find(r => r.id === id);
-    if (report && report.reporter && report.reporter.id) {
-      const stats = this.getUserStats(report.reporter.id, report.reporter);
-      if (stats && stats.rank) {
-        report.reporter.rank = stats.rank;
-      }
-    }
-    return report;
+  getPinById(id) {
+    return this.data.pins.find(p => p.id === id) || null;
   }
 
-  addReport(reportData) {
+  addPin(pinData) {
     const now = Date.now();
-    const reporterId = reportData.reporter?.id || 'anonymous';
+    const id = `pin-${now}-${Math.random().toString(36).substring(2, 7)}`;
     
-    // 🌟 Award +15 EXP for posting useful report
-    let reporterRank = calculateRank(0, !!reportData.reporter?.isDev);
-    if (reporterId && reporterId !== 'anonymous') {
-      const result = this.awardUserExp(reporterId, reportData.reporter, 15, 'โพสต์รายงานด่านใหม่');
-      if (result && result.user) {
-        this.data.userStats[reporterId].reportsCount = (this.data.userStats[reporterId].reportsCount || 0) + 1;
-        reporterRank = result.user.rank;
+    // Set decay duration based on type or custom selection
+    let lifespanHours = parseFloat(pinData.lifespanHours) || 6;
+    if (!pinData.lifespanHours) {
+      if (pinData.type === 'accident' || pinData.type === 'traffic') {
+        lifespanHours = 3;
       }
     }
+    lifespanHours = Math.max(1, Math.min(24, lifespanHours));
 
-    const newReport = {
-      id: `msu-rep-${now}-${Math.random().toString(36).substr(2, 4)}`,
-      title: reportData.title || this.getDefaultTitle(reportData.type),
-      locationName: reportData.locationName || 'พิกัดที่ระบุเองรอบ มมส',
-      customLocation: reportData.customLocation || '',
-      campusZone: reportData.campusZone || 'มอใหม่ (ขามเรียง)',
-      lat: parseFloat(reportData.lat) || 16.2467,
-      lng: parseFloat(reportData.lng) || 103.2520,
-      type: reportData.type || 'helmet',
-      direction: reportData.direction || 'ไม่ระบุฝั่งถนน',
-      description: reportData.description || '',
-      imageUrl: reportData.imageUrl || null,
-      severity: reportData.severity || 'medium',
-      status: 'active',
-      reporter: {
-        id: reporterId,
-        name: reportData.reporter?.name || 'นิสิต มมส',
-        email: reportData.reporter?.email || 'user@msu.ac.th',
-        picture: reportData.reporter?.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60',
-        isDev: !!reportData.reporter?.isDev,
-        role: reportData.reporter?.role || 'student',
-        rank: reporterRank
-      },
-      createdAt: now,
-      updatedAt: now,
-      expiresAt: now + (3 * 60 * 60 * 1000), // Default active 3 hours
+    const isAnnouncement = pinData.isAnnouncement === true;
+    let reporterObj = pinData.reporter;
+    if (isAnnouncement && reporterObj) {
+      reporterObj = {
+        ...reporterObj,
+        name: 'MSU Traffic',
+        picture: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=120&auto=format&fit=crop&q=80',
+        badge: '📢 MSU Traffic',
+        isOfficial: true,
+        isAnnouncement: true
+      };
+    }
+
+    const newPin = {
+      id,
+      title: pinData.title || `รายงานด่าน ${pinData.locationName}`,
+      locationName: pinData.locationName,
+      customLocation: pinData.customLocation || '',
+      campusZone: pinData.campusZone || 'มอใหม่ (ขามเรียง)',
+      lat: pinData.lat,
+      lng: pinData.lng,
+      type: pinData.type,
+      direction: pinData.direction || '',
+      description: pinData.description || '',
+      imageUrl: pinData.imageUrl || null,
+      severity: pinData.severity || 'medium',
+      isAnonymous: pinData.isAnonymous === true,
+      isAnnouncement: isAnnouncement,
+      reporterId: pinData.reporterId || 'anonymous',
+      reporter: reporterObj,
+      likes: [],
+      views: 1,
       votes: {
-        up: [reporterId],
+        up: [pinData.reporterId],
         down: []
-      }
+      },
+      reports: [],
+      status: 'active',
+      moveCount: 0,
+      createdAt: now,
+      expiresAt: now + (lifespanHours * 60 * 60 * 1000)
     };
 
-    this.data.reports.unshift(newReport);
-    this.save();
-    return newReport;
-  }
+    this.data.pins.unshift(newPin);
 
-  voteReport(reportId, userId, voteType, voterInfo = {}) {
-    const report = this.data.reports.find(r => r.id === reportId);
-    if (!report) return null;
-
-    if (!report.votes) {
-      report.votes = { up: [], down: [] };
+    // Update user stats and score
+    if (pinData.reporterId && this.data.users[pinData.reporterId]) {
+      const user = this.data.users[pinData.reporterId];
+      user.pinsCreated = (user.pinsCreated || 0) + 1;
+      this.addScore(pinData.reporterId, 15, 'สร้างรายงานด่านคุณภาพ');
+      this.updateTrustScore(pinData.reporterId, 2, 'ปักหมุดรายงานด่าน');
     }
 
-    const previouslyUpvoted = report.votes.up.includes(userId);
-    const previouslyDownvoted = report.votes.down.includes(userId);
+    this.saveData();
+    this.logAudit('PIN_CREATE', pinData.reporterId, id, `ปักหมุดด่านใหม่: ${newPin.locationName}`);
+    googleSheetsService.syncNewPin(newPin).catch(e => console.warn('Sheets sync error:', e));
+    return newPin;
+  }
 
-    // Remove user previous votes
-    report.votes.up = report.votes.up.filter(u => u !== userId);
-    report.votes.down = report.votes.down.filter(u => u !== userId);
+  updatePinLocation(pinId, lat, lng, locationName, isDev = false) {
+    const pin = this.getPinById(pinId);
+    if (!pin) return { success: false, error: 'NOT_FOUND', message: 'ไม่พบหมุดนี้' };
 
-    let rankReward = null;
+    // 🔒 จำกัดการย้ายหมุดสูงสุด 3 ครั้งต่อหมุด สำหรับผู้ใช้ทั่วไป (Dev ย้ายได้ไม่จำกัด)
+    const currentMoves = pin.moveCount || 0;
+    if (!isDev && currentMoves >= 3) {
+      return {
+        success: false,
+        error: 'MOVE_LIMIT_REACHED',
+        message: 'คุณสามารถย้ายตำแหน่งหมุดนี้ได้สูงสุด 3 ครั้งเท่านั้น เพื่อความถูกต้องของข้อมูล',
+        remainingMoves: 0,
+        pin
+      };
+    }
+
+    pin.lat = lat;
+    pin.lng = lng;
+    if (locationName) pin.locationName = locationName;
+    if (!isDev) {
+      pin.moveCount = currentMoves + 1;
+    }
+
+    this.saveData();
+    this.logAudit('PIN_MOVE', pin.reporterId, pinId, `ย้ายพิกัดหมุดเป็น [${lat}, ${lng}] (ครั้งที่ ${pin.moveCount || 1}/3)`);
+    googleSheetsService.syncPinUpdate(pin).catch(e => console.warn('Sheets sync error:', e));
+
+    return {
+      success: true,
+      pin,
+      moveCount: pin.moveCount || 0,
+      remainingMoves: isDev ? 'unlimited' : Math.max(0, 3 - (pin.moveCount || 0))
+    };
+  }
+
+  deletePin(pinId, userId) {
+    const idx = this.data.pins.findIndex(p => p.id === pinId);
+    if (idx === -1) return false;
+    this.data.pins.splice(idx, 1);
+    this.saveData();
+    this.logAudit('PIN_DELETE', userId, pinId, `ลบหมุดด่าน ${pinId}`);
+    googleSheetsService.syncPinDelete(pinId).catch(e => console.warn('Sheets sync error:', e));
+    return true;
+  }
+
+  votePin(pinId, userId, voteType) {
+    const pin = this.getPinById(pinId);
+    if (!pin) return null;
+
+    pin.votes = pin.votes || { up: [], down: [] };
+    const upIndex = pin.votes.up.indexOf(userId);
+    const downIndex = pin.votes.down.indexOf(userId);
 
     if (voteType === 'up') {
-      report.votes.up.push(userId);
-      
-      // If author is different from voter, award points!
-      if (report.reporter?.id && report.reporter.id !== userId && !previouslyUpvoted) {
-        // 🌟 Author gets +10 EXP for a helpful confirmed report!
-        const authorReward = this.awardUserExp(report.reporter.id, report.reporter, 10, 'มีเพื่อนนิสิตเห็นด้วยกับรายงานของคุณ');
-        if (this.data.userStats[report.reporter.id]) {
-          this.data.userStats[report.reporter.id].upvotesReceived = (this.data.userStats[report.reporter.id].upvotesReceived || 0) + 1;
-        }
-
-        // 🌟 Voter gets +2 EXP for community contribution!
-        const voterReward = this.awardUserExp(userId, voterInfo, 2, 'ร่วมยืนยันข้อมูลด่านจราจร');
-        if (this.data.userStats[userId]) {
-          this.data.userStats[userId].helpfulVotesGiven = (this.data.userStats[userId].helpfulVotesGiven || 0) + 1;
-        }
-
-        rankReward = {
-          authorReward,
-          voterReward
-        };
-      }
-
-      // If was cleared, revive if confirmed by multiple
-      if (report.votes.up.length > report.votes.down.length) {
-        report.status = 'active';
+      if (upIndex !== -1) {
+        pin.votes.up.splice(upIndex, 1);
+      } else {
+        pin.votes.up.push(userId);
+        if (downIndex !== -1) pin.votes.down.splice(downIndex, 1);
+        this.addScore(userId, 2, 'โหวตยืนยันด่าน');
       }
     } else if (voteType === 'down') {
-      report.votes.down.push(userId);
-      // If downvotes exceed upvotes by 3 or downvotes >= 3, mark as cleared/ยกด่าน
-      if (report.votes.down.length >= 3 && report.votes.down.length > report.votes.up.length) {
-        report.status = 'cleared';
+      if (downIndex !== -1) {
+        pin.votes.down.splice(downIndex, 1);
+      } else {
+        pin.votes.down.push(userId);
+        if (upIndex !== -1) pin.votes.up.splice(upIndex, 1);
+        this.addScore(userId, 2, 'โหวตแจ้งยกด่าน');
       }
     }
 
-    // Refresh reporter rank on the report
-    if (report.reporter?.id) {
-      const stats = this.getUserStats(report.reporter.id, report.reporter);
-      if (stats && stats.rank) {
-        report.reporter.rank = stats.rank;
+    // Auto-clear check
+    if (pin.votes.down.length >= 3 && pin.votes.down.length > pin.votes.up.length * 1.5) {
+      pin.status = 'cleared';
+    }
+
+    this.saveData();
+    googleSheetsService.syncPinUpdate(pin).catch(e => console.warn('Sheets sync error:', e));
+    return pin;
+  }
+
+  likePin(pinId, userId) {
+    const pin = this.getPinById(pinId);
+    if (!pin) return null;
+    pin.likes = pin.likes || [];
+    const idx = pin.likes.indexOf(userId);
+    if (idx === -1) {
+      pin.likes.push(userId);
+      this.addScore(pin.reporterId, 3, 'ได้รับไลก์จากเพื่อน');
+    } else {
+      pin.likes.splice(idx, 1);
+    }
+    this.saveData();
+    googleSheetsService.syncPinUpdate(pin).catch(e => console.warn('Sheets sync error:', e));
+    return { pin, liked: idx === -1, totalLikes: pin.likes.length };
+  }
+
+  viewPin(pinId) {
+    const pin = this.getPinById(pinId);
+    if (pin) {
+      pin.views = (pin.views || 0) + 1;
+      this.saveData();
+      return pin.views;
+    }
+    return 0;
+  }
+
+  // ----------------------------------------------------
+  // 🛡️ Weighted Report System (ป้องกันการปั่นและกลั่นแกล้ง)
+  // ----------------------------------------------------
+  reportPin(pinId, reporter, reason, details = '') {
+    const pin = this.getPinById(pinId);
+    if (!pin) return { success: false, error: 'ไม่พบหมุดนี้' };
+
+    const reporterTrust = reporter.trustScore || 50;
+    // Calculate report weight based on Trust Score (0.2x to 3.0x)
+    let weight = 1.0;
+    if (reporterTrust >= 80) weight = 3.0;
+    else if (reporterTrust >= 50) weight = 1.0;
+    else weight = 0.3;
+
+    const reportObj = {
+      id: `report-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+      pinId,
+      reporterId: reporter.id,
+      reporterEmail: reporter.email,
+      reporterTrust,
+      reason,
+      details,
+      weight,
+      status: 'pending',
+      createdAt: Date.now()
+    };
+
+    this.data.pin_reports.push(reportObj);
+    pin.reports = pin.reports || [];
+    pin.reports.push(reportObj.id);
+
+    // Sum weighted reports
+    const pinReports = this.data.pin_reports.filter(r => r.pinId === pinId);
+    const totalWeight = pinReports.reduce((sum, r) => sum + r.weight, 0);
+
+    // If total weight exceeds 5.0 -> Mark for review or hide temporarily
+    if (totalWeight >= 5.0 && pin.status === 'active') {
+      pin.status = 'under_review';
+      this.logAudit('PIN_UNDER_REVIEW', 'system', pinId, `หมุดถูกระงับชั่วคราวเนื่องจากคะแนน Report สะสม = ${totalWeight}`);
+    }
+
+    this.saveData();
+    this.logAudit('PIN_REPORT', reporter.id, pinId, `รีพอร์ตหมุดด้วยเหตุผล: ${reason} (น้ำหนัก: ${weight})`);
+    googleSheetsService.syncPinReport(reportObj).catch(e => console.warn('Sheets sync error:', e));
+    return { success: true, pin, totalWeight };
+  }
+
+  // ----------------------------------------------------
+  // 💬 Local Geofenced Chat Operations
+  // ----------------------------------------------------
+  getChatRooms() {
+    return this.data.chat_rooms.map(r => ({
+      ...r,
+      enabled: r.enabled !== false // default to true
+    }));
+  }
+
+  toggleChatRoom(roomId, enabled) {
+    const room = (this.data.chat_rooms || []).find(r => r.id === roomId);
+    if (!room) return { success: false, error: 'ไม่พบห้องแชตที่ระบุ' };
+    
+    room.enabled = enabled;
+    this.saveData();
+    return { success: true, room };
+  }
+
+  getChatMessages(roomId, limit = 50) {
+    const msgs = this.data.chat_messages
+      .filter(m => m.roomId === roomId)
+      .slice(-limit);
+    return msgs;
+  }
+
+  addChatMessage({ roomId, sender, text, lat, lng, isAnonymous = false, isAnnouncement = false }) {
+    const cleanEmail = (sender.email || '').toLowerCase().trim();
+    const isDev = sender.isDev === true || cleanEmail === 'java5263@gmail.com';
+    const isMsu = cleanEmail.endsWith('@msu.ac.th');
+
+    // 🔒 2-Layer Geofence & MSU Domain Verification
+    if (!isDev) {
+      if (!isMsu) {
+        return { success: false, error: 'เฉพาะนิสิตและบุคลากรที่มีอีเมล @msu.ac.th เท่านั้นที่ส่งข้อความได้' };
+      }
+      const geoCheck = isInsideMSUGeofence(lat, lng);
+      if (!geoCheck.inZone) {
+        return {
+          success: false,
+          error: `คุณอยู่นอกพื้นที่ มมส (${geoCheck.distanceKm} กม.) แชตจะเปิดให้ส่งได้เฉพาะเมื่ออยู่ในรัศมี 20 กม. รอบมหาวิทยาลัยเท่านั้น`,
+          distanceKm: geoCheck.distanceKm
+        };
       }
     }
 
-    report.updatedAt = Date.now();
-    this.save();
+    const isOfficialAnnouncement = isAnnouncement === true && isDev;
+    let senderName = isAnonymous ? 'นิสิตนิรนาม' : sender.name;
+    let senderBadge = isDev ? '👑 DEV' : (isMsu ? '🎓 MSU' : '👤 Member');
+    let senderPicture = isAnonymous ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60' : sender.picture;
+    let senderEmail = isAnonymous ? '' : sender.email;
+
+    if (isOfficialAnnouncement) {
+      senderName = 'MSU Traffic';
+      senderBadge = '📢 ประกาศทางการ';
+      senderPicture = 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=100&auto=format&fit=crop&q=80';
+    }
+
+    const geo = isInsideMSUGeofence(lat, lng);
+    const msgId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const newMsg = {
+      id: msgId,
+      roomId: roomId || 'general',
+      senderId: isOfficialAnnouncement ? 'official_msu_traffic' : sender.id,
+      senderName,
+      senderEmail,
+      senderBadge,
+      senderPicture,
+      text: text.trim(),
+      isAnonymous: !isOfficialAnnouncement && isAnonymous === true,
+      isAnnouncement: isOfficialAnnouncement,
+      location: {
+        lat: lat || null,
+        lng: lng || null,
+        distKm: geo.distanceKm,
+        inZone: geo.inZone
+      },
+      createdAt: Date.now()
+    };
+
+    this.data.chat_messages.push(newMsg);
+    // Keep max 500 messages in storage
+    if (this.data.chat_messages.length > 500) {
+      this.data.chat_messages = this.data.chat_messages.slice(-400);
+    }
+
+    // Increment room message count
+    const room = this.data.chat_rooms.find(r => r.id === roomId);
+    if (room) room.msgCount = (room.msgCount || 0) + 1;
+
+    this.addScore(sender.id, 1, 'มีส่วนร่วมในแชต มมส');
+    this.saveData();
+    return { success: true, message: newMsg };
+  }
+
+  // ✏️ แก้ไขข้อความในแชต
+  editChatMessage(messageId, newText, user) {
+    if (!this.data.chat_messages) return { success: false, error: 'ไม่พบข้อมูลข้อความ' };
+    const msg = this.data.chat_messages.find(m => m.id === messageId);
+    if (!msg) return { success: false, error: 'ไม่พบข้อความที่ต้องการแก้ไข' };
+
+    const isDev = user.isDev === true || (user.email && user.email.toLowerCase() === 'java5263@gmail.com');
+    const isOwner = msg.senderId === user.id || (user.email && msg.senderEmail === user.email);
+
+    if (!isDev && !isOwner) {
+      return { success: false, error: 'คุณไม่มีสิทธิ์แก้ไขข้อความของผู้อื่น' };
+    }
+
+    msg.text = newText.trim();
+    msg.isEdited = true;
+    msg.editedAt = Date.now();
+
+    this.saveData();
+    this.logAudit('CHAT_EDIT', user.id, messageId, `แก้ไขข้อความในห้อง [${msg.roomId}]: ${msg.text}`);
+    return { success: true, message: msg };
+  }
+
+  // 🗑️ ยกเลิก / ลบข้อความในแชต
+  deleteChatMessage(messageId, user) {
+    if (!this.data.chat_messages) return { success: false, error: 'ไม่พบข้อมูลข้อความ' };
+    const idx = this.data.chat_messages.findIndex(m => m.id === messageId);
+    if (idx === -1) return { success: false, error: 'ไม่พบข้อความที่ต้องการลบ' };
+
+    const msg = this.data.chat_messages[idx];
+    const isDev = user.isDev === true || (user.email && user.email.toLowerCase() === 'java5263@gmail.com');
+    const isOwner = msg.senderId === user.id || (user.email && msg.senderEmail === user.email);
+
+    if (!isDev && !isOwner) {
+      return { success: false, error: 'คุณไม่มีสิทธิ์ลบข้อความของผู้อื่น' };
+    }
+
+    const roomId = msg.roomId;
+    this.data.chat_messages.splice(idx, 1);
+
+    const room = this.data.chat_rooms ? this.data.chat_rooms.find(r => r.id === roomId) : null;
+    if (room && room.msgCount > 0) room.msgCount -= 1;
+
+    this.saveData();
+    this.logAudit('CHAT_DELETE', user.id, messageId, `ยกเลิกข้อความในห้อง [${roomId}]`);
+    return { success: true, messageId, roomId };
+  }
+
+  // 🧹 ล้างประวัติแชตโดย Dev (รองรับทั้งรายห้องและทุกห้อง)
+  clearChatRoom(roomId, devUser) {
+    if (!this.data.chat_messages) this.data.chat_messages = [];
+    
+    let deletedCount = 0;
+    if (roomId === 'all') {
+      deletedCount = this.data.chat_messages.length;
+      this.data.chat_messages = [];
+      if (this.data.chat_rooms) {
+        this.data.chat_rooms.forEach(r => r.msgCount = 0);
+      }
+    } else {
+      const beforeCount = this.data.chat_messages.length;
+      this.data.chat_messages = this.data.chat_messages.filter(m => m.roomId !== roomId);
+      deletedCount = beforeCount - this.data.chat_messages.length;
+      const room = this.data.chat_rooms ? this.data.chat_rooms.find(r => r.id === roomId) : null;
+      if (room) room.msgCount = 0;
+    }
+
+    this.saveData();
+    this.logAudit('DEV_CHAT_CLEARED', devUser?.id || 'dev', roomId, `Dev สั่งล้างข้อความในห้องแชท [${roomId}] (${deletedCount} ข้อความ)`);
+    return { success: true, count: deletedCount, roomId };
+  }
+
+  // 🌙 ระบบรีเซ็ตแชตอัตโนมัติประจำวัน (ทุกเที่ยงคืน หากไม่มีการสนทนาเกิน 15 นาที)
+  checkMidnightChatReset() {
+    try {
+      const now = new Date();
+      // เวลาไทย (UTC+7)
+      const thaiHour = (now.getUTCHours() + 7) % 24;
+      const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+
+      // ตรวจสอบช่วงเที่ยงคืน (00:00 - 05:59 น.)
+      if (thaiHour >= 0 && thaiHour < 6) {
+        if (!this.data.chat_rooms || !this.data.chat_messages) return;
+
+        this.data.chat_rooms.forEach(room => {
+          // หากห้องนี้ถูกรีเซ็ตของวันนี้ไปแล้ว ให้ข้าม
+          if (room.lastAutoResetDate === todayStr) return;
+
+          const roomMsgs = this.data.chat_messages.filter(m => m.roomId === room.id);
+          if (roomMsgs.length === 0) return; // ไม่มีข้อความ ไม่ต้องล้าง
+
+          const lastMsg = roomMsgs[roomMsgs.length - 1];
+          const lastMsgTime = lastMsg.createdAt || 0;
+          const idleMs = Date.now() - lastMsgTime;
+          const isIdle15Mins = idleMs >= 15 * 60 * 1000;
+
+          // 🔒 กฎ: "จะรีทุกเที่ยงคืนนับจากคนไม่มีการคุยกัน 15 นาที ถ้ายังคุยอยู่จะไม่ล้าง"
+          if (isIdle15Mins) {
+            const removedCount = roomMsgs.length;
+            this.data.chat_messages = this.data.chat_messages.filter(m => m.roomId !== room.id);
+            room.lastAutoResetDate = todayStr;
+            room.lastAutoResetTime = Date.now();
+            room.msgCount = 0;
+            this.logAudit('AUTO_MIDNIGHT_CHAT_RESET', 'system', room.id, `รีเซ็ตแชทอัตโนมัติรอบเที่ยงคืน (${removedCount} ข้อความ) เนื่องจากไม่มีการสนทนา 15 นาที`);
+
+            if (this.io) {
+              this.io.emit('chat_cleared', {
+                roomId: room.id,
+                isAuto: true,
+                reason: 'รีเซ็ตประวัติแชทอัตโนมัติรอบเที่ยงคืน (ห้องไม่มีการสนทนาเกิน 15 นาที)',
+                timestamp: Date.now()
+              });
+            }
+          }
+        });
+
+        this.saveData();
+      }
+    } catch (e) {
+      console.error('Error in checkMidnightChatReset:', e);
+    }
+  }
+
+  getChatResetInfo(roomId) {
+    const room = (this.data.chat_rooms || []).find(r => r.id === roomId);
+    const roomMsgs = (this.data.chat_messages || []).filter(m => m.roomId === roomId);
+    const lastMsg = roomMsgs.length > 0 ? roomMsgs[roomMsgs.length - 1] : null;
+    const lastMsgTime = lastMsg ? lastMsg.createdAt : null;
+    const idleSeconds = lastMsgTime ? Math.floor((Date.now() - lastMsgTime) / 1000) : null;
+
+    // คำนวณเวลาถึงเที่ยงคืนถัดไป (Next Midnight UTC+7)
+    const now = new Date();
+    const nextMidnight = new Date();
+    nextMidnight.setHours(24, 0, 0, 0); // 00:00:00 of tomorrow
+    const secToMidnight = Math.max(0, Math.floor((nextMidnight.getTime() - now.getTime()) / 1000));
+
     return {
-      report,
-      rankReward
+      roomId,
+      policy: 'รีเซ็ตทุกเที่ยงคืน (เมื่อไม่มีการสนทนาเกิน 15 นาที)',
+      lastMsgTime,
+      idleSeconds,
+      isIdle15Mins: idleSeconds ? idleSeconds >= 900 : true,
+      secToMidnight,
+      lastAutoResetDate: room?.lastAutoResetDate || null
     };
   }
 
-  clearReport(reportId, userId) {
-    const report = this.data.reports.find(r => r.id === reportId);
-    if (!report) return null;
-
-    report.status = 'cleared';
-    report.updatedAt = Date.now();
-    this.save();
-    return report;
-  }
-
-  updateReportLocation(reportId, lat, lng, locationName) {
-    const report = this.data.reports.find(r => r.id === reportId);
-    if (!report) return null;
-
-    report.lat = parseFloat(lat);
-    report.lng = parseFloat(lng);
-    if (locationName) report.locationName = locationName;
-    report.updatedAt = Date.now();
-    this.save();
-    return report;
-  }
-
-  deleteReport(reportId) {
-    const idx = this.data.reports.findIndex(r => r.id === reportId);
-    if (idx !== -1) {
-      this.data.reports.splice(idx, 1);
-      this.save();
-      return true;
+  // ----------------------------------------------------
+  // 📍 Checkpoint Pin Chat Operations (Real-time Pin Chat Room)
+  // ----------------------------------------------------
+  getPinChatMessages(pinId, limit = 50) {
+    if (!this.data.pin_chat_messages) {
+      this.data.pin_chat_messages = [];
     }
-    return false;
+    const msgs = this.data.pin_chat_messages
+      .filter(m => m.pinId === pinId)
+      .slice(-limit)
+      .map(m => {
+        const user = this.data.users[m.senderId];
+        const userRank = user ? calculateRank(user.allTimeScore, user.isDev) : calculateRank(0, false);
+        return {
+          ...m,
+          senderRank: userRank
+        };
+      });
+    return msgs;
   }
 
-  checkExpirations() {
-    const now = Date.now();
-    let updated = false;
-    for (const report of this.data.reports) {
-      if (report.status === 'active' && report.expiresAt && now > report.expiresAt) {
-        report.status = 'expired';
-        updated = true;
+  addPinChatMessage({ pinId, sender, text, isAnonymous = false, isAnnouncement = false }) {
+    if (!this.data.pin_chat_messages) {
+      this.data.pin_chat_messages = [];
+    }
+
+    const pin = this.getPinById(pinId);
+    if (!pin) {
+      return { success: false, error: 'ไม่พบหมุดด่านที่ระบุ' };
+    }
+
+    const cleanText = (text || '').trim();
+    if (!cleanText) {
+      return { success: false, error: 'กรุณากรอกข้อความ' };
+    }
+
+    // 🛡️ 3-Layer Profanity Filter Check
+    const profanityFilter = require('../services/profanityFilter');
+    const tox = profanityFilter.analyzeToxicity(cleanText);
+    if (tox.isToxic) {
+      this.updateTrustScore(sender.id, -5, `ตรวจพบคำหยาบในห้องแชทหมุด: ${tox.reason}`);
+      this.logAudit('PIN_CHAT_PROFANITY', sender.id, pinId, `บล็อกคำหยาบในแชท: ${cleanText} (${tox.reason})`);
+      return {
+        success: false,
+        error: `🚫 ไม่สามารถส่งข้อความได้: ${tox.reason}`
+      };
+    }
+
+    const dbUser = this.getOrCreateUser(sender);
+    const userEmail = (sender.email || '').toLowerCase().trim();
+    const isDev = sender.isDev === true || userEmail === 'java5263@gmail.com' || (dbUser && dbUser.isDev);
+    const isMsu = userEmail.endsWith('@msu.ac.th');
+
+    const isOfficialAnnouncement = isAnnouncement === true && isDev;
+    let senderName = isAnonymous ? 'นิสิตนิรนาม' : (sender.name || 'ผู้ใช้งาน มมส');
+    let senderBadge = isDev ? '👑 DEV' : (isMsu ? '🎓 MSU' : '👤 Member');
+    let senderPicture = isAnonymous ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60' : (sender.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100');
+    let senderEmail = isAnonymous ? '' : sender.email;
+
+    if (isOfficialAnnouncement) {
+      senderName = 'MSU Traffic';
+      senderBadge = '📢 ประกาศทางการ';
+      senderPicture = 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=100&auto=format&fit=crop&q=80';
+    }
+
+    const msgId = `pinmsg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const userRank = dbUser ? calculateRank(dbUser.allTimeScore, isDev) : calculateRank(0, isDev);
+
+    const newMsg = {
+      id: msgId,
+      pinId: pinId,
+      senderId: isOfficialAnnouncement ? 'official_msu_traffic' : sender.id,
+      senderName,
+      senderEmail,
+      senderBadge,
+      senderPicture,
+      senderRank: userRank,
+      text: cleanText,
+      isAnonymous: !isOfficialAnnouncement && isAnonymous === true,
+      isAnnouncement: isOfficialAnnouncement,
+      createdAt: Date.now()
+    };
+
+    this.data.pin_chat_messages.push(newMsg);
+    // Keep max 2,000 pin chat messages in DB
+    if (this.data.pin_chat_messages.length > 2000) {
+      this.data.pin_chat_messages = this.data.pin_chat_messages.slice(-1500);
+    }
+
+    // Award +3 EXP for helpful community chat message
+    this.addScore(sender.id, 3, 'ร่วมแชทอัปเดตข้อมูลด่าน');
+
+    // Update message count on pin
+    pin.chatCount = (pin.chatCount || 0) + 1;
+    this.saveData();
+
+    return {
+      success: true,
+      message: newMsg,
+      chatCount: pin.chatCount,
+      expGained: 3,
+      userStats: this.data.users[sender.id]
+    };
+  }
+
+  // ----------------------------------------------------
+  // 🏆 Leaderboard Operations (Daily / Weekly & All-Time)
+  // ----------------------------------------------------
+  getWeeklyLeaderboard(limit = 10) {
+    // ❗ เฉพาะผู้ใช้ที่มีคะแนนมากกว่า 0 EXP เท่านั้นที่จะขึ้นแสดงบนอันดับ
+    const list = Object.values(this.data.users)
+      .filter(u => (u.weeklyScore || 0) > 0)
+      .map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        picture: u.picture,
+        badge: u.badge,
+        isDev: u.isDev,
+        trustScore: u.trustScore || 50,
+        score: u.weeklyScore || 0,
+        pinsCreated: u.pinsCreated || 0,
+        rank: calculateRank(u.allTimeScore, u.isDev)
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit);
+
+    return {
+      season: this.data.season,
+      seasonName: this.data.seasonName,
+      weekNumber: this.data.weekNumber || 1,
+      dayNumber: this.data.dayNumber || 1,
+      weekEnd: this.data.dayEnd || this.data.weekEnd || (Date.now() + (24 * 60 * 60 * 1000)),
+      rankings: list
+    };
+  }
+
+  getAllTimeLeaderboard(limit = 10) {
+    // ❗ เฉพาะผู้ใช้ที่มีคะแนนมากกว่า 0 EXP เท่านั้น
+    const list = Object.values(this.data.users)
+      .filter(u => (u.allTimeScore || 0) > 0)
+      .map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        picture: u.picture,
+        badge: u.badge,
+        isDev: u.isDev,
+        trustScore: u.trustScore || 50,
+        score: u.allTimeScore || 0,
+        pinsCreated: u.pinsCreated || 0,
+        rank: calculateRank(u.allTimeScore, u.isDev)
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit);
+
+    return list;
+  }
+
+  // ----------------------------------------------------
+  // 👑 Dev / Admin Moderation Operations
+  // ----------------------------------------------------
+  resetLeaderboard(mode = 'weekly', adminId = 'dev_admin') {
+    let affectedUsers = 0;
+    Object.values(this.data.users).forEach(u => {
+      u.weeklyScore = 0;
+      if (mode === 'all') {
+        u.allTimeScore = 0;
+      }
+      affectedUsers++;
+    });
+
+    if (mode === 'all') {
+      this.data.weekNumber = 1;
+    }
+
+    this.saveData();
+    this.logAudit('ADMIN_RESET_LEADERBOARD', adminId, 'leaderboard', `ล้างอันดับคะแนน (โหมด: ${mode}, ผู้ใช้ที่ได้รับผล: ${affectedUsers} บัญชี)`);
+
+    return {
+      success: true,
+      mode,
+      affectedUsers,
+      weeklyLeaderboard: this.getWeeklyLeaderboard(10),
+      allTimeLeaderboard: this.getAllTimeLeaderboard(10)
+    };
+  }
+
+  // ----------------------------------------------------
+  // 🧹 SYSTEM RESET OPERATIONS (ล้าง 1. ยศ 2. แต้ม 3. หมุด 4. แชท)
+  // ----------------------------------------------------
+  resetSystemData({ resetRanks = false, resetPoints = false, resetPins = false, resetChat = false }, adminId = 'dev_admin') {
+    const results = {
+      resetRanks: false,
+      resetPoints: false,
+      resetPins: false,
+      resetChat: false,
+      affectedUsers: 0,
+      affectedPins: 0,
+      affectedMessages: 0
+    };
+
+    // 1. ล้างยศ (Rank & Tier Reset -> รีเซ็ตยศผู้ใช้ทั้งหมดกลับเป็น Rank 1 Novice)
+    if (resetRanks) {
+      Object.values(this.data.users).forEach(u => {
+        if (!u.isDev && u.email !== 'java5263@gmail.com') {
+          u.allTimeScore = 0;
+        }
+        results.affectedUsers++;
+      });
+      results.resetRanks = true;
+    }
+
+    // 2. ล้างแต้ม / คะแนน (Points & Trust Score Reset)
+    if (resetPoints) {
+      Object.values(this.data.users).forEach(u => {
+        u.weeklyScore = 0;
+        if (!resetRanks && (u.isDev || u.email === 'java5263@gmail.com')) {
+          // Keep dev score
+        } else {
+          u.allTimeScore = 0;
+        }
+        u.trustScore = 100;
+        u.pinsCreated = 0;
+        u.pinsVerified = 0;
+        u.reportsCount = 0;
+        u.accurateReports = 0;
+      });
+      this.data.weekNumber = 1;
+      results.resetPoints = true;
+    }
+
+    // 3. ล้างหมุด (Pins & Checkpoints Reset -> ลบหมุดและแชทประจำหมุดทั้งหมด)
+    if (resetPins) {
+      results.affectedPins = this.data.pins.length;
+      this.data.pins = [];
+      this.data.pin_reports = [];
+      this.data.pin_likes = [];
+      this.data.pin_chat_messages = [];
+      if (this.data.flagged_reports) {
+        this.data.flagged_reports = [];
+      }
+      results.resetPins = true;
+    }
+
+    // 4. ล้างห้องแชท (Chat Messages Reset)
+    if (resetChat) {
+      results.affectedMessages = (this.data.chat_messages || []).length;
+      this.data.chat_messages = [];
+      (this.data.chat_rooms || []).forEach(r => { r.msgCount = 0; });
+      results.resetChat = true;
+    }
+
+    this.saveData();
+
+    // Broadcast Real-time Events via Socket.IO
+    if (this.io) {
+      this.io.emit('stats_update', this.getStatistics());
+      if (resetPins) {
+        this.io.emit('pins_cleared_all', { message: 'ผู้ดูแลระบบได้ทำการล้างข้อมูลหมุดทั้งหมด' });
+        this.io.emit('reports_updated', []);
+      }
+      if (resetPoints || resetRanks) {
+        this.io.emit('leaderboard_reset', {
+          weekly: this.getWeeklyLeaderboard(10),
+          allTime: this.getAllTimeLeaderboard(10)
+        });
+      }
+      if (resetChat) {
+        this.io.emit('chat_history_cleared', { roomId: 'all' });
       }
     }
-    if (updated) {
-      this.save();
+
+    const summaryParts = [];
+    if (resetRanks) summaryParts.push('🎖️ ยศ');
+    if (resetPoints) summaryParts.push('🏆 แต้ม/คะแนน');
+    if (resetPins) summaryParts.push(`📍 หมุด (${results.affectedPins} จุด)`);
+    if (resetChat) summaryParts.push(`💬 แชท (${results.affectedMessages} ข้อความ)`);
+
+    this.logAudit('ADMIN_SYSTEM_RESET', adminId, 'system', `ล้างข้อมูลระบบ: [${summaryParts.join(', ')}]`);
+
+    return {
+      success: true,
+      message: `ดำเนินการล้างข้อมูลเรียบร้อยแล้ว (${summaryParts.join(', ')})`,
+      results,
+      stats: this.getStatistics()
+    };
+  }
+
+  banUser(targetUserId, reason = 'ละเมิดข้อกำหนด/สแปมรายงานข้อมูลเท็จ', adminId = 'dev_admin') {
+    const user = this.data.users[targetUserId];
+    if (!user) {
+      return { success: false, error: 'ไม่พบผู้ใช้งานนี้ในระบบ' };
+    }
+    if (user.isDev || user.email === 'java5263@gmail.com') {
+      return { success: false, error: '🚫 ไม่สามารถระงับหรือแบนบัญชี Developer ได้' };
+    }
+
+    user.status = 'banned';
+    user.bannedAt = Date.now();
+    user.banReason = reason;
+    user.trustScore = 0;
+
+    // เคลียร์/ยกเลิกหมุดด่านทั้งหมดที่ผู้ใช้คนนี้เคยสร้าง
+    let affectedPins = 0;
+    this.data.pins.forEach(pin => {
+      if (pin.reporterId === targetUserId && pin.status === 'active') {
+        pin.status = 'cleared';
+        affectedPins++;
+      }
+    });
+
+    // อัปเดตรายการรายงานที่เกี่ยวกับผู้ใช้นี้
+    if (this.data.flagged_reports) {
+      this.data.flagged_reports.forEach(f => {
+        if (f.reportedUserId === targetUserId && f.status === 'pending') {
+          f.status = 'resolved_banned';
+          f.resolvedBy = adminId;
+          f.resolvedAt = Date.now();
+        }
+      });
+    }
+
+    this.saveData();
+    this.logAudit('USER_BANNED', adminId, targetUserId, `แบนผู้ใช้: ${user.name} (${user.email}) - เหตุผล: ${reason}`);
+
+    return {
+      success: true,
+      message: `แบนผู้ใช้ ${user.name} สำเร็จ (เคลียร์หมุดอัตโนมัติ ${affectedPins} หมุด)`,
+      user,
+      affectedPins
+    };
+  }
+
+  unbanUser(targetUserId, adminId = 'dev_admin') {
+    const user = this.data.users[targetUserId];
+    if (!user) {
+      return { success: false, error: 'ไม่พบผู้ใช้งานนี้ในระบบ' };
+    }
+
+    user.status = 'active';
+    delete user.bannedAt;
+    delete user.banReason;
+    user.trustScore = 50;
+
+    this.saveData();
+    this.logAudit('USER_UNBANNED', adminId, targetUserId, `ปลดแบนผู้ใช้: ${user.name} (${user.email})`);
+
+    return {
+      success: true,
+      message: `ปลดแบนผู้ใช้ ${user.name} เรียบร้อยแล้ว`,
+      user
+    };
+  }
+
+  getBannedUsers() {
+    return Object.values(this.data.users)
+      .filter(u => u.status === 'banned')
+      .map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        picture: u.picture,
+        badge: u.badge,
+        bannedAt: u.bannedAt || u.lastActiveAt,
+        banReason: u.banReason || 'ละเมิดข้อกำหนดการใช้งาน',
+        trustScore: u.trustScore || 0
+      }));
+  }
+
+  // ----------------------------------------------------
+  // 🚨 Community Flagged Reports Operations (Moderation Queue)
+  // ----------------------------------------------------
+  flagReport({ pinId, reason, details, reporterId, reporterName }) {
+    if (!this.data.flagged_reports) {
+      this.data.flagged_reports = [];
+    }
+
+    const pin = this.getPinById(pinId);
+    if (!pin) {
+      return { success: false, error: 'ไม่พบหมุดด่านที่ต้องการรายงาน' };
+    }
+
+    // ป้องกันผู้ใช้คนเดิมสแปมรีพอร์ตหมุดเดิมซ้ำๆ
+    const existing = this.data.flagged_reports.find(f => f.pinId === pinId && f.reporterId === reporterId && f.status === 'pending');
+    if (existing) {
+      return { success: false, error: 'คุณได้ส่งรายงานตรวจสอบหมุดนี้ไปแล้ว เจ้าหน้าที่กำลังดำเนินการ' };
+    }
+
+    const reportedUser = this.data.users[pin.reporterId] || null;
+
+    const flagEntry = {
+      id: `flag-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      pinId: pin.id,
+      pinTitle: pin.title || pin.locationName,
+      pinLocation: pin.locationName,
+      campusZone: pin.campusZone,
+      reportedUserId: pin.reporterId,
+      reportedUserName: reportedUser ? reportedUser.name : (pin.reporter?.name || 'นิสิต มมส'),
+      reportedUserEmail: reportedUser ? reportedUser.email : (pin.reporter?.email || ''),
+      reportedUserBadge: reportedUser ? reportedUser.badge : '👤 Member',
+      reporterId: reporterId || 'anonymous',
+      reporterName: reporterName || 'ผู้สัญจร มมส',
+      reason: reason || 'ข้อมูลตำแหน่งเท็จหรือไม่ถูกต้อง',
+      details: details || '',
+      status: 'pending', // pending, resolved_banned, resolved_deleted, dismissed
+      createdAt: Date.now()
+    };
+
+    this.data.flagged_reports.unshift(flagEntry);
+    if (this.data.flagged_reports.length > 500) {
+      this.data.flagged_reports = this.data.flagged_reports.slice(0, 500);
+    }
+
+    // Auto reduce trust score if multiple reports accumulate
+    const pinFlags = this.data.flagged_reports.filter(f => f.pinId === pinId && f.status === 'pending');
+    if (pinFlags.length >= 3 && pin.reporterId && this.data.users[pin.reporterId]) {
+      this.updateTrustScore(pin.reporterId, -5, 'หมุดถูกรายงานความไม่ถูกต้องสะสม 3 ครั้ง');
+    }
+
+    this.saveData();
+    this.logAudit('PIN_FLAGGED', reporterId, pinId, `รายงานหมุดไม่เหมาะสม: ${reason}`);
+
+    return {
+      success: true,
+      message: 'ส่งรายงานให้ผู้ดูแลระบบตรวจสอบเรียบร้อยแล้ว ขอบคุณที่ช่วยดูแลชุมชน มมส',
+      flag: flagEntry
+    };
+  }
+
+  getFlaggedReports(statusFilter = 'pending') {
+    if (!this.data.flagged_reports) {
+      this.data.flagged_reports = [];
+    }
+
+    let list = this.data.flagged_reports;
+    if (statusFilter && statusFilter !== 'all') {
+      list = list.filter(f => f.status === statusFilter);
+    }
+
+    return list.slice(0, 100);
+  }
+
+  resolveFlaggedReport(flagId, action, adminId = 'dev_admin') {
+    if (!this.data.flagged_reports) {
+      this.data.flagged_reports = [];
+    }
+
+    const flag = this.data.flagged_reports.find(f => f.id === flagId);
+    if (!flag) {
+      return { success: false, error: 'ไม่พบรายการรีพอร์ตนี้' };
+    }
+
+    let actionMsg = '';
+
+    if (action === 'ban_user') {
+      // 1. แบนผู้สร้างหมุดทันที
+      this.banUser(flag.reportedUserId, `ถูกรีพอร์ต: ${flag.reason}`, adminId);
+      flag.status = 'resolved_banned';
+      actionMsg = `แบนผู้ใช้ ${flag.reportedUserName} และยกเลิกหมุดเรียบร้อย`;
+    } else if (action === 'delete_pin') {
+      // 2. ลบหมุดด่านทิ้ง
+      this.deletePin(flag.pinId, adminId);
+      flag.status = 'resolved_deleted';
+      actionMsg = `ลบหมุดด่าน ${flag.pinTitle} เรียบร้อย`;
+    } else if (action === 'deduct_trust') {
+      // 3. ลด Trust Score 20 แต้ม
+      this.updateTrustScore(flag.reportedUserId, -20, `ผู้ดูแลตัดคะแนนจากรีพอร์ต: ${flag.reason}`);
+      flag.status = 'resolved_deducted';
+      actionMsg = `ตัดคะแนนความน่าเชื่อถือของผู้ใช้ -20 แต้ม`;
+    } else if (action === 'dismiss') {
+      // 4. ปฏิเสธ/ยกเลิกคำร้อง (ข้อมูลถูกต้อง)
+      flag.status = 'dismissed';
+      actionMsg = `ยกเลิกคำร้องรายงาน`;
+    }
+
+    flag.resolvedBy = adminId;
+    flag.resolvedAt = Date.now();
+
+    this.saveData();
+    this.logAudit('FLAG_RESOLVED', adminId, flagId, `จัดการรายงาน (${action}): ${actionMsg}`);
+
+    return {
+      success: true,
+      message: actionMsg,
+      flag
+    };
+  }
+
+  // ----------------------------------------------------
+  // 📜 Audit Log & Stats
+  // ----------------------------------------------------
+  logAudit(action, userId, targetId, details = '', ip = '127.0.0.1') {
+    const entry = {
+      id: `audit-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+      action,
+      userId,
+      targetId,
+      details,
+      ip,
+      createdAt: Date.now()
+    };
+    this.data.audit_logs = this.data.audit_logs || [];
+    this.data.audit_logs.push(entry);
+    if (this.data.audit_logs.length > 500) {
+      this.data.audit_logs = this.data.audit_logs.slice(-300);
     }
   }
 
-  getDefaultTitle(type) {
-    switch (type) {
-      case 'helmet': return 'ด่านตรวจหมวกกันน็อก & ใบขับขี่';
-      case 'alcohol': return 'ด่านตรวจวัดแอลกอฮอล์ (เป่าแอล)';
-      case 'security': return 'ด่านความมั่นคง / ตรวจค้นสิ่งผิดกฎหมาย';
-      case 'emission': return 'ด่านตรวจควันดำ / มลพิษ';
-      case 'speed': return 'จุดตรวจจับความเร็ว';
-      case 'traffic': return 'สภาพการจราจรติดขัดหนาแน่น';
-      case 'accident': return 'เกิดอุบัติเหตุ / กีดขวางช่องทาง';
-      default: return 'รายงานจุดตรวจ/สภาพจราจร';
-    }
+  getAllPinsAdmin() {
+    return this.data.pins || [];
   }
 
-  getMSUZones() {
-    return MSU_ZONES;
+  deletePin(pinId, adminId = 'dev_admin') {
+    const idx = this.data.pins.findIndex(p => p.id === pinId);
+    if (idx === -1) return false;
+    const removedPin = this.data.pins.splice(idx, 1)[0];
+    this.data.pin_chat_messages = (this.data.pin_chat_messages || []).filter(m => m.pinId !== pinId);
+    this.data.pin_reports = (this.data.pin_reports || []).filter(r => r.pinId !== pinId);
+    this.saveData();
+    this.logAudit('PIN_DELETE', adminId, pinId, `ลบหมุดด่านถาวร: ${removedPin?.locationName || pinId}`);
+
+    if (this.io) {
+      this.io.emit('report_deleted', pinId);
+      this.io.emit('stats_update', this.getStatistics());
+    }
+    return true;
+  }
+
+  updatePinStatus(pinId, status, adminId = 'dev_admin') {
+    const pin = this.getPinById(pinId);
+    if (!pin) return { success: false, error: 'NOT_FOUND', message: 'ไม่พบหมุดนี้' };
+
+    const oldStatus = pin.status;
+    pin.status = status;
+    this.saveData();
+    this.logAudit('PIN_STATUS_CHANGE', adminId, pinId, `เปลี่ยนสถานะหมุดจาก ${oldStatus} -> ${status}`);
+
+    if (this.io) {
+      if (status === 'deleted' || status === 'hidden') {
+        this.io.emit('report_deleted', pinId);
+      } else {
+        this.io.emit('report_updated', pin);
+      }
+      this.io.emit('stats_update', this.getStatistics());
+    }
+    return { success: true, pin, oldStatus, newStatus: status };
+  }
+
+  getAuditLogs(limit = 100) {
+    return (this.data.audit_logs || []).slice(-limit).reverse();
   }
 
   getStatistics() {
-    this.checkExpirations();
-    const active = this.data.reports.filter(r => r.status === 'active');
-    const cleared = this.data.reports.filter(r => r.status === 'cleared');
-    const today = this.data.reports.filter(r => {
-      const d = new Date(r.createdAt);
+    const active = this.data.pins.filter(p => p.status === 'active').length;
+    const cleared = this.data.pins.filter(p => p.status === 'cleared').length;
+    const today = this.data.pins.filter(p => {
+      const d = new Date(p.createdAt);
       const now = new Date();
-      return d.toDateString() === now.toDateString();
-    });
+      return d.getDate() === now.getDate() && d.getMonth() === now.getMonth();
+    }).length;
 
-    const byType = {};
-    active.forEach(r => {
-      byType[r.type] = (byType[r.type] || 0) + 1;
-    });
+    const pendingFlags = (this.data.flagged_reports || []).filter(f => f.status === 'pending').length;
+    const bannedUsers = Object.values(this.data.users).filter(u => u.status === 'banned').length;
 
     return {
-      activeCheckpoints: active.length,
-      todayReports: today.length,
-      clearedToday: cleared.length,
-      byType,
-      lastUpdated: Date.now()
+      active,
+      today,
+      cleared,
+      totalUsers: Object.keys(this.data.users).length,
+      pendingFlags,
+      bannedUsers,
+      season: this.data.season,
+      weekNumber: this.data.weekNumber
     };
+  }
+
+  // ----------------------------------------------------
+  // 📍 MSU Popular Checkpoint Hotspots / Zones
+  // ----------------------------------------------------
+  getMSUZones() {
+    return [
+      // 🏫 มอใหม่ (ขามเรียง)
+      { id: 'zone-kham-1', name: '📍 มอใหม่: หน้าป้าย มมส (ทางเข้าหลัก)', lat: 16.2468, lng: 103.2520, campus: 'มอใหม่ (ขามเรียง)' },
+      { id: 'zone-kham-2', name: '📍 มอใหม่: สามแยกหน้าป้าย มมส (ฝั่งขาเข้า)', lat: 16.2480, lng: 103.2510, campus: 'มอใหม่ (ขามเรียง)' },
+      { id: 'zone-kham-3', name: '📍 มอใหม่: ประตู 1 (ข้างวิทยาลัยการเมือง)', lat: 16.2435, lng: 103.2490, campus: 'มอใหม่ (ขามเรียง)' },
+      { id: 'zone-kham-4', name: '📍 มอใหม่: ประตู 2 (วิทยาการสารสนเทศ/ศิลปกรรม)', lat: 16.2410, lng: 103.2530, campus: 'มอใหม่ (ขามเรียง)' },
+      { id: 'zone-kham-5', name: '📍 มอใหม่: ประตู 3 (ศึกษาศาสตร์/สาธิต)', lat: 16.2495, lng: 103.2560, campus: 'มอใหม่ (ขามเรียง)' },
+      { id: 'zone-kham-6', name: '📍 มอใหม่: สี่แยกไฟแดงขามเรียง (7-Eleven)', lat: 16.2420, lng: 103.2450, campus: 'มอใหม่ (ขามเรียง)' },
+      { id: 'zone-kham-7', name: '📍 มอใหม่: ถนนหน้า ม. เส้นท่าขอนยาง', lat: 16.2450, lng: 103.2480, campus: 'ท่าขอนยาง (รอบมอใหม่)' },
+      { id: 'zone-kham-bridge-bigc', name: '📍 มอใหม่: บนสะพานหน้า Big C (สะพานข้ามคลองท่าขอนยาง)', lat: 16.2390, lng: 103.2575, campus: 'ท่าขอนยาง (รอบมอใหม่)' },
+      { id: 'zone-kham-bigc', name: '📍 มอใหม่: หน้าบิ๊กซี มินิ (Big C Mini ท่าขอนยาง/ขามเรียง)', lat: 16.2445, lng: 103.2475, campus: 'มอใหม่ (ขามเรียง)' },
+      { id: 'zone-kham-12', name: '📍 มอใหม่: แยกดอนยม (ไปกันทรวิชัย)', lat: 16.2580, lng: 103.2590, campus: 'มอใหม่ (ขามเรียง)' },
+
+      // 🏛️ มอเก่า (ในเมือง)
+      { id: 'zone-town-1', name: '🏛️ มอเก่า: ประตูหน้า มอเก่า (ถ.นครสวรรค์)', lat: 16.1950, lng: 103.2980, campus: 'มอเก่า (ในเมือง)' },
+      { id: 'zone-town-2', name: '🏛️ มอเก่า: สี่แยกหน้า มอเก่า (รพ.สุทธาเวช)', lat: 16.1935, lng: 103.2960, campus: 'มอเก่า (ในเมือง)' },
+      { id: 'zone-town-3', name: '🏛️ มอเก่า: หน้าเสริมไทยคอมเพล็กซ์', lat: 16.1980, lng: 103.2870, campus: 'มอเก่า (ในเมือง)' },
+      { id: 'zone-town-bigc', name: '🏛️ มอเก่า: หน้าบิ๊กซี มหาสารคาม (Big C)', lat: 16.1925, lng: 103.2790, campus: 'มอเก่า (ในเมือง)' },
+      { id: 'zone-town-4', name: '🏛️ มอเก่า: สี่แยกหอนาฬิกามหาสารคาม', lat: 16.1865, lng: 103.3005, campus: 'มอเก่า (ในเมือง)' },
+      { id: 'zone-town-5', name: '🏛️ มอเก่า: หน้าโรงเรียนผดุงนารี/สารคามพิทยาคม', lat: 16.1890, lng: 103.2940, campus: 'มอเก่า (ในเมือง)' },
+      { id: 'zone-town-6', name: '🏛️ มอเก่า: สี่แยกบายพาสแก่งเลิงจาน', lat: 16.1750, lng: 103.2750, campus: 'ถนนเลี่ยงเมือง' }
+    ];
+  }
+
+  // ----------------------------------------------------
+  // 🔗 Standardized API Method Aliases
+  // ----------------------------------------------------
+  createPin(data) {
+    return this.addPin(data);
+  }
+
+  movePin(id, lat, lng, by, campus) {
+    const pin = this.getPinById(id);
+    if (!pin) return null;
+    pin.lat = lat;
+    pin.lng = lng;
+    if (campus) pin.campusZone = campus;
+    pin.moveCount = (pin.moveCount || 0) + 1;
+    this.saveData();
+    return pin;
+  }
+
+  resolveFlag(id, action, by) {
+    return this.resolveFlaggedReport(id, action, by);
+  }
+
+  createUser(userData) {
+    return this.getOrCreateUser(userData.id, userData);
+  }
+
+  updateUser(id, userData) {
+    return this.saveUser(id, userData);
+  }
+
+  addExp(userId, points, reason = '') {
+    return this.addScore(userId, points, reason);
+  }
+
+  resetWeeklyScores() {
+    return this.checkWeeklyReset();
+  }
+
+  createChatMessage(data) {
+    return this.addChatMessage(data);
+  }
+
+  createPinChatMessage(pinId, data) {
+    return this.addPinChatMessage(pinId, data);
+  }
+
+  deletePinChatMessage(pinId, msgId, by) {
+    return this.deletePinChatMessage(pinId, msgId, by);
+  }
+
+  clearPinChatMessages(pinId, by) {
+    return this.clearPinChat(pinId, by);
   }
 }
 
 module.exports = new Database();
+

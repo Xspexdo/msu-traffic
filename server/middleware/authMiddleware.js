@@ -4,10 +4,9 @@
  * แต่การอ่าน (GET) เปิดให้ทุกคนเข้าดูได้อิสระ
  */
 
-function requireAuth(req, res, next) {
+function parseUserFromReq(req) {
   const authHeader = req.headers['authorization'];
   const userHeader = req.headers['x-user-data'];
-
   let user = null;
 
   if (userHeader) {
@@ -22,7 +21,6 @@ function requireAuth(req, res, next) {
 
   if (!user && authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
-    // Parse simulated JWT or payload
     try {
       const parts = token.split('.');
       if (parts.length === 3) {
@@ -37,11 +35,17 @@ function requireAuth(req, res, next) {
     } catch (e) {}
   }
 
+  return user;
+}
+
+function requireAuth(req, res, next) {
+  const user = parseUserFromReq(req);
+
   if (!user || !user.id) {
     return res.status(401).json({
       success: false,
       error: 'AUTH_REQUIRED',
-      message: 'กรุณาเข้าสู่ระบบด้วย Google ก่อนโพสต์รายงานหรือกดโหวตยืนยัน'
+      message: 'กรุณาเข้าสู่ระบบด้วย Google หรือ @msu.ac.th ก่อนทำรายการ'
     });
   }
 
@@ -49,6 +53,15 @@ function requireAuth(req, res, next) {
   next();
 }
 
+function optionalAuth(req, res, next) {
+  const user = parseUserFromReq(req);
+  if (user && user.id) {
+    req.user = user;
+  }
+  next();
+}
+
 module.exports = {
-  requireAuth
+  requireAuth,
+  optionalAuth
 };

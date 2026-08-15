@@ -4,21 +4,59 @@ const path = require('path');
 const cors = require('cors');
 const { Server } = require('socket.io');
 
-const { rateLimiter } = require('./middleware/rateLimiter');
+const { rateLimiter, getClientIp, checkIpStatus } = require('./middleware/rateLimiter');
 const db = require('./database/db');
+const googleSheetsService = require('./services/googleSheetsService');
 
 const app = express();
 const server = http.createServer(app);
 
-// Socket.io for Real-time alerts
+// 🛡️ 1. HTTP TIMEOUT CONFIGURATION
+server.keepAliveTimeout = 60000;   // 60s keep-alive
+server.headersTimeout = 65000;     // 65s headers timeout (must be > keepAliveTimeout)
+
+// 🛡️ 2. SOCKET.IO REAL-TIME ANTI-DDOS ARMOR
 const io = new Server(server, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST']
-  }
+  },
+  pingTimeout: 10000,
+  pingInterval: 25000,
+  maxHttpBufferSize: 1e6 // 1 MB max packet size
 });
 
+// Socket connection tracker per IP (Prevent socket starvation)
+const activeSocketIps = new Map();
+const MAX_CONCURRENT_SOCKETS_PER_IP = 15;
+
+io.use((socket, next) => {
+  const req = socket.request;
+  const ip = getClientIp(req);
+
+  // Check if IP is currently banned by WAF
+  const ipStatus = checkIpStatus(ip);
+  if (ipStatus.banned) {
+    return next(new Error(`WAF_BLOCKED: Connection rejected (Banned for ${ipStatus.remainingSeconds}s)`));
+  }
+
+  // Check Concurrent Socket Limit
+  const currentCount = activeSocketIps.get(ip) || 0;
+  if (currentCount >= MAX_CONCURRENT_SOCKETS_PER_IP) {
+    return next(new Error(`SOCKET_FLOOD_LIMIT: Max concurrent connections (${MAX_CONCURRENT_SOCKETS_PER_IP}) reached for this IP`));
+  }
+
+  activeSocketIps.set(ip, currentCount + 1);
+  socket.clientIp = ip;
+  next();
+});
+
+db.setSocketIO(io);
+
 const PORT = process.env.PORT || 3000;
+
+// Keep event loop alive even in headless/background terminal
+process.stdin.resume();
 
 // Global Error Handlers to prevent crash
 process.on('uncaughtException', (err) => {
@@ -29,21 +67,24 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('⚠️ [UNHANDLED REJECTION]:', reason);
 });
 
-// Enterprise Security Headers
+// 🛡️ 3. ENTERPRISE SECURITY HEADERS
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(self), camera=(), microphone=()');
   next();
 });
 
 // Middlewares
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// 🛡️ 4. TIGHTENED BODY LIMITS (Prevents JSON Parsing Memory Exhaustion DoS)
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-// 🛡️ Apply Enterprise WAF & Multi-Tier Rate Limiter Middleware to all /api routes
+// 🛡️ 5. Apply Enterprise WAF & Multi-Tier Rate Limiter Middleware to all /api routes
 app.use('/api', rateLimiter);
 
 // API Routes
@@ -52,12 +93,16 @@ const zonesRouter = require('./routes/zones');
 const authRouter = require('./routes/auth');
 const securityRouter = require('./routes/security');
 const rankRouter = require('./routes/rank');
+const chatRouter = require('./routes/chat')(io);
+const sheetsRouter = require('./routes/sheets');
 
 app.use('/api/reports', reportsRouter);
 app.use('/api/zones', zonesRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/security', securityRouter);
 app.use('/api/rank', rankRouter);
+app.use('/api/chat', chatRouter);
+app.use('/api/sheets', sheetsRouter);
 
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, '../public')));
@@ -69,25 +114,40 @@ app.get('*', (req, res) => {
 
 // Socket.io Realtime Events
 io.on('connection', (socket) => {
-  console.log(`⚡ [SOCKET] User connected: ${socket.id}`);
+  const ip = socket.clientIp || '127.0.0.1';
 
   // Send current stats immediately upon connecting
   socket.emit('stats_update', db.getStatistics());
 
   socket.on('disconnect', () => {
-    // disconnected
+    // Decrement active connection counter for IP
+    const current = activeSocketIps.get(ip) || 1;
+    if (current <= 1) {
+      activeSocketIps.delete(ip);
+    } else {
+      activeSocketIps.set(ip, current - 1);
+    }
   });
 });
 
 // Start Server
+server.on('error', (err) => {
+  console.error('⚠️ [SERVER ERROR]:', err);
+});
+
 server.listen(PORT, () => {
   console.log(`
 =====================================================
 🚀 MSU Traffic Server is running on port ${PORT}
 🌐 Access URL: http://localhost:${PORT}
-🛡️ Enterprise WAF & Rate Limiter: ACTIVE (Multi-Tier Protection)
+🛡️ Enterprise WAF & Anti-DDoS: ACTIVE (Level: MAX_BEST_IN_CLASS)
+⏱️ Slowloris Defense & Socket Armor: ENGAGED
+📊 Google Sheets Real-time & Auto-Sync: ACTIVE
 🔐 Auth Mode: Google Sign-In & Verified Tokens
 📍 MSU Campus Map & Real-time Checkpoint Alert
 =====================================================
   `);
+
+  // 📊 เริ่มต้นระบบ Auto-Sync ส่งข้อมูลขึ้น Google Sheets ในเบื้องหลังอัตโนมัติ (ทุก 3 นาที)
+  googleSheetsService.startAutoSyncTimer(db, 180000);
 });

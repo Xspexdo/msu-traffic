@@ -18,11 +18,11 @@ class MSUMapManager {
     this.khamriangCoords = [16.2467, 103.2520]; // มอใหม่ ขามเรียง
     this.downtownCoords = [16.1868, 103.2982];  // มอเก่า ในเมือง
 
-    // Tile Providers (100% Free & No AdBlock / Brave Block)
+    // Tile Providers (Multi-CDN High Availability)
     this.tileUrls = {
-      light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-      dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-      osm: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+      google: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+      osm: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      carto: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
     };
 
     this.reports = [];
@@ -46,15 +46,26 @@ class MSUMapManager {
         attributionControl: false
       });
 
-      // 2. Add Tile Layer (Default: CARTO Voyager Light)
-      this.tileLayer = L.tileLayer(this.tileUrls[this.currentTheme], {
-        subdomains: 'abcd',
-        maxZoom: 19,
-        detectRetina: true
+      // 2. Add Tile Layer (Default: Google Maps Vector Tiles - 100% Reliable in Thailand)
+      this.tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
       }).addTo(this.map);
 
-      // 3. Zoom Control on Top Right
-      L.control.zoom({ position: 'topright' }).addTo(this.map);
+      // Fallback to OSM if Google is unreachable
+      this.tileLayer.on('tileerror', () => {
+        if (this.currentTheme !== 'osm') {
+          this.map.removeLayer(this.tileLayer);
+          this.tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            subdomains: ['a', 'b', 'c']
+          }).addTo(this.map);
+          this.currentTheme = 'osm';
+        }
+      });
+
+      // 3. Zoom Control on Bottom Left (เพื่อไม่ให้ซ้อนทับกับกล่องอันดับมุมบนขวา)
+      L.control.zoom({ position: 'bottomleft' }).addTo(this.map);
 
       // 4. Markers Layer Group
       this.markersLayer = L.layerGroup().addTo(this.map);
@@ -67,7 +78,10 @@ class MSUMapManager {
         }
       });
 
-      // 6. Force Map Resize & Invalidate Size
+      // 6. Init Map Drag & Auto Slide Feed Effect (เลื่อนแผนที่ -> แถบสไลด์ลง, หยุด 5 วิ หรือคลิกหมุด -> กู้คืน)
+      this.initMapDragSlideEffect();
+
+      // 7. Force Map Resize & Invalidate Size
       this.forceResize();
 
       console.log('🗺️ MSU Map Engine Initialized Successfully!');
@@ -79,6 +93,59 @@ class MSUMapManager {
     } catch (err) {
       console.error('Error initializing map:', err);
     }
+  }
+
+  // ----------------------------------------------------
+  // 🗺️ ระบบสไลด์แถบรายการลงเมื่อเลื่อนแผนที่ & กู้คืนเมื่อหยุด 5 วิ หรือคลิกหมุด
+  // ----------------------------------------------------
+  initMapDragSlideEffect() {
+    if (!this.map) return;
+
+    const feedPanel = document.querySelector('.map-feed-panel');
+    const restoreBtn = document.getElementById('mapRestoreFeedPill');
+    if (!feedPanel) return;
+
+    let slideTimer = null;
+
+    const hideFeedPanel = () => {
+      feedPanel.classList.add('panel-slid-down');
+      if (restoreBtn) restoreBtn.classList.add('visible');
+      if (slideTimer) {
+        clearTimeout(slideTimer);
+        slideTimer = null;
+      }
+    };
+
+    const scheduleRestoreFeedPanel = (delay = 5000) => {
+      if (slideTimer) clearTimeout(slideTimer);
+      slideTimer = setTimeout(() => {
+        feedPanel.classList.remove('panel-slid-down');
+        if (restoreBtn) restoreBtn.classList.remove('visible');
+        slideTimer = null;
+      }, delay);
+    };
+
+    // 1. เมื่อเริ่มเลื่อนหรือซูมแผนที่: ให้สไลด์แถบลงไปซ่อน
+    this.map.on('movestart', () => hideFeedPanel());
+    this.map.on('dragstart', () => hideFeedPanel());
+    this.map.on('zoomstart', () => hideFeedPanel());
+
+    // 2. เมื่อหยุดเลื่อนแผนที่: นับถอยหลัง 5 วินาที แล้วสไลด์กลับขึ้นมา
+    this.map.on('moveend', () => scheduleRestoreFeedPanel(5000));
+    this.map.on('dragend', () => scheduleRestoreFeedPanel(5000));
+    this.map.on('zoomend', () => scheduleRestoreFeedPanel(5000));
+
+    // 3. ฟังก์ชันกู้คืนแถบทันที (เมื่อคลิกหมุด หรือกดปุ่มกู้คืน)
+    this.restoreFeedPanel = () => {
+      if (slideTimer) {
+        clearTimeout(slideTimer);
+        slideTimer = null;
+      }
+      feedPanel.classList.remove('panel-slid-down');
+      if (restoreBtn) restoreBtn.classList.remove('visible');
+    };
+
+    this.hideFeedPanel = hideFeedPanel;
   }
 
   forceResize() {
@@ -130,6 +197,22 @@ class MSUMapManager {
     this.map.flyTo(center, 15, { duration: 1.2 });
   }
 
+  // Update or create user location marker from GPS
+  updateUserLocationMarker(lat, lng, accuracy) {
+    if (!this.map || !lat || !lng) return;
+    if (this.userLocationMarker) {
+      this.userLocationMarker.setLatLng([lat, lng]);
+    } else {
+      const userIcon = L.divIcon({
+        className: 'user-gps-marker',
+        html: `<div style="width: 18px; height: 18px; background: #2563EB; border: 3px solid #FFFFFF; border-radius: 50%; box-shadow: 0 0 12px rgba(37,99,235,0.8);"></div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      this.userLocationMarker = L.marker([lat, lng], { icon: userIcon }).addTo(this.map);
+    }
+  }
+
   // Locate User GPS
   locateUser() {
     if (!navigator.geolocation) {
@@ -141,19 +224,7 @@ class MSUMapManager {
       (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-
-        if (this.userLocationMarker) {
-          this.userLocationMarker.setLatLng([lat, lng]);
-        } else {
-          const userIcon = L.divIcon({
-            className: 'user-gps-marker',
-            html: `<div style="width: 18px; height: 18px; background: #2563EB; border: 3px solid #FFFFFF; border-radius: 50%; box-shadow: 0 0 12px rgba(37,99,235,0.8);"></div>`,
-            iconSize: [20, 20],
-            iconAnchor: [10, 10]
-          });
-          this.userLocationMarker = L.marker([lat, lng], { icon: userIcon }).addTo(this.map);
-        }
-
+        this.updateUserLocationMarker(lat, lng, pos.coords.accuracy);
         this.map.flyTo([lat, lng], 16, { duration: 1.2 });
       },
       (err) => {
@@ -243,8 +314,9 @@ class MSUMapManager {
     reports.forEach(report => {
       if (!report.lat || !report.lng) return;
 
+      const isAnnouncement = report.type === 'announcement' || report.isAnnouncement || report.reporter?.isAnnouncement || report.reporter?.name === 'MSU Traffic';
       const isCleared = report.status === 'cleared' || report.status === 'expired';
-      const iconEmoji = this.getTypeIcon(report.type);
+      const iconEmoji = isAnnouncement ? '📢' : this.getTypeIcon(report.type);
       const timeAgo = this.formatTimeAgo(report.createdAt);
       const upVotes = report.votes?.up?.length || 0;
 
@@ -253,27 +325,40 @@ class MSUMapManager {
         (report.reporter?.id && report.reporter.id === currentUser.id) ||
         (report.reporter?.email && report.reporter.email === currentUser.email)
       );
-      const canDrag = isDev || isAuthor;
+      const movesUsed = report.moveCount || 0;
+      const canDrag = isDev || (isAuthor && movesUsed < 3);
 
       let dragBadgeHtml = '';
       if (isDev) {
-        dragBadgeHtml = '<span class="dev-drag-crown" title="Dev สามารถลากหมุดนี้ได้">👑</span>';
-      } else if (isAuthor) {
-        dragBadgeHtml = '<span class="author-drag-badge" title="โพสต์ของคุณ: แตะลากเพื่อย้ายตำแหน่งได้">✏️</span>';
+        dragBadgeHtml = '<span class="dev-drag-crown" title="Dev สามารถลากหมุดนี้ได้ (ไม่จำกัด)">👑</span>';
+      } else if (isAuthor && movesUsed < 3) {
+        dragBadgeHtml = `<span class="author-drag-badge" title="โพสต์ของคุณ: ย้ายได้อีก ${3 - movesUsed} ครั้ง">✏️</span>`;
+      } else if (isAuthor && movesUsed >= 3) {
+        dragBadgeHtml = '<span class="author-drag-badge" style="background:#F1F5F9; border-color:#CBD5E1; color:#94A3B8;" title="ย้ายครบ 3 ครั้งแล้ว">🔒</span>';
       }
 
+      // แสดงหัวข้อข้อความประกาศเด่นๆ บนแผนที่โดยตรง
+      const announcementTitleText = report.title || report.locationName || 'ประกาศด่วน';
+      const announcementPillHtml = isAnnouncement ? `
+        <div class="announcement-map-pill">
+          <span>📢</span>
+          <span>${announcementTitleText.length > 28 ? announcementTitleText.substring(0, 26) + '...' : announcementTitleText}</span>
+        </div>
+      ` : '';
+
       const customIcon = L.divIcon({
-        className: `mapcn-marker ${isCleared ? 'marker-cleared' : 'marker-active'} ${canDrag ? 'marker-can-drag' : ''} ${isAuthor ? 'marker-my-post' : ''}`,
+        className: `mapcn-marker ${isAnnouncement ? 'marker-announcement' : ''} ${isCleared ? 'marker-cleared' : 'marker-active'} ${canDrag ? 'marker-can-drag' : ''} ${isAuthor ? 'marker-my-post' : ''}`,
         html: `
+          ${announcementPillHtml}
           <div class="mapcn-marker-inner">
             <span class="mapcn-marker-icon">${iconEmoji}</span>
-            ${!isCleared ? '<span class="mapcn-pulse-ring"></span>' : ''}
+            ${!isCleared ? '<span class="mapcn-pulse-ring"></span><span class="mapcn-pulse-ring ring-2"></span>' : ''}
             ${dragBadgeHtml}
           </div>
         `,
-        iconSize: [42, 42],
-        iconAnchor: [21, 21],
-        popupAnchor: [0, -22]
+        iconSize: [52, 52],
+        iconAnchor: [26, 26],
+        popupAnchor: [0, isAnnouncement ? -38 : -28]
       });
 
       const marker = L.marker([report.lat, report.lng], {
@@ -282,16 +367,38 @@ class MSUMapManager {
         autoPan: canDrag
       });
 
-      // ✋ ถ้าเป็นเจ้าของโพสต์ หรือเป็น DEV: เมื่อลากหมุดเสร็จจะบันทึกพิกัดใหม่ลง Server ทันที
+      // ✋ ถ้าเป็นเจ้าของโพสต์ หรือเป็น DEV: เมื่อลากหมุดเสร็จจะถามยืนยันก่อนบันทึกพิกัดใหม่ (ป้องกันการลากพลาด)
       if (canDrag) {
         marker.on('dragend', async (e) => {
           const newPos = e.target.getLatLng();
+          const oldLat = report.lat;
+          const oldLng = report.lng;
+
+          const pinTitle = report.title || report.locationName || 'ด่านตรวจ';
+          const remainingMovesText = isDev 
+            ? '👑 สิทธิ์ Dev: ย้ายได้ไม่จำกัดจำนวนครั้ง' 
+            : `✏️ คุณจะเหลือโควตาย้ายหมุดนี้อีก ${Math.max(0, 3 - (movesUsed + 1))} ครั้ง (จาก 3 ครั้ง)`;
+
+          const confirmMsg = `📍 [ยืนยันการย้ายตำแหน่งหมุด]\nคุณต้องการย้ายหมุด "${pinTitle}" ไปยังพิกัดใหม่นี้ใช่หรือไม่?\n\nพิกัดใหม่: [${newPos.lat.toFixed(5)}, ${newPos.lng.toFixed(5)}]\n${remainingMovesText}`;
+
+          // หากผู้ใช้กดยกเลิก: คืนค่าหมุดกลับไปที่ตำแหน่งเดิมทันที
+          if (!confirm(confirmMsg)) {
+            marker.setLatLng([oldLat, oldLng]);
+            if (window.app) {
+              window.app.showNotification('❌ ยกเลิกการย้ายหมุด (หมุดกลับสู่ตำแหน่งเดิมแล้ว)', 'info');
+            }
+            return;
+          }
+
           if (navigator.vibrate) navigator.vibrate(60);
 
           try {
             const res = await fetch(`/api/reports/${report.id}/location`, {
               method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                ...(window.authManager ? window.authManager.getAuthHeader() : {})
+              },
               body: JSON.stringify({
                 lat: newPos.lat,
                 lng: newPos.lng
@@ -299,18 +406,25 @@ class MSUMapManager {
             });
             const data = await res.json();
             if (data.success) {
+              // อัปเดตพิกัดอ้างอิงใน report ปัจจุบัน
+              report.lat = newPos.lat;
+              report.lng = newPos.lng;
+              report.moveCount = data.moveCount;
+
               if (window.app) {
                 const msg = isDev
-                  ? `👑 DEV: ย้ายตำแหน่งหมุด "${report.locationName || 'ด่านตรวจ'}" ไปยังพิกัดใหม่แล้ว!`
-                  : `📍 ย้ายตำแหน่งโพสต์ของคุณเรียบร้อยแล้ว!`;
+                  ? `👑 DEV: ย้ายตำแหน่งหมุด "${pinTitle}" สำเร็จแล้ว! (ไม่จำกัดครั้ง)`
+                  : `📍 ย้ายตำแหน่งสำเร็จ! (ย้ายไปแล้ว ${data.moveCount}/3 ครั้ง เหลืออีก ${data.remainingMoves} ครั้ง)`;
                 window.app.showNotification(msg, 'success');
               }
             } else {
-              alert('ไม่สามารถย้ายตำแหน่งได้: ' + (data.error || 'เกิดข้อผิดพลาด'));
+              alert('ไม่สามารถย้ายตำแหน่งได้: ' + (data.message || data.error || 'เกิดข้อผิดพลาด'));
+              marker.setLatLng([oldLat, oldLng]);
               window.app && window.app.loadReports();
             }
           } catch (err) {
             console.error('Error updating report location:', err);
+            marker.setLatLng([oldLat, oldLng]);
             alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
           }
         });
@@ -318,9 +432,13 @@ class MSUMapManager {
 
       let dragTipText = '';
       if (isDev) {
-        dragTipText = '<div style="font-size: 0.72rem; color: #F59E0B; font-weight: 700; background: #FEF3C7; padding: 0.25rem 0.45rem; border-radius: 4px; margin-top: 0.2rem;">👑 สิทธิ์ Dev: แตะลากหมุดนี้เพื่อย้ายพิกัดได้</div>';
+        dragTipText = '<div style="font-size: 0.72rem; color: #F59E0B; font-weight: 700; background: #FEF3C7; padding: 0.25rem 0.45rem; border-radius: 4px; margin-top: 0.2rem;">👑 สิทธิ์ Dev: แตะลากหมุดนี้เพื่อย้ายพิกัดได้ (ไม่จำกัด)</div>';
       } else if (isAuthor) {
-        dragTipText = '<div style="font-size: 0.72rem; color: #2563EB; font-weight: 700; background: #EFF6FF; border: 1px solid #BFDBFE; padding: 0.25rem 0.45rem; border-radius: 4px; margin-top: 0.2rem;">✏️ โพสต์ของคุณ: แตะลากหมุดบนแผนที่เพื่อย้ายที่ตั้งได้ตลอดเวลา</div>';
+        if (movesUsed < 3) {
+          dragTipText = `<div style="font-size: 0.72rem; color: #2563EB; font-weight: 700; background: #EFF6FF; border: 1px solid #BFDBFE; padding: 0.25rem 0.45rem; border-radius: 4px; margin-top: 0.2rem;">✏️ โพสต์ของคุณ: แตะลากย้ายได้ (ย้ายแล้ว ${movesUsed}/3 ครั้ง)</div>`;
+        } else {
+          dragTipText = `<div style="font-size: 0.72rem; color: #64748B; font-weight: 700; background: #F1F5F9; border: 1px solid #E2E8F0; padding: 0.25rem 0.45rem; border-radius: 4px; margin-top: 0.2rem;">🔒 ย้ายครบโควตา 3 ครั้งแล้ว (ล็อกตำแหน่ง)</div>`;
+        }
       }
 
       const downVotes = report.votes?.down?.length || 0;
@@ -329,50 +447,87 @@ class MSUMapManager {
       const hasDownVoted = currentUserId && report.votes?.down?.includes(currentUserId);
       const canDelete = isDev || isAuthor;
 
+      const timeInfo = window.app
+        ? window.app.formatTimeInfo(report.createdAt, report.expiresAt, report.status)
+        : { postTimeStr: timeAgo, expireStr: '', isExpiringSoon: false };
+
+      const isAnnouncement = report.isAnnouncement || report.reporter?.isAnnouncement || report.reporter?.name === 'MSU Traffic';
+      let badgeHtml = '<span class="badge-pill badge-member">👤 Member</span>';
+      if (isAnnouncement) {
+        badgeHtml = '<span class="badge-pill badge-official">📢 MSU Traffic</span>';
+      } else if (report.reporter?.isDev) {
+        badgeHtml = '<span class="badge-pill badge-dev">👑 DEV</span>';
+      } else if (report.reporter?.isMsuStudent || (report.reporter?.email && report.reporter.email.endsWith('@msu.ac.th'))) {
+        badgeHtml = '<span class="badge-pill badge-msu">🎓 MSU</span>';
+      }
+
+      const likesCount = report.likes?.length || 0;
+      const hasLiked = currentUserId && report.likes?.includes(currentUserId);
+
       const popupHtml = `
         <div class="mapcn-popup-card">
           <!-- 1. Header -->
           <div class="popup-header">
             <span class="popup-zone">📍 ${report.campusZone || 'มมส'}</span>
-            <span class="popup-time">🕒 ${timeAgo}</span>
+            <div class="popup-time-col">
+              <span class="popup-time">🕒 โพสต์ ${timeInfo.postTimeStr}</span>
+              <span class="popup-expire-tag ${timeInfo.isExpiringSoon ? 'expire-soon' : ''}">${timeInfo.expireStr}</span>
+            </div>
           </div>
 
           <!-- 2. Title & Direction -->
           <div class="popup-title">${report.title || report.locationName}</div>
-          <div class="popup-loc">🧭 ${report.direction ? report.direction : report.locationName}</div>
+          ${report.direction ? `<div class="popup-loc">🧭 ${report.direction}</div>` : ''}
 
           <!-- 3. Description (if any) -->
           ${report.description ? `<div class="popup-desc">${report.description}</div>` : ''}
           ${dragTipText}
 
-          <!-- 4. Vote Actions Row (No squishing, clean horizontal buttons) -->
-          <div class="popup-vote-row">
-            <button class="popup-vote-btn ${hasUpVoted ? 'active-up' : ''}" onclick="window.app.vote('${report.id}', 'up', event)">
-              <span>👍 ยังอยู่</span>
-              <span class="vote-count-pill">${upVotes}</span>
+          <!-- 4. Premium Vote & Reaction Actions Grid -->
+          <div class="popup-actions-grid">
+            <button class="btn-action-pill pill-upvote ${hasUpVoted ? 'active' : ''}" onclick="window.app.vote('${report.id}', 'up', event)" title="ยืนยันว่ายังมีด่าน">
+              <span class="pill-icon">🛡️</span>
+              <span class="pill-label">ยังมีด่าน</span>
+              <span class="pill-count">${upVotes}</span>
             </button>
-            <button class="popup-vote-btn ${hasDownVoted ? 'active-down' : ''}" onclick="window.app.vote('${report.id}', 'down', event)">
-              <span>🚀 ยกแล้ว</span>
-              <span class="vote-count-pill">${downVotes}</span>
+            <button class="btn-action-pill pill-downvote ${hasDownVoted ? 'active' : ''}" onclick="window.app.vote('${report.id}', 'down', event)" title="แจ้งว่าด่านยกแล้ว">
+              <span class="pill-icon">✨</span>
+              <span class="pill-label">ยกแล้ว</span>
+              <span class="pill-count">${downVotes}</span>
+            </button>
+            <button class="btn-action-pill pill-like ${hasLiked ? 'active' : ''}" onclick="window.app.likeReport('${report.id}', event)" title="ขอบคุณผู้รายงาน">
+              <span class="pill-icon">❤️</span>
+              <span class="pill-count">${likesCount}</span>
+            </button>
+            <button class="btn-action-pill pill-report" onclick="window.app.openPinReportModal('${report.id}', event)" title="รายงานหมุดไม่ถูกต้อง / หมุดเท็จ">
+              <span class="pill-icon">🚩</span>
+              <span class="pill-label">รีพอร์ต</span>
             </button>
             ${canDelete ? `
-              <button class="popup-delete-btn" title="ลบรายงานนี้" onclick="window.app.deleteReport('${report.id}', event)">
-                🗑️
+              <button class="btn-action-pill pill-delete" title="ลบรายงานนี้" onclick="window.app.deleteReport('${report.id}', event)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
             ` : ''}
           </div>
 
-          <!-- 5. Footer: Status Badge + Reporter Profile -->
+          <!-- 5. Modern Live Chat CTA Button with Pulse Beacon -->
+          <button class="popup-chat-cta" onclick="window.app.openPinChat('${report.id}', event)">
+            <div style="display: flex; align-items: center; gap: 0.45rem;">
+              <span class="live-chat-beacon"></span>
+              <span class="chat-cta-title">ห้องแชทสดประจำจุดนี้</span>
+            </div>
+            <span class="chat-cta-badge">${report.chatCount || 0} ข้อความ ➔</span>
+          </button>
+
+          <!-- 6. Footer: Status Pill Beacon + Reporter Profile -->
           <div class="popup-footer">
-            <span class="popup-status-badge ${isCleared ? 'status-cleared' : 'status-active'}">
-              ${isCleared ? '✅ ยกแล้ว' : '🚨 ยังมีด่าน'}
-            </span>
+            <div class="popup-status-pill ${isCleared ? 'status-cleared' : 'status-active'}">
+              <span class="status-dot"></span>
+              <span>${isCleared ? 'ยกเลิกด่านแล้ว' : 'กำลังตั้งด่าน'}</span>
+            </div>
             <div class="popup-reporter-info">
               <span class="reporter-name">${report.reporter?.name || 'นิสิต มมส'}</span>
-              ${report.reporter?.isDev ? '<span style="background: #FEF3C7; color: #B45309; font-size: 0.65rem; font-weight: 800; padding: 1px 5px; border-radius: 4px; border: 1px solid #FDE68A;">👑 DEV</span>' : 
-                (report.reporter?.isMsuStudent || (report.reporter?.email && report.reporter.email.endsWith('@msu.ac.th')) ? 
-                  '<span style="background: #FEF3C7; color: #B45309; font-size: 0.65rem; font-weight: 800; padding: 1px 5px; border-radius: 4px; border: 1px solid #FDE68A;">🎓 MSU</span>' : 
-                  '<span style="background: #F1F5F9; color: #475569; font-size: 0.65rem; font-weight: 800; padding: 1px 5px; border-radius: 4px; border: 1px solid #E2E8F0;">👤 Member</span>')}
+              ${badgeHtml}
               ${window.rankManager ? window.rankManager.getRankBadgeHtml(report.reporter?.rank, 'xs') : ''}
             </div>
           </div>
@@ -380,6 +535,18 @@ class MSUMapManager {
       `;
 
       marker.bindPopup(popupHtml, { className: 'mapcn-custom-popup' });
+      
+      // 📍 เมื่อคลิกเลือกหมุด: กู้คืนแถบรายการกลับมาทันที
+      marker.on('click', () => {
+        if (this.restoreFeedPanel) this.restoreFeedPanel();
+        if (window.app && window.app.highlightReportCard) {
+          window.app.highlightReportCard(report.id);
+        }
+      });
+      marker.on('popupopen', () => {
+        if (this.restoreFeedPanel) this.restoreFeedPanel();
+      });
+
       this.markersLayer.addLayer(marker);
     });
   }
@@ -400,7 +567,24 @@ class MSUMapManager {
       case 'speed': return '📸';
       case 'traffic': return '🚗';
       case 'accident': return '⚠️';
+      case 'announcement': return '📢';
       default: return '📍';
+    }
+  }
+
+  init() {
+    this.initMap();
+  }
+
+  switchCampus(campus) {
+    document.querySelectorAll('.campus-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.campus === campus);
+    });
+
+    if (campus === 'downtown') {
+      this.map.flyTo(this.downtownCoords, 15, { duration: 1 });
+    } else {
+      this.map.flyTo(this.khamriangCoords, 15, { duration: 1 });
     }
   }
 

@@ -1,345 +1,446 @@
 /**
- * MSU Traffic - Main Application Controller (Updated for Dev Mode & mapcn)
+ * MSU Traffic & Campus Life - Main Application Controller (Season 1)
+ * ควบคุม 5 แท็บหลัก (Home, Map, Rank, Chat, Profile), Socket.io, และระบบรายงานด่าน
  */
 
-class AppController {
+class MSUApp {
   constructor() {
-    this.socket = null;
+    this.currentTab = 'map';
     this.reports = [];
     this.zones = [];
-    this.currentFilter = 'all';
-    this.currentZone = 'all';
+    this.socket = null;
+    this.activeFilter = 'all';
     this.searchQuery = '';
-    this.soundEnabled = true;
-    this.audioCtx = null;
-    this.layoutMode = localStorage.getItem('msu_layout_mode') || 'layout-top-bottom'; // Default: Top Map / Bottom Feed
   }
 
   async init() {
-    console.log('🚀 Initializing MSU Traffic Web App...');
-    
-    // Apply saved layout
-    this.applyLayout(this.layoutMode);
+    console.log('🚀 Initializing MSU Traffic & Campus Life (Season 1)...');
 
-    // 1. Init Map
-    window.mapManager.initMap('msu-map');
-
-    // 2. Setup Socket.io Realtime
+    // 1. Initialize Socket.io
     this.initSocket();
 
-    // 3. Load initial data
+    // 2. Initialize Sub-modules
+    if (window.mapManager) window.mapManager.init();
+    if (window.rankManager) window.rankManager.init();
+    if (window.chatManager) window.chatManager.init();
+    if (window.securityGatekeeper) window.securityGatekeeper.init();
+
+    // 3. Load Data in parallel
     await Promise.all([
       this.loadReports(),
       this.loadZones(),
       this.loadStats()
     ]);
 
-    // 4. Setup Event Listeners
-    this.setupEventListeners();
-
-    // 5. Update Auth UI
+    // 4. Bind DOM Events
+    this.bindEvents();
     this.updateAuthUI();
 
-    console.log('✅ MSU Traffic is ready!');
+    // Start on Map tab as default
+    this.switchTab('map');
   }
 
-  // Toggle Layout (แมพบน-ฟีดล่าง vs แมพขวา-ฟีดซ้าย)
-  toggleLayout() {
-    this.layoutMode = (this.layoutMode === 'layout-top-bottom') ? 'layout-side' : 'layout-top-bottom';
-    localStorage.setItem('msu_layout_mode', this.layoutMode);
-    this.applyLayout(this.layoutMode);
-
-    if (window.mapManager) {
-      window.mapManager.forceResize();
+  // ----------------------------------------------------
+  // 🔄 5-Tab Navigation Controller
+  // ----------------------------------------------------
+  switchTab(tabName) {
+    if (tabName === 'profile') {
+      this.openProfileModal();
+      return;
     }
 
-    this.showNotification(
-      (this.layoutMode === 'layout-side')
-        ? '👉 เปลี่ยนเป็นมุมมอง "ฟีดด่านซ้าย - แผนที่ย้ายไปขวา"'
-        : '🗺️ เปลี่ยนเป็นมุมมอง "แผนที่ด้านบน - ฟีดด่านด้านล่าง"',
-      'info'
-    );
+    this.currentTab = tabName;
+
+    // 1. Toggle Tab Views
+    document.querySelectorAll('.tab-view').forEach(view => {
+      view.classList.remove('active');
+    });
+
+    const targetId = `view${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`;
+    const targetView = document.getElementById(targetId);
+    if (targetView) {
+      targetView.classList.add('active');
+    }
+
+    // 2. Toggle Bottom Nav Items
+    document.querySelectorAll('.bottom-nav-item').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === tabName);
+    });
+
+    // 3. Special actions per tab
+    if (tabName === 'map') {
+      setTimeout(() => {
+        if (window.mapManager) window.mapManager.forceResize();
+      }, 100);
+    } else if (tabName === 'rank') {
+      if (window.rankManager) {
+        window.rankManager.loadWeeklyRank();
+        window.rankManager.loadMyStats();
+      }
+    } else if (tabName === 'chat') {
+      if (window.chatManager) {
+        window.chatManager.checkGeofence();
+        window.chatManager.scrollToBottom();
+      }
+    } else if (tabName === 'profile') {
+      if (window.rankManager) window.rankManager.loadMyStats();
+    }
   }
 
-  applyLayout(mode) {
-    const container = document.querySelector('.app-container');
-    if (container) {
-      container.classList.remove('layout-side', 'layout-top-bottom');
-      container.classList.add(mode);
-    }
-    
-    const icon = document.getElementById('layoutToggleIcon');
-    if (icon) {
-      icon.textContent = (mode === 'layout-side') ? '🗺️ ย้ายแมพขึ้นบน' : '👉 ย้ายแมพไปขวา';
-    }
-  }
-
-  // Socket.io Realtime Listener
+  // ----------------------------------------------------
+  // ⚡ Socket.io Real-time Event Controller
+  // ----------------------------------------------------
   initSocket() {
     try {
-      if (typeof io !== 'undefined') {
-        this.socket = io();
+      this.socket = io();
 
-        this.socket.on('connect', () => {
-          console.log('⚡ Connected to MSU Traffic Real-time Socket');
-          if (window.rankManager) {
-            window.rankManager.bindSocketEvents(this.socket);
-          }
-        });
+      this.socket.on('connect', () => {
+        console.log('⚡ Connected to MSU Traffic WebSocket Server');
+      });
 
-        this.socket.on('new_report', (newReport) => {
-          this.handleNewReportEvent(newReport);
-        });
+      this.socket.on('new_report', (newReport) => {
+        this.handleNewReportEvent(newReport);
+      });
 
-        this.socket.on('report_updated', (updatedReport) => {
-          this.handleReportUpdatedEvent(updatedReport);
-        });
+      this.socket.on('report_updated', (updatedReport) => {
+        this.handleReportUpdatedEvent(updatedReport);
+      });
 
-        this.socket.on('report_deleted', ({ id }) => {
-          this.handleReportDeletedEvent(id);
-        });
+      this.socket.on('report_deleted', (deletedId) => {
+        this.handleReportDeletedEvent(deletedId);
+      });
 
-        this.socket.on('stats_update', (stats) => {
-          this.renderStats(stats);
-        });
-      }
+      this.socket.on('stats_update', (stats) => {
+        this.updateStatsUI(stats);
+      });
+
+      // 📍 Pin Live Chat Real-time Handlers
+      this.socket.on('pin_chat_new', (data) => {
+        this.handlePinChatNewMessage(data);
+      });
+
+      this.socket.on('pin_chat_count_update', (data) => {
+        this.handlePinChatCountUpdate(data);
+      });
+
+      // Pass socket to managers
+      if (window.rankManager) window.rankManager.bindSocketEvents(this.socket);
+      if (window.chatManager) window.chatManager.bindSocketEvents(this.socket);
+
     } catch (e) {
-      console.warn('Socket.io fallback mode active:', e);
+      console.warn('Socket.io connection warning:', e);
     }
   }
 
-  // Play alert sound
-  playAlertChime() {
-    if (!this.soundEnabled) return;
-    try {
-      if (!this.audioCtx) {
-        this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (this.audioCtx.state === 'suspended') {
-        this.audioCtx.resume();
-      }
-
-      const now = this.audioCtx.currentTime;
-      const osc = this.audioCtx.createOscillator();
-      const gain = this.audioCtx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(587.33, now);
-      osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
-
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-
-      osc.connect(gain);
-      gain.connect(this.audioCtx.destination);
-
-      osc.start(now);
-      osc.stop(now + 0.5);
-    } catch (e) {}
-  }
-
-  // Fetch Reports
+  // ----------------------------------------------------
+  // 📦 Data Loaders
+  // ----------------------------------------------------
   async loadReports() {
     try {
-      const params = new URLSearchParams();
-      if (this.currentFilter !== 'all') params.append('type', this.currentFilter);
-      if (this.currentZone !== 'all') params.append('zone', this.currentZone);
-      if (this.searchQuery) params.append('search', this.searchQuery);
-
-      const res = await fetch(`/api/reports?${params.toString()}`);
-      const result = await res.json();
-      
-      if (result.success && result.data) {
-        this.reports = result.data;
+      const res = await fetch('/api/reports');
+      const data = await res.json();
+      if (data.success && data.data) {
+        this.reports = data.data;
         this.renderReportsList();
-        window.mapManager.renderReports(this.reports);
+        if (window.mapManager) window.mapManager.renderReports(this.reports);
         this.updateTicker();
       }
     } catch (err) {
-      console.error('Error fetching reports:', err);
+      console.error('Error loading reports:', err);
     }
   }
 
-  // Fetch Zones
   async loadZones() {
     try {
       const res = await fetch('/api/zones');
-      const result = await res.json();
-      if (result.success && result.data) {
-        this.zones = result.data;
-        this.populateZoneOptions();
+      const data = await res.json();
+      if (data.success && data.data) {
+        this.zones = data.data;
+        this.renderZoneOptions();
       }
-    } catch (err) {}
+    } catch (err) {
+      console.error('Error loading zones:', err);
+    }
   }
 
-  // Fetch Stats
   async loadStats() {
     try {
       const res = await fetch('/api/reports/stats');
-      const result = await res.json();
-      if (result.success && result.data) {
-        this.renderStats(result.data);
+      const data = await res.json();
+      if (data.success && data.data) {
+        this.updateStatsUI(data.data);
       }
-    } catch (err) {}
+    } catch (err) {
+      console.error('Error loading stats:', err);
+    }
   }
 
-  renderStats(stats) {
-    const activeEl = document.getElementById('statActive');
-    const todayEl = document.getElementById('statToday');
-    const clearedEl = document.getElementById('statCleared');
+  updateStatsUI(stats) {
+    if (!stats) return;
+    const elActive = document.getElementById('homeStatActive');
+    const elToday = document.getElementById('homeStatToday');
+    const elCleared = document.getElementById('homeStatCleared');
 
-    if (activeEl) activeEl.textContent = stats.activeCheckpoints || 0;
-    if (todayEl) todayEl.textContent = stats.todayReports || 0;
-    if (clearedEl) clearedEl.textContent = stats.clearedToday || 0;
+    if (elActive) elActive.textContent = stats.active || 0;
+    if (elToday) elToday.textContent = stats.today || 0;
+    if (elCleared) elCleared.textContent = stats.cleared || 0;
   }
 
-  populateZoneOptions() {
-    const selectEl = document.getElementById('reportPresetZone');
-    if (!selectEl) return;
-
-    selectEl.innerHTML = '<option value="">-- เลือกจุดยอดนิยม หรือ ระบุเองด้านล่าง --</option>';
-    
-    const khamriangGroup = document.createElement('optgroup');
-    khamriangGroup.label = '📍 โซน มอใหม่ (ขามเรียง / ท่าขอนยาง)';
-    
-    const downtownGroup = document.createElement('optgroup');
-    downtownGroup.label = '📍 โซน มอเก่า (ในเมือง)';
-
-    this.zones.forEach(z => {
-      const opt = document.createElement('option');
-      opt.value = z.id;
-      opt.textContent = `${z.name}`;
-      opt.dataset.lat = z.lat;
-      opt.dataset.lng = z.lng;
-      opt.dataset.campus = z.campus;
-      opt.dataset.name = z.name;
-
-      if (z.campus.includes('มอใหม่') || z.campus.includes('ท่าขอนยาง') || z.campus.includes('เลี่ยงเมือง')) {
-        khamriangGroup.appendChild(opt);
-      } else {
-        downtownGroup.appendChild(opt);
-      }
-    });
-
-    selectEl.appendChild(khamriangGroup);
-    selectEl.appendChild(downtownGroup);
+  renderZoneOptions() {
+    const select = document.getElementById('reportPresetZone');
+    if (!select) return;
+    select.innerHTML = '<option value="">-- เลือกจุดยอดนิยม หรือ ระบุเองด้านล่าง --</option>' +
+      this.zones.map(z => `<option value="${z.id}" data-lat="${z.lat}" data-lng="${z.lng}" data-campus="${z.campus}">${z.name}</option>`).join('');
   }
 
+  // ----------------------------------------------------
+  // 📋 Render Feed Cards (Map tab & Home tab)
+  // ----------------------------------------------------
   renderReportsList() {
     const container = document.getElementById('feedListContainer');
     if (!container) return;
 
-    if (this.reports.length === 0) {
+    let filtered = this.reports.filter(r => r.status !== 'deleted');
+
+    if (this.activeFilter !== 'all') {
+      filtered = filtered.filter(r => r.type === this.activeFilter);
+    }
+
+    if (this.searchQuery) {
+      const q = this.searchQuery.toLowerCase();
+      filtered = filtered.filter(r =>
+        (r.title && r.title.toLowerCase().includes(q)) ||
+        (r.locationName && r.locationName.toLowerCase().includes(q)) ||
+        (r.direction && r.direction.toLowerCase().includes(q)) ||
+        (r.description && r.description.toLowerCase().includes(q))
+      );
+    }
+
+    if (filtered.length === 0) {
       container.innerHTML = `
-        <div style="text-align: center; padding: 3rem 1rem; color: #94A3B8;">
-          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎉</div>
-          <div style="font-weight: 700; color: #475569; margin-bottom: 0.25rem;">ไม่พบรายงานด่านในขณะนี้</div>
-          <div style="font-size: 0.8rem;">เส้นทางปลอดโปร่ง หรือเป็นคนแรกที่รายงานจุดตรวจ</div>
+        <div style="text-align: center; padding: 2.5rem 1rem; color: #94A3B8;">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🛵</div>
+          <div style="font-weight: 700; color: #475569;">ไม่มีรายงานด่านในขณะนี้</div>
+          <div style="font-size: 0.78rem;">รอบ ม.มหาสารคาม การจราจรปกติ สัญจรปลอดภัยครับ</div>
         </div>
       `;
       return;
     }
 
-    const isUserDev = window.authManager.isDev();
-    const currentUserId = window.authManager.getUser()?.id;
-
-    container.innerHTML = this.reports.map(rep => {
-      const isCleared = rep.status === 'cleared' || rep.status === 'expired';
-      const typeTagClass = `tag-${rep.type}`;
-      const typeName = this.getTypeName(rep.type);
-      const icon = window.mapManager.getTypeIcon(rep.type);
-      const timeAgo = window.mapManager.formatTimeAgo(rep.createdAt);
-      const upVotes = rep.votes?.up?.length || 0;
-      const downVotes = rep.votes?.down?.length || 0;
-      
-      const hasUpVoted = currentUserId && rep.votes?.up?.includes(currentUserId);
-      const hasDownVoted = currentUserId && rep.votes?.down?.includes(currentUserId);
-      const isAuthor = currentUserId && (rep.reporter?.id === currentUserId || rep.reporter?.email === window.authManager.getUser()?.email);
-      const canDelete = isUserDev || isAuthor;
-
-      const isDevPost = rep.reporter?.isDev || rep.reporter?.email === 'java5263@gmail.com';
-
-      return `
-        <div class="report-card ${isCleared ? 'card-cleared' : 'card-active'}" data-id="${rep.id}">
-          <div class="report-card-top">
-            <span class="card-type-tag ${typeTagClass}">
-              <span>${icon}</span> ${typeName}
-            </span>
-            <span class="card-time">🕒 ${timeAgo}</span>
-          </div>
-
-          <div>
-            <div class="card-location-title">${rep.locationName}</div>
-            <div class="card-zone-badge">📍 ${rep.campusZone || 'มมส'}</div>
-          </div>
-
-          ${rep.direction ? `<div class="card-direction">🧭 ${rep.direction}</div>` : ''}
-
-          ${rep.description ? `<div class="card-desc">${rep.description}</div>` : ''}
-
-          <div class="card-footer">
-            <div class="card-reporter">
-              <img class="reporter-avatar" src="${rep.reporter?.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60'}" alt="avatar">
-              <span style="font-weight: 600;">${rep.reporter?.name || 'นิสิต มมส'}</span>
-              ${rep.reporter?.isDev ? '<span style="background: #FEF3C7; color: #B45309; font-size: 0.65rem; font-weight: 800; padding: 1px 5px; border-radius: 4px; border: 1px solid #FDE68A;">👑 DEV</span>' : 
-                (rep.reporter?.isMsuStudent || (rep.reporter?.email && rep.reporter.email.endsWith('@msu.ac.th')) ? 
-                  '<span style="background: #FEF3C7; color: #B45309; font-size: 0.65rem; font-weight: 800; padding: 1px 5px; border-radius: 4px; border: 1px solid #FDE68A;">🎓 MSU</span>' : 
-                  '<span style="background: #F1F5F9; color: #475569; font-size: 0.65rem; font-weight: 800; padding: 1px 5px; border-radius: 4px; border: 1px solid #E2E8F0;">👤 Member</span>')}
-              ${window.rankManager ? window.rankManager.getRankBadgeHtml(rep.reporter?.rank, 'xs') : ''}
-            </div>
-
-            <div class="card-actions">
-              <button class="btn-vote ${hasUpVoted ? 'active-up' : ''}" onclick="window.app.vote('${rep.id}', 'up', event)">
-                👍 ยังอยู่ (${upVotes})
-              </button>
-              <button class="btn-vote ${hasDownVoted ? 'active-down' : ''}" onclick="window.app.vote('${rep.id}', 'down', event)">
-                🚀 ยกแล้ว (${downVotes})
-              </button>
-              ${canDelete ? `
-                <button class="btn-vote" style="color: #EF4444; border-color: #FCA5A5;" title="ลบรายงานนี้" onclick="window.app.deleteReport('${rep.id}', event)">
-                  🗑️
-                </button>
-              ` : ''}
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
+    container.innerHTML = filtered.map(rep => this.buildReportCardHtml(rep)).join('');
 
     // Attach card click -> Focus Map Marker
     container.querySelectorAll('.report-card').forEach(card => {
       card.addEventListener('click', (e) => {
-        if (e.target.closest('.btn-vote')) return;
+        if (e.target.closest('.btn-vote') || e.target.closest('.btn-like')) return;
         const id = card.dataset.id;
         window.mapManager.focusReport(id);
-        
-        if (window.innerWidth <= 768) {
-          this.switchMobileTab('map');
-        }
       });
     });
   }
 
+  formatTimeInfo(createdAt, expiresAt, status) {
+    const now = Date.now();
+
+    // 1. เวลาตอนโพสต์ (Exact time + relative time)
+    let postTimeStr = 'เมื่อสักครู่';
+    if (createdAt) {
+      const d = new Date(createdAt);
+      const hours = String(d.getHours()).padStart(2, '0');
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      const exactTime = `${hours}:${mins} น.`;
+
+      const diffSec = Math.floor((now - createdAt) / 1000);
+      let agoStr = 'เมื่อสักครู่';
+      if (diffSec >= 60 && diffSec < 3600) {
+        agoStr = `${Math.floor(diffSec / 60)} นาทีที่แล้ว`;
+      } else if (diffSec >= 3600 && diffSec < 86400) {
+        agoStr = `${Math.floor(diffSec / 3600)} ชม. ที่แล้ว`;
+      } else if (diffSec >= 86400) {
+        agoStr = `${Math.floor(diffSec / 86400)} วันที่แล้ว`;
+      }
+      postTimeStr = `${exactTime} (${agoStr})`;
+    }
+
+    // 2. จะหายไปอีกในกี่ ชม. / นาที (Auto-expiration countdown)
+    let expireStr = '';
+    let isExpiringSoon = false;
+
+    if (status === 'cleared') {
+      expireStr = '✅ ยกเลิกด่านแล้ว';
+    } else if (expiresAt) {
+      const remainingMs = expiresAt - now;
+      if (remainingMs <= 0) {
+        expireStr = '⏳ กำลังจะหมดอายุ/หายไป';
+        isExpiringSoon = true;
+      } else if (remainingMs < 3600000) {
+        const minsLeft = Math.max(1, Math.ceil(remainingMs / 60000));
+        expireStr = `⏳ จะหายไปในอีก ${minsLeft} นาที`;
+        isExpiringSoon = true;
+      } else {
+        const hrsLeft = Math.floor(remainingMs / 3600000);
+        const minsLeft = Math.floor((remainingMs % 3600000) / 60000);
+        if (minsLeft > 0) {
+          expireStr = `⏳ จะหายไปในอีก ${hrsLeft} ชม. ${minsLeft} นาที`;
+        } else {
+          expireStr = `⏳ จะหายไปในอีก ${hrsLeft} ชม.`;
+        }
+      }
+    } else {
+      expireStr = '⏳ จะหายไปในอีก 6 ชม.';
+    }
+
+    return { postTimeStr, expireStr, isExpiringSoon };
+  }
+
+  buildReportCardHtml(rep) {
+    const currentUserId = window.authManager?.getUser()?.id;
+    const currentUserEmail = window.authManager?.getUser()?.email;
+    const isDev = window.authManager?.isDev();
+
+    const isAuthor = currentUserId && (rep.reporterId === currentUserId || rep.reporter?.email === currentUserEmail);
+    const canDelete = isDev || isAuthor;
+
+    const timeInfo = this.formatTimeInfo(rep.createdAt, rep.expiresAt, rep.status);
+    const typeName = this.getTypeName(rep.type);
+    const icon = window.mapManager ? window.mapManager.getTypeIcon(rep.type) : '📍';
+    const isCleared = rep.status === 'cleared';
+
+    const upVotes = rep.votes?.up?.length || 0;
+    const downVotes = rep.votes?.down?.length || 0;
+    const hasUpVoted = currentUserId && rep.votes?.up?.includes(currentUserId);
+    const hasDownVoted = currentUserId && rep.votes?.down?.includes(currentUserId);
+    const likesCount = rep.likes?.length || 0;
+    const hasLiked = currentUserId && rep.likes?.includes(currentUserId);
+
+    const isAnnouncement = rep.type === 'announcement' || rep.isAnnouncement || rep.reporter?.isAnnouncement || rep.reporter?.name === 'MSU Traffic';
+    const isDevPost = rep.reporter?.isDev || rep.reporter?.email === 'java5263@gmail.com';
+    const isMsuStudent = rep.reporter?.isMsuStudent || (rep.reporter?.email && rep.reporter.email.endsWith('@msu.ac.th'));
+
+    let badgeHtml = '<span class="badge-member">👤 Member</span>';
+    if (isAnnouncement) badgeHtml = '<span class="badge-official">📢 MSU Traffic</span>';
+    else if (isDevPost) badgeHtml = '<span class="badge-dev">👑 DEV</span>';
+    else if (isMsuStudent) badgeHtml = '<span class="badge-msu">🎓 MSU</span>';
+
+    return `
+      <div class="report-card ${isAnnouncement ? 'card-announcement' : ''} ${isCleared ? 'card-cleared' : ''}" data-id="${rep.id}">
+        <div class="card-header">
+          <span class="card-type-tag tag-${rep.type}">
+            <span>${icon}</span> ${typeName}
+          </span>
+          <div class="card-time-group">
+            <span class="card-post-time">🕒 โพสต์เมื่อ ${timeInfo.postTimeStr}</span>
+            <span class="card-expire-pill ${timeInfo.isExpiringSoon ? 'expire-soon' : ''}">${timeInfo.expireStr}</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="card-location-title">${rep.title || rep.locationName}</div>
+          <div class="card-zone-badge">📍 ${rep.campusZone || 'มมส'}</div>
+        </div>
+
+        ${rep.direction ? `<div class="card-direction">🧭 ${rep.direction}</div>` : ''}
+        ${rep.description ? `<div class="card-desc">${rep.description}</div>` : ''}
+
+        <div class="card-footer">
+          <div class="card-reporter">
+            <img class="reporter-avatar" src="${rep.reporter?.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60'}" alt="avatar">
+            <span style="font-weight: 600;">${rep.reporter?.name || 'นิสิต มมส'}</span>
+            ${badgeHtml}
+          </div>
+
+          <div class="card-actions">
+            <!-- Pin Live Chat Button -->
+            <button class="btn-action-pill pill-chat" onclick="window.app.openPinChat('${rep.id}', event)" title="ห้องแชทสดประจำจุดนี้">
+              <span class="pill-icon">💬</span>
+              <span class="pill-label">แชท</span>
+              <span class="pill-count">${rep.chatCount || 0}</span>
+            </button>
+            <!-- Like Button -->
+            <button class="btn-action-pill pill-like ${hasLiked ? 'active' : ''}" onclick="window.app.likeReport('${rep.id}', event)" title="ขอบคุณผู้รายงาน">
+              <span class="pill-icon">❤️</span>
+              <span class="pill-count">${likesCount}</span>
+            </button>
+            <!-- Upvote -->
+            <button class="btn-action-pill pill-upvote ${hasUpVoted ? 'active' : ''}" onclick="window.app.vote('${rep.id}', 'up', event)" title="ยืนยันว่ายังมีด่าน">
+              <span class="pill-icon">🛡️</span>
+              <span class="pill-label">ยังมีด่าน</span>
+              <span class="pill-count">${upVotes}</span>
+            </button>
+            <!-- Downvote -->
+            <button class="btn-action-pill pill-downvote ${hasDownVoted ? 'active' : ''}" onclick="window.app.vote('${rep.id}', 'down', event)" title="แจ้งว่าด่านยกแล้ว">
+              <span class="pill-icon">✨</span>
+              <span class="pill-label">ยกแล้ว</span>
+              <span class="pill-count">${downVotes}</span>
+            </button>
+            <!-- Report Button -->
+            <button class="btn-action-pill pill-report" onclick="window.app.openPinReportModal('${rep.id}', event)" title="รายงานหมุดไม่ถูกต้อง / หมุดเท็จ">
+              <span class="pill-icon">🚩</span>
+            </button>
+            ${canDelete ? `
+              <button class="btn-action-pill pill-delete" title="ลบรายงานนี้" onclick="window.app.deleteReport('${rep.id}', event)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  getTypeName(type) {
+    switch (type) {
+      case 'helmet': return 'ด่านหมวก/ใบขับขี่';
+      case 'alcohol': return 'ด่านเป่าแอล';
+      case 'security': return 'ตรวจค้นความมั่นคง';
+      case 'traffic': return 'รถติดสะสม';
+      case 'accident': return 'อุบัติเหตุ';
+      case 'announcement': return '📢 ประกาศทางการ';
+      default: return 'รายงานจราจร';
+    }
+  }
+
   updateTicker() {
-    const ticker = document.getElementById('liveTickerText');
+    const ticker = document.getElementById('homeTickerText');
     if (!ticker) return;
 
     const activeList = this.reports.filter(r => r.status === 'active');
     if (activeList.length > 0) {
       const latest = activeList[0];
-      ticker.innerHTML = `<strong>ล่าสุด:</strong> ${latest.locationName} (${latest.direction || 'รอบ มมส'}) - <em>${window.mapManager.formatTimeAgo(latest.createdAt)}</em>`;
+      const timeAgo = window.mapManager ? window.mapManager.formatTimeAgo(latest.createdAt) : '';
+      ticker.innerHTML = `<strong>ล่าสุด:</strong> ${latest.locationName} (${latest.direction || 'รอบ มมส'}) - <em>${timeAgo}</em>`;
     } else {
       ticker.innerHTML = `<strong>สถานะปัจจุบัน:</strong> รอบ มมส การจราจรปกติ ไม่มีรายงานด่าน`;
     }
   }
 
-  handleNewReportEvent(newReport) {
-    this.playAlertChime();
-    this.reports.unshift(newReport);
+  // ----------------------------------------------------
+  // ⚡ Realtime Event Handlers
+  // ----------------------------------------------------
+  handleNewReportEvent(newReport, isLocal = false) {
+    if (!newReport || !newReport.id) return;
+
+    // Check if already exists in memory
+    const idx = this.reports.findIndex(r => r.id === newReport.id);
+    if (idx !== -1) {
+      this.reports[idx] = newReport;
+    } else {
+      this.reports.unshift(newReport);
+    }
+
     this.renderReportsList();
-    window.mapManager.renderReports(this.reports);
+    this.renderHomeFeedList();
+
+    if (window.mapManager) {
+      window.mapManager.renderReports(this.reports);
+      window.mapManager.focusReport(newReport.id);
+    }
+
     this.updateTicker();
-    this.showNotification(`🚨 ด่านใหม่: ${newReport.locationName}`, 'alert');
+
+    if (!isLocal) {
+      this.showNotification(`🚨 ด่านใหม่: ${newReport.locationName || newReport.title}`, 'alert');
+    }
   }
 
   handleReportUpdatedEvent(updatedReport) {
@@ -347,50 +448,33 @@ class AppController {
     if (idx !== -1) {
       this.reports[idx] = updatedReport;
       this.renderReportsList();
-      window.mapManager.renderReports(this.reports);
+      this.renderHomeFeedList();
+      if (window.mapManager) window.mapManager.renderReports(this.reports);
     }
   }
 
   handleReportDeletedEvent(deletedId) {
     this.reports = this.reports.filter(r => r.id !== deletedId);
     this.renderReportsList();
-    window.mapManager.renderReports(this.reports);
+    this.renderHomeFeedList();
+    if (window.mapManager) {
+      if (window.mapManager.map) {
+        window.mapManager.map.closePopup();
+      }
+      window.mapManager.renderReports(this.reports);
+    }
     this.updateTicker();
   }
 
-  // Delete Report
-  async deleteReport(reportId, event) {
-    if (event) event.stopPropagation();
-    if (!confirm('คุณต้องการลบรายงานด่านนี้ใช่หรือไม่?')) return;
-
-    try {
-      const res = await fetch(`/api/reports/${reportId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          ...window.authManager.getAuthHeader()
-        }
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        this.handleReportDeletedEvent(reportId);
-        this.showNotification('🗑️ ลบรายงานเรียบร้อยแล้ว', 'info');
-      } else {
-        alert(data.error || 'เกิดข้อผิดพลาดในการลบรายงาน');
-      }
-    } catch (err) {
-      console.error('Delete error:', err);
-    }
-  }
-
-  // Submit Report
+  // ----------------------------------------------------
+  // 🔘 Report, Vote & Like Handlers
+  // ----------------------------------------------------
   async handleReportSubmit(e) {
     e.preventDefault();
 
     if (!window.authManager.isLoggedIn()) {
       this.closeReportModal();
-      window.authManager.openLoginModal('กรุณาเข้าสู่ระบบด้วย Google ก่อนส่งรายงานด่าน เพื่อป้องกันการแจ้งข้อมูลเท็จ');
+      window.authManager.openLoginModal('กรุณาเข้าสู่ระบบด้วย Google หรือ @msu.ac.th ก่อนส่งรายงานด่าน');
       return;
     }
 
@@ -402,6 +486,7 @@ class AppController {
     const direction = document.getElementById('reportDirection')?.value.trim();
     const description = document.getElementById('reportDescription')?.value.trim();
     const campusZone = document.getElementById('reportCampusZone')?.value;
+    const isAnonymous = document.getElementById('reportIsAnonymous')?.checked || false;
 
     let locationName = '';
     if (customLoc) {
@@ -422,18 +507,29 @@ class AppController {
       return;
     }
 
-    const isAnonymous = document.getElementById('reportIsAnonymous')?.checked || false;
+    // ⚖️ ตรวจสอบการยอมรับข้อตกลงการใช้งาน & พ.ร.บ. คอมพิวเตอร์
+    const agreeTerms = document.getElementById('reportAgreeTerms')?.checked;
+    if (!agreeTerms) {
+      alert('⚠️ กรุณากดยินยอมและยอมรับข้อตกลงการใช้งาน & คำเตือน พ.ร.บ. คอมพิวเตอร์ ก่อนโพสต์รายงานด่าน');
+      return;
+    }
+
+    const lifespanHours = document.getElementById('reportLifespanHours')?.value || 6;
+    const isAnnouncement = (type === 'announcement') || document.getElementById('reportIsAnnouncement')?.checked || false;
 
     const payload = {
       type,
       locationName,
+      title: type === 'announcement' ? (customLoc || locationName || '📢 ประกาศทางการจาก MSU Traffic') : null,
       customLocation: customLoc,
       campusZone,
       lat: parseFloat(lat),
       lng: parseFloat(lng),
       direction,
       description,
-      isAnonymous
+      lifespanHours: parseFloat(lifespanHours),
+      isAnonymous: isAnnouncement ? false : isAnonymous,
+      isAnnouncement
     };
 
     try {
@@ -449,10 +545,21 @@ class AppController {
       const data = await res.json();
       if (data.success) {
         this.closeReportModal();
-        this.showNotification('🎉 บันทึกรายงานด่านสำเร็จแล้ว ขอบคุณที่ร่วมแจ้งข้อมูล', 'success');
+        this.showNotification('🎉 บันทึกรายงานด่านสำเร็จแล้ว (+15 EXP)', 'success');
         document.getElementById('reportForm')?.reset();
         document.getElementById('reportLat').value = '';
         document.getElementById('reportLng').value = '';
+
+        // ลบหมุดชั่วคราวสำหรับเลือกพิกัดออก
+        if (window.mapManager && window.mapManager.reportMarker) {
+          window.mapManager.map.removeLayer(window.mapManager.reportMarker);
+          window.mapManager.reportMarker = null;
+        }
+
+        // 🚀 อัปเดตขึ้นหน้าจอและแผนที่ทันทีแบบเรียลไทม์ โดยไม่ต้องรอรีเฟรชหน้าเว็บ
+        if (data.data) {
+          this.handleNewReportEvent(data.data, true);
+        }
       } else {
         alert(data.error || data.message || 'เกิดข้อผิดพลาดในการส่งรายงาน');
       }
@@ -461,12 +568,11 @@ class AppController {
     }
   }
 
-  // Voting
   async vote(reportId, voteType, event) {
     if (event) event.stopPropagation();
 
     if (!window.authManager.isLoggedIn()) {
-      window.authManager.openLoginModal('กรุณาเข้าสู่ระบบด้วย Google เพื่อโหวตยืนยันสถานะด่าน');
+      window.authManager.openLoginModal('กรุณาเข้าสู่ระบบก่อนกดโหวตยืนยันด่าน');
       return;
     }
 
@@ -484,196 +590,110 @@ class AppController {
       if (data.success && data.data) {
         this.handleReportUpdatedEvent(data.data);
         this.showNotification(data.message, 'info');
-      } else {
-        alert(data.error || 'เกิดข้อผิดพลาดในการโหวต');
       }
     } catch (err) {
       console.error('Error voting:', err);
     }
   }
 
-  // Update Auth UI in Header & Profile
-  // Update Auth UI in Header & Profile
-  updateAuthUI() {
-    const container = document.getElementById('navAuthContainer');
-    if (!container) return;
+  async likeReport(reportId, event) {
+    if (event) event.stopPropagation();
 
-    const user = window.authManager.getUser();
-    if (user) {
-      const isDev = user.isDev || user.email === 'java5263@gmail.com';
-      const rankBadge = window.rankManager ? window.rankManager.getRankBadgeHtml(user.rank, 'xs') : '';
-      container.innerHTML = `
-        <div class="user-profile-badge" onclick="window.app.openProfileModal()" style="${isDev ? 'border-color: #F59E0B; background: #FEF3C7;' : ''}">
-          <img class="user-avatar" src="${user.picture || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.id}" alt="User Avatar">
-          <span class="user-name-text" style="${isDev ? 'color: #B45309; font-weight: 800;' : ''}">
-            ${isDev ? '👑 ' : ''}${user.name}
-          </span>
-          ${rankBadge}
-        </div>
-      `;
-    } else {
-      container.innerHTML = `
-        <button class="btn btn-outline btn-sm" onclick="window.authManager.openLoginModal()">
-          <span>🔑 เข้าสู่ระบบ</span>
-        </button>
-      `;
-    }
-  }
-
-  openReportModal() {
     if (!window.authManager.isLoggedIn()) {
-      window.authManager.openLoginModal('กรุณาเข้าสู่ระบบด้วย Google ก่อนส่งรายงานด่าน');
+      window.authManager.openLoginModal('กรุณาเข้าสู่ระบบก่อนกดไลก์');
       return;
     }
 
+    try {
+      const res = await fetch(`/api/reports/${reportId}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...window.authManager.getAuthHeader()
+        }
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        this.handleReportUpdatedEvent(data.data);
+      }
+    } catch (e) {
+      console.error('Error liking report:', e);
+    }
+  }
+
+  async deleteReport(reportId, event) {
+    if (event) event.stopPropagation();
+    if (!confirm('คุณต้องการลบรายงานด่านนี้ใช่หรือไม่?')) return;
+
+    // 🚀 ลบหมุดออกจากหน้าจอและปิด Popup ทันที 0.0 วินาที
+    if (window.mapManager && window.mapManager.map) {
+      window.mapManager.map.closePopup();
+    }
+    this.handleReportDeletedEvent(reportId);
+    this.showNotification('ลบรายงานเรียบร้อยแล้ว', 'info');
+
+    try {
+      const res = await fetch(`/api/reports/${reportId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...window.authManager.getAuthHeader()
+        }
+      });
+      const data = await res.json();
+      if (!data.success) {
+        // หากเซิร์ฟเวอร์ตอบไม่สำเร็จ ให้โหลดข้อมูลกลับคืน
+        this.loadReports();
+        alert(data.error || 'ไม่สามารถลบรายงานได้');
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+      this.loadReports();
+    }
+  }
+
+  // ----------------------------------------------------
+  // 🪟 Modals & UI Helpers
+  // ----------------------------------------------------
+  openReportModal() {
     const modal = document.getElementById('reportModal');
     if (modal) modal.classList.add('active');
 
-    const latIn = document.getElementById('reportLat');
-    const lngIn = document.getElementById('reportLng');
-    if (latIn && lngIn && (!latIn.value || !lngIn.value)) {
-      const center = window.mapManager.map.getCenter();
-      latIn.value = center.lat.toFixed(6);
-      lngIn.value = center.lng.toFixed(6);
-      window.mapManager.setReportPin(center.lat, center.lng);
+    // Default lat/lng to MSU center if empty
+    const latInput = document.getElementById('reportLat');
+    const lngInput = document.getElementById('reportLng');
+    if (latInput && !latInput.value) latInput.value = '16.2467';
+    if (lngInput && !lngInput.value) lngInput.value = '103.2520';
+
+    // Toggle Announcement option: ONLY for Dev/Admin
+    const isDev = window.authManager?.isDev();
+    const annBox = document.getElementById('reportAnnouncementBox');
+    if (annBox) {
+      annBox.style.display = isDev ? 'flex' : 'none';
     }
+    const annCard = document.getElementById('reportTypeAnnouncementCard');
+    if (annCard) {
+      annCard.style.display = isDev ? 'flex' : 'none';
+    }
+    const annToggle = document.getElementById('reportIsAnnouncement');
+    if (annToggle) annToggle.checked = false;
   }
 
   closeReportModal() {
     const modal = document.getElementById('reportModal');
     if (modal) modal.classList.remove('active');
+    const annToggle = document.getElementById('reportIsAnnouncement');
+    if (annToggle) annToggle.checked = false;
   }
 
-  async openProfileModal() {
-    const modal = document.getElementById('profileModal');
-    const user = window.authManager.getUser();
-    if (!user) {
-      window.authManager.openLoginModal();
-      return;
-    }
-
-    // Refresh fresh rank stats from server
-    if (window.rankManager) {
-      await window.rankManager.refreshMyRankStats();
-    }
-
-    const updatedUser = window.authManager.getUser() || user;
-    const stats = updatedUser.stats || {};
-    const rank = updatedUser.rank || stats.rank || {};
-
-    const avatarEl = document.getElementById('profileAvatar');
-    const nameEl = document.getElementById('profileName');
-    const emailEl = document.getElementById('profileEmail');
-    const rankBadgeWrap = document.getElementById('profileRankBadgeWrap');
-
-    if (avatarEl) avatarEl.src = updatedUser.picture || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + updatedUser.id;
-    if (nameEl) nameEl.textContent = updatedUser.name;
-    if (emailEl) emailEl.textContent = updatedUser.email || 'ผู้ใช้ทั่วไป';
-    
-    if (rankBadgeWrap && window.rankManager) {
-      rankBadgeWrap.innerHTML = window.rankManager.getRankBadgeHtml(rank, 'md');
-    }
-
-    // EXP Card
-    const expLabelEl = document.getElementById('profileExpLabel');
-    const expValueEl = document.getElementById('profileExpValue');
-    const expBarFillEl = document.getElementById('profileExpBarFill');
-    const nextRankHintEl = document.getElementById('profileNextRankHint');
-
-    if (expLabelEl) expLabelEl.textContent = `ยศ: ${rank.name || 'ผู้สัญจรมือใหม่'}`;
-    if (expValueEl) expValueEl.textContent = `${(stats.exp || rank.exp || 0).toLocaleString()} EXP`;
-    if (expBarFillEl) expBarFillEl.style.width = `${rank.progressPercent || 0}%`;
-    
-    if (nextRankHintEl) {
-      if (rank.nextRank) {
-        nextRankHintEl.textContent = `อีก ${rank.pointsToNext} EXP เพื่อเลื่อนสู่ ${rank.nextRank} (${rank.progressPercent}%)`;
-      } else {
-        nextRankHintEl.textContent = `👑 บรรลุระดับยศสูงสุดแล้ว (100%)`;
-      }
-    }
-
-    // Community Stats
-    const statReportsEl = document.getElementById('profileStatReports');
-    const statUpvotesEl = document.getElementById('profileStatUpvotes');
-    const statAccuracyEl = document.getElementById('profileStatAccuracy');
-
-    if (statReportsEl) statReportsEl.textContent = stats.reportsCount || 0;
-    if (statUpvotesEl) statUpvotesEl.textContent = stats.upvotesReceived || 0;
-    if (statAccuracyEl) statAccuracyEl.textContent = `${stats.accuracyRate || 100}%`;
-
+  openDonateModal() {
+    const modal = document.getElementById('donateModal');
     if (modal) modal.classList.add('active');
   }
 
-  closeProfileModal() {
-    const modal = document.getElementById('profileModal');
+  closeDonateModal() {
+    const modal = document.getElementById('donateModal');
     if (modal) modal.classList.remove('active');
-  }
-
-  showNotification(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.className = 'app-toast';
-    const bgCol = type === 'alert' ? '#EF4444' : (type === 'success' ? '#10B981' : '#1E293B');
-    
-    toast.style.cssText = `
-      position: fixed;
-      top: 1rem;
-      left: 50%;
-      transform: translateX(-50%) translateY(-20px);
-      background: ${bgCol};
-      color: #FFFFFF;
-      padding: 0.65rem 1.25rem;
-      border-radius: 9999px;
-      font-size: 0.88rem;
-      font-weight: 600;
-      z-index: 9999;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      opacity: 0;
-      pointer-events: none;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    `;
-    toast.innerHTML = message;
-    document.body.appendChild(toast);
-
-    setTimeout(() => {
-      toast.style.transform = 'translateX(-50%) translateY(0)';
-      toast.style.opacity = '1';
-    }, 10);
-
-    setTimeout(() => {
-      toast.style.transform = 'translateX(-50%) translateY(-20px)';
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 300);
-    }, 4000);
-  }
-
-  switchMobileTab(tab) {
-    const sidebar = document.getElementById('sidebar');
-    const navItems = document.querySelectorAll('.bottom-nav-item');
-
-    navItems.forEach(item => item.classList.remove('active'));
-    document.querySelector(`[data-tab="${tab}"]`)?.classList.add('active');
-
-    if (tab === 'feed') {
-      sidebar?.classList.add('mobile-open');
-    } else if (tab === 'map') {
-      sidebar?.classList.remove('mobile-open');
-      window.mapManager.map?.resize();
-    } else if (tab === 'report') {
-      this.openReportModal();
-    } else if (tab === 'legal') {
-      this.openLegalModal();
-    } else if (tab === 'security') {
-      this.openSecurityModal();
-    } else if (tab === 'profile') {
-      if (window.authManager.isLoggedIn()) {
-        this.openProfileModal();
-      } else {
-        window.authManager.openLoginModal();
-      }
-    }
   }
 
   openLegalModal() {
@@ -686,85 +706,583 @@ class AppController {
     if (modal) modal.classList.remove('active');
   }
 
-  openSecurityModal() {
-    const modal = document.getElementById('securityModal');
+  // 🚩 Pin Report Modal Actions
+  openPinReportModal(pinId, event) {
+    if (event) event.stopPropagation();
+
+    if (!window.authManager.isLoggedIn()) {
+      window.authManager.openLoginModal('กรุณาเข้าสู่ระบบก่อนทำการรายงานหมุด');
+      return;
+    }
+
+    const modal = document.getElementById('pinReportModal');
+    const targetInput = document.getElementById('reportTargetPinId');
+    if (targetInput) targetInput.value = pinId;
+
     if (modal) modal.classList.add('active');
   }
 
-  closeSecurityModal() {
-    const modal = document.getElementById('securityModal');
+  closePinReportModal() {
+    const modal = document.getElementById('pinReportModal');
+    if (modal) modal.classList.remove('active');
+    const detailsInput = document.getElementById('pinReportDetails');
+    if (detailsInput) detailsInput.value = '';
+  }
+
+  async submitPinReport() {
+    const pinId = document.getElementById('reportTargetPinId')?.value;
+    const reasonSelect = document.getElementById('pinReportReason');
+    const detailsInput = document.getElementById('pinReportDetails');
+
+    if (!pinId) {
+      alert('ไม่พบรหัสหมุดที่ต้องการรายงาน');
+      return;
+    }
+
+    const reason = reasonSelect ? reasonSelect.value : 'หมุดเท็จ / ไม่มีด่านจริง';
+    const details = detailsInput ? detailsInput.value.trim() : '';
+
+    try {
+      const res = await fetch(`/api/reports/${pinId}/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...window.authManager.getAuthHeader()
+        },
+        body: JSON.stringify({ reason, details })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        this.closePinReportModal();
+        this.showNotification('🚩 ส่งรายงานสำเร็จแล้ว ขอบคุณที่ช่วยดูแลชุมชน', 'success');
+        if (data.data) {
+          this.handleReportUpdatedEvent(data.data);
+        }
+      } else {
+        alert(data.error || 'เกิดข้อผิดพลาดในการส่งรายงาน');
+      }
+    } catch (err) {
+      console.error('Error reporting pin:', err);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    }
+  }
+
+  openProfileModal() {
+    const user = window.authManager?.getUser();
+    if (!user) {
+      window.authManager?.openLoginModal('กรุณาเข้าสู่ระบบก่อนดูโปรไฟล์');
+      return;
+    }
+
+    const modal = document.getElementById('profileModal');
+    if (!modal) return;
+
+    const avatarElem = document.getElementById('profileUserAvatar');
+    const nameElem = document.getElementById('profileUserName');
+    const emailElem = document.getElementById('profileUserEmail');
+    const badgeElem = document.getElementById('profileUserBadge');
+    const rankBadgeElem = document.getElementById('profileUserRankBadge');
+    const trustScoreVal = document.getElementById('profileTrustScoreVal');
+    const trustBar = document.getElementById('profileTrustBar');
+    const trustStatus = document.getElementById('profileTrustStatus');
+
+    if (avatarElem) avatarElem.src = user.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80';
+    if (nameElem) nameElem.textContent = user.name || 'ผู้ใช้งาน มมส';
+    if (emailElem) emailElem.textContent = user.email || '';
+
+    const isDev = window.authManager.isDev();
+    const isMsu = user.email && user.email.endsWith('@msu.ac.th');
+    let badgeHtml = '<span class="badge-pill badge-member">👤 Member</span>';
+    if (isDev) badgeHtml = '<span class="badge-pill badge-dev">👑 DEV</span>';
+    else if (isMsu) badgeHtml = '<span class="badge-pill badge-msu">🎓 MSU</span>';
+
+    if (badgeElem) badgeElem.innerHTML = badgeHtml;
+
+    const devBtn = document.getElementById('profileDevPanelBtn');
+    if (devBtn) devBtn.style.display = isDev ? 'flex' : 'none';
+
+    if (rankBadgeElem && window.rankManager) {
+      rankBadgeElem.innerHTML = window.rankManager.getRankBadgeHtml(user.rank, 'md');
+    }
+
+    const trust = user.trustScore !== undefined ? user.trustScore : 50;
+    if (trustScoreVal) trustScoreVal.textContent = trust;
+    if (trustBar) trustBar.style.width = `${Math.max(5, Math.min(100, trust))}%`;
+    if (trustStatus) {
+      if (trust >= 80) trustStatus.innerHTML = '<span style="color: #059669; font-weight: 700;">🟢 น่าเชื่อถือสูง (High Trust)</span>';
+      else if (trust >= 40) trustStatus.innerHTML = '<span style="color: #2563EB; font-weight: 700;">🔵 ปานกลาง (Standard Verified)</span>';
+      else trustStatus.innerHTML = '<span style="color: #DC2626; font-weight: 700;">🔴 ต้องตรวจสอบ (Low Trust)</span>';
+    }
+
+    modal.classList.add('active');
+  }
+
+  closeProfileModal() {
+    const modal = document.getElementById('profileModal');
     if (modal) modal.classList.remove('active');
   }
 
-  setupEventListeners() {
-    const presetSelect = document.getElementById('reportPresetZone');
-    presetSelect?.addEventListener('change', (e) => {
-      const opt = presetSelect.options[presetSelect.selectedIndex];
-      if (opt && opt.dataset.lat && opt.dataset.lng) {
-        const lat = parseFloat(opt.dataset.lat);
-        const lng = parseFloat(opt.dataset.lng);
-        const campus = opt.dataset.campus;
+  // ----------------------------------------------------
+  // 💬 Checkpoint Pin Live Chat Room Controller
+  // ----------------------------------------------------
+  async openPinChat(pinId, event) {
+    if (event) event.stopPropagation();
 
-        document.getElementById('reportLat').value = lat;
-        document.getElementById('reportLng').value = lng;
-        if (campus) document.getElementById('reportCampusZone').value = campus;
+    this.currentChatPinId = pinId;
+    const modal = document.getElementById('pinChatModal');
+    if (!modal) return;
 
-        window.mapManager.setReportPin(lat, lng, opt.dataset.name);
-        window.mapManager.map.flyTo({ center: [lng, lat], zoom: 16 });
+    const isDev = window.authManager?.isDev();
+    const pinAnnouncementLabel = document.getElementById('pinChatAnnouncementLabel');
+    if (pinAnnouncementLabel) {
+      pinAnnouncementLabel.style.display = isDev ? 'inline-flex' : 'none';
+    }
+
+    // Find pin details from reports list
+    const pin = this.reports.find(r => r.id === pinId);
+    if (pin) {
+      const typeIcon = window.mapManager ? window.mapManager.getTypeIcon(pin.type) : '🚨';
+      const isCleared = pin.status === 'cleared';
+
+      const elIcon = document.getElementById('pinChatTypeIcon');
+      const elTitle = document.getElementById('pinChatTitle');
+      const elSub = document.getElementById('pinChatSubtitle');
+
+      if (elIcon) elIcon.textContent = typeIcon;
+      if (elTitle) elTitle.textContent = pin.title || pin.locationName || 'ห้องแชทสดประจำจุดตรวจ';
+      if (elSub) {
+        elSub.innerHTML = `
+          <span>📍 ${pin.campusZone || 'มมส'}</span> • 
+          <span style="color: ${isCleared ? '#059669' : '#EF4444'}; font-weight: 700;">
+            ${isCleared ? '✅ ยกแล้ว' : '🚨 ยังมีด่าน'}
+          </span>
+        `;
       }
-    });
+    }
 
-    document.querySelectorAll('.filter-chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        this.currentFilter = chip.dataset.type || 'all';
-        this.loadReports();
-      });
-    });
-
-    document.querySelectorAll('.campus-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.campus-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const campus = btn.dataset.campus;
-        window.mapManager.flyToCampus(campus);
-      });
-    });
-
-    const searchInput = document.getElementById('searchInput');
-    let debounceTimer;
-    searchInput?.addEventListener('input', (e) => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        this.searchQuery = e.target.value;
-        this.loadReports();
-      }, 300);
-    });
-
-    document.getElementById('reportForm')?.addEventListener('submit', (e) => {
-      this.handleReportSubmit(e);
-    });
+    modal.classList.add('active');
+    await this.loadPinChat(pinId);
   }
 
-  getTypeName(type) {
-    switch (type) {
-      case 'helmet': return 'ด่านหมวก/ใบขับขี่';
-      case 'alcohol': return 'ด่านเป่าแอลกอฮอล์';
-      case 'security': return 'ด่านตรวจค้น';
-      case 'emission': return 'ด่านควันดำ';
-      case 'speed': return 'ด่านจับความเร็ว';
-      case 'traffic': return 'รถติดสะสม';
-      case 'accident': return 'อุบัติเหตุ';
-      default: return 'จุดตรวจ';
+  closePinChat() {
+    const modal = document.getElementById('pinChatModal');
+    if (modal) modal.classList.remove('active');
+    this.currentChatPinId = null;
+  }
+
+  async loadPinChat(pinId) {
+    const container = document.getElementById('pinChatMessagesContainer');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div style="text-align: center; padding: 2rem; color: #94A3B8; font-size: 0.8rem;">
+        <span class="loading-spinner">⏳</span> กำลังโหลดข้อความสด...
+      </div>
+    `;
+
+    try {
+      const res = await fetch(`/api/reports/${pinId}/chat`);
+      const data = await res.json();
+      if (data.success) {
+        this.renderPinChatMessages(data.data || []);
+      } else {
+        container.innerHTML = `<div style="text-align: center; color: #EF4444; padding: 1.5rem; font-size: 0.8rem;">${data.error || 'ไม่สามารถโหลดข้อความได้'}</div>`;
+      }
+    } catch (err) {
+      console.error('Error loading pin chat:', err);
+      container.innerHTML = `<div style="text-align: center; color: #EF4444; padding: 1.5rem; font-size: 0.8rem;">เกิดข้อผิดพลาดในการเชื่อมต่อ</div>`;
+    }
+  }
+
+  renderPinChatMessages(messages) {
+    const container = document.getElementById('pinChatMessagesContainer');
+    if (!container) return;
+
+    if (!messages || messages.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 2.5rem 1rem; color: #94A3B8;">
+          <div style="font-size: 2.2rem; margin-bottom: 0.4rem;">💬</div>
+          <div style="font-weight: 700; color: #475569; font-size: 0.85rem;">ยังไม่มีข้อความในจุดตรวจนี้</div>
+          <div style="font-size: 0.72rem;">เป็นคนแรกที่ส่งข้อมูลอัปเดตสภาพจราจรเพื่อรับ +3 EXP 🎖️</div>
+        </div>
+      `;
+      return;
+    }
+
+    const currentUserId = window.authManager?.getUser()?.id;
+    container.innerHTML = messages.map(msg => this.buildPinChatMessageHtml(msg, currentUserId)).join('');
+    container.scrollTop = container.scrollHeight;
+  }
+
+  buildPinChatMessageHtml(msg, currentUserId) {
+    const isSelf = currentUserId && (msg.senderId === currentUserId || (window.authManager?.getUser()?.email && msg.senderEmail === window.authManager.getUser().email));
+    const timeStr = new Date(msg.createdAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    const rankBadgeHtml = window.rankManager ? window.rankManager.getRankBadgeHtml(msg.senderRank, 'xs') : '';
+    const isAnnouncement = msg.isAnnouncement || msg.senderBadge?.includes('ประกาศ') || msg.senderName === 'MSU Traffic';
+
+    let badgeClass = 'badge-member';
+    let badgeText = msg.senderBadge || '👤 สมาชิก';
+    if (isAnnouncement) {
+      badgeClass = 'badge-announcement';
+      badgeText = '📢 ประกาศทางการ';
+    } else if (msg.senderBadge?.includes('DEV')) {
+      badgeClass = 'badge-dev';
+      badgeText = '👑 DEVELOPER';
+    } else if (msg.senderBadge?.includes('MSU')) {
+      badgeClass = 'badge-msu';
+      badgeText = '🎓 นิสิต มมส';
+    }
+
+    const avatarUrl = isAnnouncement 
+      ? 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=120&auto=format&fit=crop&q=80'
+      : (msg.senderPicture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100');
+
+    return `
+      <div class="pin-msg-row ${isSelf && !isAnnouncement ? 'self' : ''} ${isAnnouncement ? 'pin-msg-announcement' : ''}" id="pin-msg-${msg.id}">
+        <div class="pin-msg-avatar-wrap">
+          <img class="pin-msg-avatar" src="${avatarUrl}" alt="avatar">
+          ${isAnnouncement ? '<span class="pin-avatar-official-badge">✓</span>' : ''}
+        </div>
+        <div class="pin-msg-content">
+          <div class="pin-msg-meta">
+            <span class="pin-msg-name">${msg.senderName}</span>
+            <span class="chat-badge ${badgeClass}">${badgeText}</span>
+            ${rankBadgeHtml}
+            <span class="pin-msg-header-time">${timeStr}</span>
+          </div>
+          <div class="pin-msg-bubble-box ${isAnnouncement ? 'pin-box-announcement' : ''}">
+            ${isAnnouncement ? `
+              <div class="pin-announcement-header">
+                <span class="pin-announcement-icon">📢</span>
+                <span class="pin-announcement-title">ประกาศทางการจาก MSU Traffic</span>
+              </div>
+            ` : ''}
+            <div class="pin-msg-text">${this.escapeHtml(msg.text)}</div>
+          </div>
+          ${isSelf && !isAnnouncement ? `<div class="pin-msg-time">${timeStr} น.</div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  insertQuickChat(text) {
+    const input = document.getElementById('pinChatMessageInput');
+    if (input) {
+      input.value = text;
+      input.focus();
+    }
+  }
+
+  async sendPinChatMessage(event) {
+    if (event) event.preventDefault();
+
+    if (!window.authManager.isLoggedIn()) {
+      window.authManager.openLoginModal('กรุณาเข้าสู่ระบบก่อนร่วมพูดคุยในห้องแชท');
+      return;
+    }
+
+    if (!this.currentChatPinId) return;
+
+    const input = document.getElementById('pinChatMessageInput');
+    const anonToggle = document.getElementById('pinChatAnonToggle');
+    const announcementToggle = document.getElementById('pinChatAnnouncementToggle');
+    const sendBtn = document.getElementById('pinChatSendBtn');
+
+    const text = input ? input.value.trim() : '';
+    const isAnnouncement = announcementToggle ? announcementToggle.checked : false;
+    const isAnonymous = isAnnouncement ? false : (anonToggle ? anonToggle.checked : false);
+
+    if (!text) return;
+
+    if (sendBtn) sendBtn.disabled = true;
+
+    try {
+      const res = await fetch(`/api/reports/${this.currentChatPinId}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...window.authManager.getAuthHeader()
+        },
+        body: JSON.stringify({
+          text,
+          isAnonymous,
+          isAnnouncement
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        if (input) input.value = '';
+        this.appendPinChatMessage(data.data);
+        this.showNotification('🎉 ส่งข้อความสำเร็จ (+3 EXP 🎖️)', 'success');
+      } else {
+        alert(data.error || 'ไม่สามารถส่งข้อความได้');
+      }
+    } catch (err) {
+      console.error('Error sending pin chat message:', err);
+      alert('เกิดข้อผิดพลาดในการส่งข้อความ');
+    } finally {
+      if (sendBtn) sendBtn.disabled = false;
+    }
+  }
+
+  appendPinChatMessage(msg) {
+    const container = document.getElementById('pinChatMessagesContainer');
+    if (!container) return;
+
+    // If empty placeholder is shown -> clear it
+    if (container.querySelector('.pin-msg-row') === null) {
+      container.innerHTML = '';
+    }
+
+    const currentUserId = window.authManager?.getUser()?.id;
+    const html = this.buildPinChatMessageHtml(msg, currentUserId);
+    container.insertAdjacentHTML('beforeend', html);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  handlePinChatNewMessage(data) {
+    if (this.currentChatPinId && this.currentChatPinId === data.pinId) {
+      const currentUserId = window.authManager?.getUser()?.id;
+      // If not sent by current user (since sender already appended it)
+      if (data.message.senderId !== currentUserId) {
+        this.appendPinChatMessage(data.message);
+      }
+    }
+  }
+
+  handlePinChatCountUpdate(data) {
+    const rep = this.reports.find(r => r.id === data.pinId);
+    if (rep) {
+      rep.chatCount = data.chatCount;
+      // Re-render feed cards with updated counter
+      this.renderReportsList();
+      this.renderHomeFeedList();
+    }
+  }
+
+  escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  updateAuthUI() {
+    const container = document.getElementById('navAuthContainer');
+    if (!container) return;
+
+    const user = window.authManager.getUser();
+    if (user) {
+      const isDev = window.authManager.isDev();
+      const isMsu = user.email && user.email.endsWith('@msu.ac.th');
+      let badgeHtml = '<span class="badge-pill badge-member">👤 Member</span>';
+      if (isDev) badgeHtml = '<span class="badge-pill badge-dev">👑 DEV</span>';
+      else if (isMsu) badgeHtml = '<span class="badge-pill badge-msu">🎓 MSU</span>';
+
+      container.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.4rem;">
+          ${isDev ? `
+            <button class="btn-dev-panel-nav" onclick="window.devManager?.openModal()" title="เปิดศูนย์ควบคุม Developer (Ctrl+Shift+D)">
+              <span>🛠️ Dev Panel</span>
+            </button>
+          ` : ''}
+          <div style="display: flex; align-items: center; gap: 0.45rem; cursor: pointer; padding: 0.22rem 0.55rem; border-radius: 20px; background: #F8FAFC; border: 1px solid #E2E8F0; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.03);" onclick="window.app.openProfileModal()" title="คลิกเพื่อเปิดดูโปรไฟล์ของคุณ">
+            <img src="${user.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60'}" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 1.5px solid #2563EB;">
+            <span style="font-size: 0.78rem; font-weight: 700; color: #1E293B; max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${this.escapeHtml(user.name || 'โปรไฟล์')}</span>
+            ${badgeHtml}
+          </div>
+        </div>
+      `;
+    } else {
+      container.innerHTML = `
+        <button class="btn btn-outline btn-sm" onclick="window.authManager.openLoginModal()">
+          <span>🔑 เข้าสู่ระบบ</span>
+        </button>
+      `;
+    }
+
+    if (window.chatManager) {
+      window.chatManager.updateDevClearBtn();
+    }
+  }
+
+  openDonateModal() {
+    const modal = document.getElementById('donateModal');
+    if (modal) modal.classList.add('active');
+  }
+
+  closeDonateModal() {
+    const modal = document.getElementById('donateModal');
+    if (modal) modal.classList.remove('active');
+  }
+
+  openLegalModal() {
+    const modal = document.getElementById('legalNoticeModal');
+    if (modal) modal.classList.add('active');
+  }
+
+  closeLegalModal() {
+    const modal = document.getElementById('legalNoticeModal');
+    if (modal) modal.classList.remove('active');
+  }
+
+  showNotification(msg, type = 'info') {
+
+    const toast = document.createElement('div');
+    toast.className = `app-toast toast-${type}`;
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.classList.add('show');
+    }, 10);
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 3500);
+  }
+
+  bindEvents() {
+    // Preset zone select change
+    const presetSelect = document.getElementById('reportPresetZone');
+    if (presetSelect) {
+      presetSelect.addEventListener('change', (e) => {
+        const opt = e.target.options[e.target.selectedIndex];
+        if (opt && opt.dataset.lat) {
+          document.getElementById('reportLat').value = opt.dataset.lat;
+          document.getElementById('reportLng').value = opt.dataset.lng;
+          if (opt.dataset.campus) {
+            document.getElementById('reportCampusZone').value = opt.dataset.campus;
+          }
+        }
+      });
+    }
+
+    // Filter chips on Map view
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        this.activeFilter = chip.dataset.type || 'all';
+        this.renderReportsList();
+      });
+    });
+
+    // Map Search Input
+    const searchInput = document.getElementById('mapSearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.searchQuery = e.target.value.trim();
+        this.renderReportsList();
+      });
+    }
+
+    // Direct Bindings for Donate & Legal Buttons
+    const donateBtn = document.getElementById('navDonateBtn');
+    if (donateBtn) {
+      donateBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.openDonateModal();
+      });
+    }
+
+    const legalBtn = document.getElementById('navLegalBtn');
+    if (legalBtn) {
+      legalBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.openLegalModal();
+      });
     }
   }
 }
 
-// Global App Instance
-window.app = new AppController();
+// Global Shortcuts for reliable modal access
+window.openDonateModal = function() {
+  const modal = document.getElementById('donateModal');
+  if (modal) {
+    modal.classList.add('active');
+  }
+};
 
-// Init on DOM ready
+window.closeDonateModal = function() {
+  const modal = document.getElementById('donateModal');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+};
+
+window.openLegalModal = function(isManual = true) {
+  const modal = document.getElementById('legalNoticeModal');
+  if (!modal) return;
+
+  if (isManual) {
+    // โหมดดูภายหลัง (กดจากปุ่ม กฎหมาย ใน nav)
+    modal.classList.remove('mandatory-mode');
+    modal.querySelector('.legal-close-btn').style.display = '';
+    modal.querySelector('.legal-accept-btn').style.display = 'none';
+    modal.querySelector('.legal-dismiss-btn').style.display = '';
+  }
+  modal.classList.add('active');
+};
+
+window.closeLegalModal = function() {
+  const modal = document.getElementById('legalNoticeModal');
+  if (modal) {
+    modal.classList.remove('active');
+    modal.classList.remove('mandatory-mode');
+  }
+};
+
+// ⚖️ ฟังก์ชันยอมรับข้อกำหนด (บังคับครั้งแรก)
+window.acceptLegalTerms = function() {
+  localStorage.setItem('msu_legal_accepted', 'true');
+  localStorage.setItem('msu_legal_accepted_at', new Date().toISOString());
+  window.closeLegalModal();
+  if (window.app) {
+    window.app.showNotification('✅ ยอมรับข้อกำหนดเรียบร้อยแล้ว ยินดีต้อนรับสู่ MSU Traffic!', 'success');
+  }
+};
+
+// ⚖️ ตรวจสอบและแสดง Legal Modal บังคับเมื่อเข้าเว็บครั้งแรก
+window.checkFirstVisitLegal = function() {
+  const accepted = localStorage.getItem('msu_legal_accepted');
+  if (!accepted) {
+    const modal = document.getElementById('legalNoticeModal');
+    if (modal) {
+      modal.classList.add('mandatory-mode');
+      modal.querySelector('.legal-close-btn').style.display = 'none';
+      modal.querySelector('.legal-accept-btn').style.display = '';
+      modal.querySelector('.legal-dismiss-btn').style.display = 'none';
+      modal.classList.add('active');
+    }
+  }
+};
+
+// ⭐ ระบบเปิด/ปิด Donate จาก Dev Settings (ใช้ localStorage)
+window.checkDonateVisibility = function() {
+  const donateEnabled = localStorage.getItem('msu_donate_enabled');
+  const donateBtn = document.getElementById('navDonateBtn');
+  if (donateBtn) {
+    // ค่าเริ่มต้นคือเปิด (ถ้ายังไม่เคยตั้งค่า)
+    if (donateEnabled === 'false') {
+      donateBtn.style.display = 'none';
+    } else {
+      donateBtn.style.display = '';
+    }
+  }
+};
+
+window.app = new MSUApp();
 document.addEventListener('DOMContentLoaded', () => {
   window.app.init();
+
+  // ⚖️ ตรวจสอบการยอมรับข้อกำหนดเมื่อเข้าเว็บครั้งแรก
+  window.checkFirstVisitLegal();
+
+  // ⭐ ตรวจสอบการแสดงผลปุ่ม Donate
+  window.checkDonateVisibility();
 });

@@ -1,114 +1,90 @@
 /**
- * =========================================================================
- * MSU Traffic - Rank, Reputation & Leaderboard Controller (Client-Side)
- * =========================================================================
- * Manages user ranks, EXP progression, real-time toasts, Hall of Fame,
- * and the Top-Right Floating Map Mini-Leaderboard HUD (Top 1-3 + My Rank)
+ * MSU Traffic & Campus Life - Rank & Reputation Controller (Season 1)
+ * จัดการตารางอันดับ Weekly (Season 1), All-Time Rank และ Floating Map HUD (มุมบนขวา)
  */
 
 class RankManager {
   constructor() {
-    this.leaderboard = [];
-    this.rankTiers = [];
-    this.currentUserStats = null;
-    this.isMapOverlayCollapsed = localStorage.getItem('msu_map_rank_hidden') === 'true';
-    this.init();
+    this.currentTab = 'weekly'; // 'weekly' | 'all-time'
+    this.weeklyData = null;
+    this.allTimeData = [];
+    this.myStats = null;
+    this.isMapOverlayCollapsed = localStorage.getItem('msu_map_rank_collapsed') === 'true';
   }
 
   async init() {
-    await this.fetchRankTiers();
-    this.setupSocketListeners();
+    await this.loadWeeklyRank();
+    await this.loadAllTimeRank();
+    await this.loadMyStats();
     this.initMapOverlay();
-  }
-
-  async fetchRankTiers() {
-    try {
-      const res = await fetch('/api/rank/tiers');
-      const data = await res.json();
-      if (data.success) {
-        this.rankTiers = data.data;
-      }
-    } catch (e) {
-      console.warn('Failed to fetch rank tiers:', e);
-    }
-  }
-
-  // Realtime Socket listeners for live points and level-ups
-  setupSocketListeners() {
-    if (window.app && window.app.socket) {
-      this.bindSocketEvents(window.app.socket);
-    }
+    this.startCountdownTimer();
   }
 
   bindSocketEvents(socket) {
-    socket.on('rank_update', (eventData) => {
-      const currentUser = window.authManager?.getUser();
-      if (!currentUser || !currentUser.id) return;
-
-      const { authorId, voterId, rankReward } = eventData;
-
-      // 1. If current user is the author of the confirmed report
-      if (currentUser.id === authorId && rankReward?.authorReward) {
-        const reward = rankReward.authorReward;
-        this.showExpGainToast(reward.expGained, reward.reason || 'มีเพื่อนนิสิตเห็นด้วยกับรายงานของคุณ');
-        if (reward.leveledUp) {
-          this.showLevelUpModal(reward.newRank);
-        }
-        this.refreshMyRankStats();
-      }
-
-      // 2. If current user is the voter
-      if (currentUser.id === voterId && rankReward?.voterReward) {
-        const reward = rankReward.voterReward;
-        this.showExpGainToast(reward.expGained, reward.reason || 'ร่วมยืนยันข้อมูลด่านจราจร');
-        if (reward.leveledUp) {
-          this.showLevelUpModal(reward.newRank);
-        }
-        this.refreshMyRankStats();
-      }
-    });
-
-    socket.on('leaderboard_update', (updatedList) => {
-      this.leaderboard = updatedList;
-      this.updateMapRankOverlay(updatedList);
-
-      const modal = document.getElementById('leaderboardModal');
-      if (modal && modal.classList.contains('active')) {
-        this.renderLeaderboard(updatedList);
-      }
-    });
-  }
-
-  // Refresh current user stats from backend
-  async refreshMyRankStats() {
-    if (!window.authManager?.isLoggedIn()) {
-      this.updateMapRankOverlay();
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/rank/me');
-      const data = await res.json();
-      if (data.success && data.data) {
-        this.currentUserStats = data.data;
-        const user = window.authManager.getUser();
-        if (user) {
-          user.stats = data.data;
-          user.rank = data.data.rank;
-          window.authManager.setUser(user);
-        }
-        if (window.app) {
-          window.app.updateAuthUI();
-        }
+    if (!socket) return;
+    socket.on('leaderboard_update', (data) => {
+      if (data && data.rankings) {
+        this.weeklyData = data;
         this.updateMapRankOverlay();
+        if (this.currentTab === 'weekly') {
+          this.renderLeaderboard();
+        }
       }
-    } catch (e) {}
+    });
+  }
+
+  async loadWeeklyRank() {
+    try {
+      const res = await fetch('/api/rank/weekly?limit=20');
+      const data = await res.json();
+      if (data.success) {
+        this.weeklyData = data.data;
+        this.updateMapRankOverlay();
+        if (this.currentTab === 'weekly') {
+          this.renderLeaderboard();
+        }
+        this.renderHomeTop3Snapshot();
+      }
+    } catch (e) {
+      console.error('Error loading weekly rank:', e);
+    }
+  }
+
+  async loadAllTimeRank() {
+    try {
+      const res = await fetch('/api/rank/all-time?limit=20');
+      const data = await res.json();
+      if (data.success) {
+        this.allTimeData = data.data;
+        if (this.currentTab === 'all-time') {
+          this.renderLeaderboard();
+        }
+      }
+    } catch (e) {
+      console.error('Error loading all-time rank:', e);
+    }
+  }
+
+  async loadMyStats() {
+    try {
+      const res = await fetch('/api/rank/my-stats', {
+        headers: window.authManager ? window.authManager.getAuthHeader() : {}
+      });
+      const data = await res.json();
+      if (data.success && data.user) {
+        this.myStats = data.user;
+        this.updateMapRankOverlay();
+        this.renderMyRankCard();
+        this.renderProfileView();
+      }
+    } catch (e) {
+      console.error('Error loading my stats:', e);
+    }
   }
 
   // =========================================================================
-  // 🗺️ TOP-RIGHT FLOATING MAP MINI LEADERBOARD (Top 1-3 & My Rank)
+  // 🗺️ TOP-RIGHT FLOATING MAP MINI LEADERBOARD (มุมบนขวา แผนที่)
   // =========================================================================
-
   initMapOverlay() {
     const overlay = document.getElementById('mapRankOverlay');
     if (overlay && this.isMapOverlayCollapsed) {
@@ -123,218 +99,75 @@ class RankManager {
 
     overlay.classList.toggle('collapsed');
     this.isMapOverlayCollapsed = overlay.classList.contains('collapsed');
-    localStorage.setItem('msu_map_rank_hidden', this.isMapOverlayCollapsed ? 'true' : 'false');
+    localStorage.setItem('msu_map_rank_collapsed', this.isMapOverlayCollapsed ? 'true' : 'false');
   }
 
-  async updateMapRankOverlay(list = null) {
+  updateMapRankOverlay() {
     const top3Container = document.getElementById('mapRankTop3');
     const myStatusContainer = document.getElementById('mapRankMyStatus');
-    const pillText = document.getElementById('mapRankPillText');
+    if (!top3Container) return;
 
-    if (!list) {
-      try {
-        const res = await fetch('/api/rank/leaderboard?limit=10');
-        const data = await res.json();
-        if (data.success && data.data) {
-          this.leaderboard = data.data;
-          list = data.data;
-        }
-      } catch (e) {
-        list = this.leaderboard || [];
-      }
+    // ❗ เฉพาะผู้ใช้ที่มีคะแนนมากกว่า 0 EXP เท่านั้น
+    const list = (this.weeklyData?.rankings || []).filter(u => (u.score || 0) > 0).slice(0, 3);
+
+    if (list.length === 0) {
+      top3Container.innerHTML = '<div style="font-size: 0.72rem; color: #94A3B8; text-align: center; padding: 0.6rem 0.4rem;">🏁 ยังไม่มีผู้ทำคะแนนวันนี้<br><span style="font-size: 0.65rem; color: #CBD5E1;">ปักหมุดหรือโหวตเพื่อขึ้นอันดับ!</span></div>';
+    } else {
+      top3Container.innerHTML = list.map((u, i) => `
+        <div class="map-rank-row">
+          <span class="map-rank-badge-col">${i === 0 ? '🥇' : (i === 1 ? '🥈' : '🥉')}</span>
+          <img src="${u.picture}" class="map-rank-avatar" alt="avatar">
+          <span class="map-rank-name">${u.name}</span>
+          <span class="map-rank-score">${u.score} <span style="font-size: 0.6rem; color: #94A3B8;">EXP</span></span>
+        </div>
+      `).join('');
     }
 
-    if (!list || list.length === 0) {
-      if (top3Container) {
-        top3Container.innerHTML = '<div class="map-rank-loading">ยังไม่มีข้อมูลอันดับ</div>';
-      }
-      return;
-    }
-
-    const currentUser = window.authManager?.getUser();
-    const currentUserId = currentUser?.id;
-
-    // 1. Render Top 1-3 Rows
-    const top3 = list.slice(0, 3);
-    if (top3Container) {
-      top3Container.innerHTML = top3.map((u, idx) => {
-        const rank = u.rank || {};
-        const isMe = currentUserId && u.id === currentUserId;
-        const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : '🥉');
-        const rowClass = `rank-${idx + 1}`;
-
-        return `
-          <div class="map-rank-row ${rowClass} ${isMe ? 'rank-is-me' : ''}" title="${u.name} (${u.exp.toLocaleString()} EXP)">
-            <div class="map-rank-medal">${medal}</div>
-            <img class="map-rank-avatar" src="${u.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60'}" alt="${u.name}">
-            <div class="map-rank-info">
-              <div class="map-rank-name-wrap">
-                <span class="map-rank-name">${u.name}</span>
-                ${isMe ? '<span class="badge-me" style="font-size: 0.55rem; padding: 0 3px;">ฉัน</span>' : ''}
-              </div>
-              <div class="map-rank-badge-wrap">
-                ${this.getRankBadgeHtml(rank, 'xs')}
-              </div>
-            </div>
-            <div class="map-rank-exp-val">${u.exp.toLocaleString()} <span style="font-size: 0.6rem; color: #64748B;">EXP</span></div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    // 2. Render Current User Rank Status Box
+    // Render my status row in HUD
     if (myStatusContainer) {
-      if (currentUser) {
-        const myRank = currentUser.rank || {};
-        const myStats = currentUser.stats || {};
-        const myExp = myStats.exp !== undefined ? myStats.exp : (myRank.exp || 0);
-
-        // Find placement in leaderboard
-        const myIndexInList = list.findIndex(u => u.id === currentUser.id);
-        const myPlacement = (myIndexInList !== -1) ? (myIndexInList + 1) : null;
-
-        let placementHtml = '';
-        if (myPlacement && myPlacement <= 3) {
-          placementHtml = `<span class="map-rank-my-pos-badge" style="background: #D97706;">อันดับ #${myPlacement} 👑</span>`;
-        } else if (myPlacement) {
-          placementHtml = `<span class="map-rank-my-pos-badge">อันดับ #${myPlacement}</span>`;
-        } else {
-          placementHtml = `<span class="map-rank-my-pos-badge" style="background: #64748B;">อันดับ #--</span>`;
-        }
-
+      if (this.myStats) {
+        const rank = this.myStats.rank || {};
         myStatusContainer.innerHTML = `
-          <div class="map-rank-my-inner" title="แตะเพื่อดูโปรไฟล์ & สถิติของคุณ">
-            <div class="map-rank-my-left">
-              ${placementHtml}
-              <span class="map-rank-my-name">${currentUser.name}</span>
+          <div class="map-rank-my-row">
+            <img src="${this.myStats.picture}" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover;">
+            <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+              <span style="font-weight: 700; font-size: 0.72rem; color: #1E293B; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">อันดับของคุณ (${this.myStats.name})</span>
+              <span style="font-size: 0.64rem; color: #059669; font-weight: 700;">+${this.myStats.weeklyScore || 0} EXP (วันนี้)</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.25rem;">
-              ${this.getRankBadgeHtml(myRank, 'xs')}
-              <span class="map-rank-my-exp">${myExp.toLocaleString()} EXP</span>
-            </div>
+            <span style="font-weight: 800; font-size: 0.75rem; color: #2563EB;">${this.myStats.allTimeScore || 0} EXP</span>
           </div>
         `;
-        myStatusContainer.onclick = () => window.app && window.app.openProfileModal();
-
-        if (pillText) {
-          pillText.textContent = myPlacement ? `อันดับ #${myPlacement} (${myExp} EXP)` : `อันดับ Top 3`;
-        }
       } else {
-        // Guest user prompt
         myStatusContainer.innerHTML = `
-          <div class="map-rank-guest-prompt" title="คลิกเพื่อเข้าสู่ระบบ">
-            <span>🔑</span>
-            <span>เข้าสู่ระบบเพื่อดูอันดับของคุณ</span>
+          <div style="font-size: 0.68rem; color: #64748B; text-align: center; cursor: pointer;" onclick="window.authManager.openLoginModal()">
+            🔑 <u>เข้าสู่ระบบเพื่อดูอันดับของคุณ</u>
           </div>
         `;
-        myStatusContainer.onclick = () => window.authManager && window.authManager.openLoginModal('เข้าสู่ระบบเพื่อสะสม EXP และดูอันดับของคุณ');
-
-        if (pillText) {
-          pillText.textContent = `อันดับ 1-3 🏆`;
-        }
       }
     }
   }
 
-  // Generate Rank Badge HTML
-  getRankBadgeHtml(rank, size = 'sm') {
-    if (!rank) return '';
-    const badgeClass = rank.badgeClass || 'rank-bronze';
-    const icon = rank.icon || '🥉';
-    const name = rank.name || 'ผู้สัญจรมือใหม่';
-
-    return `
-      <span class="rank-badge ${badgeClass} rank-badge-${size}" title="${rank.title || name} (${rank.exp || 0} EXP)">
-        <span class="rank-badge-icon">${icon}</span>
-        <span class="rank-badge-text">${name}</span>
-      </span>
-    `;
+  // =========================================================================
+  // 🏆 FULL LEADERBOARD MODAL (Hall of Fame)
+  // =========================================================================
+  async loadLeaderboard() {
+    await Promise.all([
+      this.loadWeeklyRank(),
+      this.loadAllTimeRank(),
+      this.loadMyStats()
+    ]);
+    this.renderLeaderboard();
   }
 
-  // Floating Toast for EXP Gain
-  showExpGainToast(exp, message = '') {
-    const toast = document.createElement('div');
-    toast.className = 'exp-toast-popup';
-    toast.innerHTML = `
-      <div class="exp-toast-inner">
-        <div class="exp-toast-badge">+${exp} EXP 🎖️</div>
-        <div class="exp-toast-msg">${message}</div>
-      </div>
-    `;
-
-    document.body.appendChild(toast);
-
-    // Audio chime effect
-    if (window.app && window.app.playAlertChime) {
-      window.app.playAlertChime();
-    }
-
-    setTimeout(() => {
-      toast.classList.add('exp-toast-fadeout');
-      setTimeout(() => toast.remove(), 400);
-    }, 3500);
+  async loadUserRank() {
+    return await this.loadMyStats();
   }
 
-  // Modal Level-Up Celebration
-  showLevelUpModal(newRank) {
-    let modal = document.getElementById('levelUpModal');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'levelUpModal';
-      modal.className = 'modal-overlay';
-      document.body.appendChild(modal);
-    }
-
-    modal.innerHTML = `
-      <div class="modal-container levelup-container" style="max-width: 440px; text-align: center;">
-        <div class="levelup-sparkle-bg">
-          <div class="levelup-icon-big">${newRank.icon || '🎖️'}</div>
-        </div>
-        <div class="modal-body" style="padding: 1.5rem 1.5rem 2rem;">
-          <div class="levelup-title-tag">LEVEL UP! • เลื่อนยศใหม่</div>
-          <h2 style="font-size: 1.4rem; font-weight: 800; color: #0F172A; margin: 0.4rem 0;">
-            ${newRank.name}
-          </h2>
-          <p style="font-size: 0.85rem; color: #64748B; line-height: 1.5; margin-bottom: 1.25rem;">
-            ขอแสดงความยินดี! คุณได้สะสมผลงานการรายงานและช่วยยืนยันข้อมูลด่านอันเป็นประโยชน์รอบ ม.มหาสารคาม อย่างต่อเนื่อง
-          </p>
-
-          <div style="margin-bottom: 1.25rem;">
-            ${this.getRankBadgeHtml(newRank, 'lg')}
-          </div>
-
-          <button class="btn btn-primary" style="width: 100%; font-size: 0.9rem; padding: 0.65rem;" onclick="document.getElementById('levelUpModal').classList.remove('active')">
-            <span>🎉 รับทราบและลุยต่อเลย!</span>
-          </button>
-        </div>
-      </div>
-    `;
-
-    modal.classList.add('active');
-  }
-
-  // Open Leaderboard Modal
-  async openLeaderboardModal() {
+  openLeaderboardModal() {
     const modal = document.getElementById('leaderboardModal');
-    if (!modal) return;
-
-    modal.classList.add('active');
-    const container = document.getElementById('leaderboardList');
-    if (container) {
-      container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #64748B;">⏳ กำลังโหลดตารางจัดอันดับ...</div>';
-    }
-
-    try {
-      const res = await fetch('/api/rank/leaderboard?limit=15');
-      const data = await res.json();
-      if (data.success && data.data) {
-        this.leaderboard = data.data;
-        this.renderLeaderboard(data.data);
-      }
-    } catch (e) {
-      if (container) {
-        container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #EF4444;">ไม่สามารถโหลดข้อมูลอันดับได้</div>';
-      }
+    if (modal) {
+      modal.classList.add('active');
+      this.loadLeaderboard();
     }
   }
 
@@ -343,102 +176,171 @@ class RankManager {
     if (modal) modal.classList.remove('active');
   }
 
-  // Render Leaderboard list in Hall of Fame Modal
-  renderLeaderboard(list = []) {
-    const container = document.getElementById('leaderboardList');
+  switchRankTab(tab) {
+    this.currentTab = tab;
+    document.querySelectorAll('.rank-tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    this.renderLeaderboard();
+  }
+
+  renderLeaderboard() {
+    const container = document.getElementById('rankLeaderboardList');
     if (!container) return;
+
+    const list = (this.currentTab === 'weekly' ? (this.weeklyData?.rankings || []) : this.allTimeData)
+      .filter(u => (u.score || 0) > 0);
 
     if (list.length === 0) {
       container.innerHTML = `
-        <div style="text-align: center; padding: 2.5rem; color: #94A3B8;">
+        <div style="text-align: center; color: #94A3B8; padding: 2.5rem 1rem;">
           <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏆</div>
-          <div>ยังไม่มีข้อมูลอันดับในระบบ</div>
+          <div style="font-weight: 700; color: #334155;">ยังไม่มีคะแนนในรอบวันนี้ (0 EXP)</div>
+          <div style="font-size: 0.78rem; margin-top: 0.2rem;">ร่วมปักหมุดหรือช่วยโหวตยืนยันด่านเพื่อเป็นที่ 1 ของ มมส!</div>
         </div>
       `;
       return;
     }
 
-    const currentUserId = window.authManager?.getUser()?.id;
+    container.innerHTML = list.map((user, idx) => {
+      let medalBadge = `<span class="rank-pos-number">#${idx + 1}</span>`;
+      if (idx === 0) medalBadge = '<span class="rank-medal medal-gold">🥇 1</span>';
+      else if (idx === 1) medalBadge = '<span class="rank-medal medal-silver">🥈 2</span>';
+      else if (idx === 2) medalBadge = '<span class="rank-medal medal-bronze">🥉 3</span>';
 
-    // Top 3 Podium Cards
-    const top3 = list.slice(0, 3);
-    const rest = list.slice(3);
+      const isDev = user.isDev || user.email === 'java5263@gmail.com';
+      const isMsu = user.email && user.email.toLowerCase().endsWith('@msu.ac.th');
 
-    let html = '';
-
-    // Podium Layout
-    if (top3.length > 0) {
-      html += '<div class="podium-grid">';
-      
-      // Order in UI: 2nd place (left), 1st place (center), 3rd place (right)
-      const podiumOrder = [];
-      if (top3[1]) podiumOrder.push({ user: top3[1], place: 2, label: '🥈 อันดับ 2' });
-      if (top3[0]) podiumOrder.push({ user: top3[0], place: 1, label: '👑 อันดับ 1' });
-      if (top3[2]) podiumOrder.push({ user: top3[2], place: 3, label: '🥉 อันดับ 3' });
-
-      podiumOrder.forEach(item => {
-        const u = item.user;
-        const rank = u.rank || {};
-        const isMe = currentUserId && u.id === currentUserId;
-
-        html += `
-          <div class="podium-card podium-place-${item.place} ${isMe ? 'podium-is-me' : ''}">
-            <div class="podium-crown">${item.place === 1 ? '👑' : (item.place === 2 ? '🥈' : '🥉')}</div>
-            <div class="podium-avatar-wrap">
-              <img src="${u.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100'}" class="podium-avatar" alt="${u.name}">
-              <div class="podium-rank-pill">${item.label}</div>
+      return `
+        <div class="rank-item-card ${idx < 3 ? 'top-card' : ''}">
+          <div class="rank-pos-col">${medalBadge}</div>
+          <img class="rank-avatar" src="${user.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60'}" alt="avatar">
+          <div class="rank-info-col">
+            <div class="rank-user-name">
+              <span>${user.name}</span>
+              ${isDev ? '<span class="badge-dev">👑 DEV</span>' : (isMsu ? '<span class="badge-msu">🎓 MSU</span>' : '<span class="badge-member">👤 Member</span>')}
             </div>
-            <div class="podium-name">${u.name}</div>
-            <div style="margin-bottom: 0.35rem;">
-              ${this.getRankBadgeHtml(rank, 'xs')}
-            </div>
-            <div class="podium-score">
-              <span class="podium-exp-val">${u.exp.toLocaleString()}</span> <span class="podium-exp-unit">EXP</span>
-            </div>
-            <div class="podium-stats-sub">
-              <span>📢 ${u.reportsCount || 0} ด่าน</span> • <span>👍 ${u.upvotesReceived || 0}</span>
+            <div class="rank-meta-row">
+              <span class="rank-trust-badge">🛡️ Trust: <strong>${user.trustScore || 50}</strong></span>
+              <span>📍 ปักแล้ว ${user.pinsCreated || 0} จุด</span>
             </div>
           </div>
-        `;
-      });
-
-      html += '</div>';
-    }
-
-    // Rank 4+ List
-    if (rest.length > 0) {
-      html += '<div class="leaderboard-sublist">';
-      rest.forEach(u => {
-        const rank = u.rank || {};
-        const isMe = currentUserId && u.id === currentUserId;
-
-        html += `
-          <div class="leaderboard-row ${isMe ? 'leaderboard-row-me' : ''}">
-            <div class="leaderboard-pos">#${u.placement}</div>
-            <img src="${u.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100'}" class="leaderboard-avatar" alt="${u.name}">
-            <div class="leaderboard-user-info">
-              <div class="leaderboard-name-row">
-                <span class="leaderboard-name">${u.name}</span>
-                ${isMe ? '<span class="badge-me">ฉัน</span>' : ''}
-              </div>
-              <div class="leaderboard-badges-row">
-                ${this.getRankBadgeHtml(rank, 'xs')}
-                <span class="leaderboard-meta">📢 ${u.reportsCount || 0} รายงาน • 👍 ${u.upvotesReceived || 0} คนเห็นด้วย</span>
-              </div>
-            </div>
-            <div class="leaderboard-score-badge">
-              <span class="score-num">${u.exp.toLocaleString()}</span>
-              <span class="score-unit">EXP</span>
-            </div>
+          <div class="rank-score-col">
+            <span class="rank-score-val">${user.score || 0}</span>
+            <span class="rank-score-label">EXP</span>
           </div>
-        `;
-      });
-      html += '</div>';
+        </div>
+      `;
+    }).join('');
+  }
+
+  renderMyRankCard() {
+    const card = document.getElementById('myRankOverviewCard');
+    if (!card || !this.myStats) return;
+
+    const rank = this.myStats.rank || {};
+    card.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <img src="${this.myStats.picture}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #F59E0B;">
+          <div>
+            <div style="font-weight: 800; font-size: 0.95rem; color: #0F172A;">${this.myStats.name}</div>
+            <div style="font-size: 0.74rem; color: #B45309; font-weight: 700;">${rank.icon || '🥉'} ${rank.name || 'ผู้สัญจรมือใหม่'}</div>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 1.15rem; font-weight: 800; color: #2563EB;">${this.myStats.allTimeScore || 0} <span style="font-size: 0.72rem; color: #64748B;">EXP</span></div>
+          <div style="font-size: 0.7rem; color: #059669; font-weight: 700;">สัปดาห์นี้: +${this.myStats.weeklyScore || 0}</div>
+        </div>
+      </div>
+      <!-- Progress Bar -->
+      <div style="margin-top: 0.65rem;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.68rem; color: #64748B; margin-bottom: 0.2rem;">
+          <span>ความก้าวหน้าสู่ยศถัดไป</span>
+          <span>${rank.progressPercent || 0}%</span>
+        </div>
+        <div style="width: 100%; height: 6px; background: #E2E8F0; border-radius: 10px; overflow: hidden;">
+          <div style="width: ${rank.progressPercent || 0}%; height: 100%; background: linear-gradient(90deg, #F59E0B, #10B981); border-radius: 10px;"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderProfileView() {
+    const trustGauge = document.getElementById('profileTrustScoreVal');
+    const trustBar = document.getElementById('profileTrustBar');
+    const trustStatus = document.getElementById('profileTrustStatus');
+    const nameElem = document.getElementById('profileUserName');
+    const emailElem = document.getElementById('profileUserEmail');
+    const avatarElem = document.getElementById('profileUserAvatar');
+    const badgeElem = document.getElementById('profileUserBadge');
+
+    if (!this.myStats) return;
+
+    const trust = this.myStats.trustScore || 50;
+    if (trustGauge) trustGauge.textContent = trust;
+    if (trustBar) trustBar.style.width = `${trust}%`;
+    if (nameElem) nameElem.textContent = this.myStats.name;
+    if (emailElem) emailElem.textContent = this.myStats.email;
+    if (avatarElem) avatarElem.src = this.myStats.picture;
+
+    const isDev = this.myStats.isDev;
+    const isMsu = this.myStats.email && this.myStats.email.endsWith('@msu.ac.th');
+
+    if (badgeElem) {
+      if (isDev) badgeElem.innerHTML = '<span class="badge-dev" style="font-size: 0.8rem; padding: 3px 8px;">👑 DEVELOPER</span>';
+      else if (isMsu) badgeElem.innerHTML = '<span class="badge-msu" style="font-size: 0.8rem; padding: 3px 8px;">🎓 นิสิต มมส (@msu.ac.th)</span>';
+      else badgeElem.innerHTML = '<span class="badge-member" style="font-size: 0.8rem; padding: 3px 8px;">👤 Member ทั่วไป</span>';
     }
 
-    container.innerHTML = html;
+    if (trustStatus) {
+      if (trust >= 80) trustStatus.innerHTML = '<span style="color: #059669; font-weight: 700;">🟢 น่าเชื่อถือสูงมาก (Trusted Citizen)</span>';
+      else if (trust >= 50) trustStatus.innerHTML = '<span style="color: #2563EB; font-weight: 700;">🔵 ปานกลาง (Standard Verified)</span>';
+      else trustStatus.innerHTML = '<span style="color: #DC2626; font-weight: 700;">🔴 เฝ้าระวัง (Under Observation)</span>';
+    }
+  }
+
+  renderHomeTop3Snapshot() {
+    const container = document.getElementById('homeTop3Container');
+    if (!container) return;
+
+    const list = (this.weeklyData?.rankings || []).slice(0, 3);
+    if (list.length === 0) {
+      container.innerHTML = '<div style="font-size: 0.74rem; color: #94A3B8; text-align: center; padding: 0.5rem;">ยังไม่มีผู้ทำคะแนนสัปดาห์นี้</div>';
+      return;
+    }
+
+    container.innerHTML = list.map((u, i) => `
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0.5rem; background: #F8FAFC; border-radius: 8px; border: 1px solid #E2E8F0;">
+        <div style="display: flex; align-items: center; gap: 0.45rem;">
+          <span style="font-size: 0.85rem;">${i === 0 ? '🥇' : (i === 1 ? '🥈' : '🥉')}</span>
+          <img src="${u.picture}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+          <span style="font-size: 0.78rem; font-weight: 700; color: #0F172A;">${u.name}</span>
+        </div>
+        <span style="font-size: 0.78rem; font-weight: 800; color: #2563EB;">${u.score} <span style="font-size: 0.65rem; color: #64748B;">EXP</span></span>
+      </div>
+    `).join('');
+  }
+
+  startCountdownTimer() {
+    const timerElem = document.getElementById('rankResetCountdown');
+    if (!timerElem) return;
+
+    setInterval(() => {
+      if (!this.weeklyData?.weekEnd) return;
+      const diff = Math.max(0, this.weeklyData.weekEnd - Date.now());
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+
+      timerElem.textContent = `รีเซ็ตประจำวันในอีก ${hours} ชม. ${minutes} นาที ${seconds} วิ`;
+    }, 1000);
+  }
+
+  getRankBadgeHtml(rank, size = 'sm') {
+    if (!rank) return '';
+    return `<span class="rank-badge-inline ${rank.badgeClass || 'rank-bronze'}">${rank.icon || '🥉'} ${rank.name || ''}</span>`;
   }
 }
 
-// Global instance
 window.rankManager = new RankManager();

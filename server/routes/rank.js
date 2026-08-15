@@ -1,79 +1,46 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
+const { optionalAuth, requireAuth } = require('../middleware/authMiddleware');
 
-// GET /api/rank/leaderboard - ดึงตารางอันดับผู้รายงานยอดเยี่ยม (Top Contributors)
-router.get('/leaderboard', (req, res) => {
+// 1. GET /api/rank/weekly - ดึงตารางอันดับรายสัปดาห์ (Season 1)
+router.get('/weekly', (req, res) => {
   try {
-    const limit = parseInt(req.query.limit || 10, 10);
-    const leaderboard = db.getLeaderboard(limit);
-
-    res.json({
-      success: true,
-      data: leaderboard,
-      totalRanked: leaderboard.length
-    });
+    const limit = parseInt(req.query.limit) || 10;
+    const weeklyData = db.getWeeklyLeaderboard(limit);
+    res.json({ success: true, data: weeklyData });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// GET /api/rank/tiers - ดึงข้อมูลลำดับยศและเกณฑ์คะแนนทั้งหมด
-router.get('/tiers', (req, res) => {
+// 2. GET /api/rank/all-time - ดึงตารางอันดับตลอดกาล (All-Time Hall of Fame)
+router.get('/all-time', (req, res) => {
   try {
-    const tiers = db.getRankTiers();
-    res.json({
-      success: true,
-      data: tiers
-    });
+    const limit = parseInt(req.query.limit) || 10;
+    const allTimeList = db.getAllTimeLeaderboard(limit);
+    res.json({ success: true, data: allTimeList });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// GET /api/rank/me - ดึงข้อมูลคะแนนและยศของตนเอง
-router.get('/me', (req, res) => {
+// 3. GET /api/rank/my-stats - ดึงสถิติส่วนบุคคลของผู้ใช้ปัจจุบัน (Trust Score + Rank)
+router.get('/my-stats', optionalAuth, (req, res) => {
   try {
-    const userHeader = req.headers['x-user-data'];
-    let user = null;
-
-    if (userHeader) {
-      try {
-        user = JSON.parse(decodeURIComponent(userHeader));
-      } catch (e) {
-        try { user = JSON.parse(userHeader); } catch (err) {}
-      }
-    }
-
-    if (!user || !user.id) {
-      return res.status(401).json({
-        success: false,
-        error: 'AUTH_REQUIRED',
-        message: 'กรุณาเข้าสู่ระบบเพื่อดูข้อมูลยศของตนเอง'
+    if (!req.user || !req.user.id) {
+      return res.json({
+        success: true,
+        authenticated: false,
+        stats: null
       });
     }
 
-    const stats = db.getUserStats(user.id, user);
+    const fullUser = db.getOrCreateUser(req.user);
     res.json({
       success: true,
-      data: stats
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// GET /api/rank/user/:id - ดูข้อมูลยศและสถิติของผู้ใช้ตาม ID
-router.get('/user/:id', (req, res) => {
-  try {
-    const stats = db.getUserStats(req.params.id);
-    if (!stats) {
-      return res.status(404).json({ success: false, error: 'ไม่พบข้อมูลผู้ใช้นี้' });
-    }
-
-    res.json({
-      success: true,
-      data: stats
+      authenticated: true,
+      user: fullUser
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
