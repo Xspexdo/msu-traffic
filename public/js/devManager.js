@@ -9,11 +9,13 @@ class DevManager {
   constructor() {
     this.currentTab = 'pins';
     this.allPins = [];
+    this.allUsers = [];
     this.bannedUsers = [];
     this.auditLogs = [];
     this.filterType = 'all';
     this.filterStatus = 'all';
     this.searchQuery = '';
+    this.userSearchQuery = '';
     this.initKeybindings();
   }
 
@@ -74,6 +76,7 @@ class DevManager {
     if (tabName === 'pins') {
       this.loadPins();
     } else if (tabName === 'users') {
+      this.loadAllUsers();
       this.loadBannedUsers();
       this.loadSecurityTelemetry();
     } else if (tabName === 'profanity') {
@@ -107,8 +110,65 @@ class DevManager {
       label.style.color = isEnabled ? '#10B981' : '#EF4444';
     }
 
-    // 2. โหลดสถานะห้องแชททั้งหมด
+    // 2. โหลดสถานะระบบแชททั่วโลก (Global Chat)
+    this.loadGlobalChatSetting();
+
+    // 3. โหลดสถานะห้องแชททั้งหมด
     this.loadChatRoomsSettings();
+  }
+
+  async loadGlobalChatSetting() {
+    try {
+      const res = await fetch('/api/chat/config');
+      const data = await res.json();
+      if (data.success && data.data) {
+        const isGlobal = data.data.globalChatEnabled !== false;
+        const toggle = document.getElementById('devGlobalChatToggle');
+        const label = document.getElementById('devGlobalChatStatusLabel');
+        if (toggle) toggle.checked = isGlobal;
+        if (label) {
+          label.textContent = isGlobal ? 'เปิดใช้งาน (แชทได้ทั่วโลก)' : 'ปิดใช้งาน (จำกัดเขต มมส)';
+          label.style.color = isGlobal ? '#10B981' : '#EF4444';
+        }
+      }
+    } catch (e) {
+      console.warn('Error loading global chat config:', e);
+    }
+  }
+
+  async toggleGlobalChatSystem(enabled) {
+    const label = document.getElementById('devGlobalChatStatusLabel');
+    if (label) {
+      label.textContent = enabled ? 'เปิดใช้งาน (แชทได้ทั่วโลก)' : 'ปิดใช้งาน (จำกัดเขต มมส)';
+      label.style.color = enabled ? '#10B981' : '#EF4444';
+    }
+
+    try {
+      const res = await fetch('/api/security/admin/toggle-global-chat', {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ enabled })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (window.app) {
+          window.app.showNotification(data.message, enabled ? 'success' : 'info');
+        }
+        if (window.chatManager) {
+          window.chatManager.globalChatEnabled = data.globalChatEnabled;
+          window.chatManager.updateGeofenceUI();
+          window.chatManager.updateRoomUIState();
+          window.chatManager.updateGlobalChatBtn();
+        }
+      } else {
+        alert(data.error || 'ไม่สามารถสลับโหมดได้');
+        this.loadGlobalChatSetting();
+      }
+    } catch (e) {
+      console.error('Error toggling global chat:', e);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+      this.loadGlobalChatSetting();
+    }
   }
 
   async loadChatRoomsSettings() {
@@ -478,8 +538,249 @@ class DevManager {
   }
 
   // ============================================================================
-  // 🛡️ TAB 2: USER & IP MODERATION
+  // 🛡️ TAB 2: USER & IP MODERATION & ROLES MANAGEMENT
   // ============================================================================
+  async loadAllUsers() {
+    const tbody = document.getElementById('devAllUsersTableBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align: center; padding: 1.5rem; color: #94A3B8;">
+          ⏳ กำลังโหลดรายชื่อผู้ใช้และยศทั้งหมด...
+        </td>
+      </tr>
+    `;
+
+    try {
+      const res = await fetch('/api/security/admin/all-users', {
+        headers: this.getHeaders()
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        this.allUsers = data.data || [];
+        this.renderAllUsersTable();
+      } else {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #EF4444; padding: 1rem;">${data.error || 'โหลดไม่สำเร็จ'}</td></tr>`;
+      }
+    } catch (err) {
+      console.error('Error loading all users:', err);
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #EF4444; padding: 1rem;">เกิดข้อผิดพลาดในการเชื่อมต่อ</td></tr>`;
+    }
+  }
+
+  filterAllUsers() {
+    this.userSearchQuery = (document.getElementById('devUserSearchInput')?.value || '').toLowerCase().trim();
+    this.renderAllUsersTable();
+  }
+
+  renderAllUsersTable() {
+    const tbody = document.getElementById('devAllUsersTableBody');
+    const badgeCount = document.getElementById('devAllUsersCountBadge');
+    if (!tbody) return;
+
+    let list = [...this.allUsers];
+    if (this.userSearchQuery) {
+      const q = this.userSearchQuery;
+      list = list.filter(u => 
+        (u.name && u.name.toLowerCase().includes(q)) ||
+        (u.email && u.email.toLowerCase().includes(q)) ||
+        (u.id && u.id.toLowerCase().includes(q)) ||
+        (u.badge && u.badge.toLowerCase().includes(q)) ||
+        (u.role && u.role.toLowerCase().includes(q))
+      );
+    }
+
+    if (badgeCount) badgeCount.textContent = `${list.length} คน`;
+
+    if (list.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align: center; padding: 2rem; color: #64748B;">
+            🔍 ไม่พบรายชื่อผู้ใช้งานที่ค้นหา
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = list.map(u => {
+      const isDev = u.isDev || u.email === 'java5263@gmail.com' || u.role === 'dev';
+      const isGlobal = u.canChatGlobal === true || u.role === 'global';
+      const isRider = u.isRider === true || u.role === 'rider';
+      const isBanned = u.status === 'banned';
+
+      let roleBadge = `<span class="dev-badge badge-member">${u.badge || '👤 Member'}</span>`;
+      if (isDev) roleBadge = `<span class="dev-badge badge-admin">👑 DEV</span>`;
+      else if (isRider) roleBadge = `<span class="dev-badge" style="background:#ECFDF5; color:#047857; border:1px solid #A7F3D0;">🛵 RIDER</span>`;
+      else if (isGlobal) roleBadge = `<span class="dev-badge" style="background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE;">🌐 Global</span>`;
+      else if (u.email?.endsWith('@msu.ac.th')) roleBadge = `<span class="dev-badge" style="background:#FEF3C7; color:#B45309; border:1px solid #FDE68A;">🎓 MSU</span>`;
+
+      const avatarSrc = u.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'MSU')}&background=2563EB&color=fff`;
+
+      return `
+        <tr style="${isBanned ? 'opacity: 0.6; background: #FEF2F2;' : ''}">
+          <td style="font-family: monospace; font-size: 0.72rem; color: #64748B;">
+            ${u.id}
+          </td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <img src="${avatarSrc}" alt="avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1.5px solid #E2E8F0;">
+              <div>
+                <div style="font-weight: 700; color: #0F172A; font-size: 0.82rem;">${this.escapeHtml(u.name || 'ไม่ระบุชื่อ')}</div>
+                <div style="font-size: 0.7rem; color: #64748B;">${u.email || '-'}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            ${roleBadge}
+          </td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+              <span style="font-weight: 800; font-size: 0.82rem; color: ${u.trustScore >= 80 ? '#10B981' : (u.trustScore >= 50 ? '#3B82F6' : '#EF4444')};">
+                ${u.trustScore ?? 50}
+              </span>
+              <span style="font-size: 0.68rem; color: #94A3B8;">/ 100</span>
+            </div>
+          </td>
+          <td>
+            <label style="display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; user-select: none;">
+              <input type="checkbox" ${isGlobal ? 'checked' : ''} ${isDev ? 'disabled checked' : ''} onchange="window.devManager.toggleUserGlobalChat('${u.id}', this.checked)" style="width: 17px; height: 17px; accent-color: #2563EB; cursor: pointer;">
+              <span style="font-size: 0.74rem; font-weight: 700; color: ${isGlobal ? '#2563EB' : '#64748B'};">
+                ${isGlobal ? '🌐 อนุญาต' : 'ตามพื้นที่'}
+              </span>
+            </label>
+          </td>
+          <td>
+            <div style="display: flex; gap: 0.35rem; align-items: center;">
+              <button class="btn btn-outline btn-xs" onclick="window.devManager.openRoleEditModal('${u.id}')" style="font-weight: 700; color: #2563EB; border-color: #BFDBFE; background: #EFF6FF;">
+                🎖️ ปรับยศ/สิทธิ์
+              </button>
+              ${!isDev && !isBanned ? `
+                <button class="btn btn-outline btn-xs" onclick="window.devManager.quickBanUser('${u.id}', '${this.escapeHtml(u.name)}')" style="color: #DC2626; border-color: #FECACA;">
+                  🚫
+                </button>
+              ` : ''}
+              ${isBanned ? `
+                <button class="btn btn-outline btn-xs" onclick="window.devManager.unbanUser('${u.id}', '${this.escapeHtml(u.name)}')" style="color: #059669; border-color: #A7F3D0;">
+                  🔓
+                </button>
+              ` : ''}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  async toggleUserGlobalChat(userId, canChatGlobal) {
+    try {
+      const res = await fetch('/api/security/admin/update-role', {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ userId, canChatGlobal })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (window.app) window.app.showNotification(data.message, 'success');
+        const u = this.allUsers.find(x => x.id === userId);
+        if (u) u.canChatGlobal = canChatGlobal;
+        this.renderAllUsersTable();
+      } else {
+        alert(data.error || 'ไม่สามารถปรับสิทธิ์ได้');
+        this.loadAllUsers();
+      }
+    } catch (e) {
+      console.error('Error toggling user global chat:', e);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+      this.loadAllUsers();
+    }
+  }
+
+  openRoleEditModal(userId) {
+    const user = this.allUsers.find(u => u.id === userId);
+    if (!user) {
+      alert('ไม่พบข้อมูลผู้ใช้');
+      return;
+    }
+
+    const modal = document.getElementById('devRoleEditModal');
+    if (!modal) return;
+
+    document.getElementById('editRoleUserId').value = user.id;
+    document.getElementById('editRoleUserNameDisplay').textContent = `${user.name} (${user.email || 'ไม่ระบุอีเมล'})`;
+    document.getElementById('editRoleSelect').value = user.role || 'member';
+    document.getElementById('editRoleBadgeInput').value = user.badge || '👤 Member';
+    document.getElementById('editRoleGlobalChatToggle').checked = user.canChatGlobal === true || user.role === 'global' || user.isDev === true;
+    document.getElementById('editRoleTrustScoreInput').value = user.trustScore ?? 50;
+
+    modal.classList.add('active');
+  }
+
+  closeRoleEditModal() {
+    const modal = document.getElementById('devRoleEditModal');
+    if (modal) modal.classList.remove('active');
+  }
+
+  onRolePresetChanged(roleVal) {
+    const badgeInput = document.getElementById('editRoleBadgeInput');
+    const globalToggle = document.getElementById('editRoleGlobalChatToggle');
+    if (!badgeInput) return;
+
+    if (roleVal === 'dev') {
+      badgeInput.value = '👑 DEV';
+      if (globalToggle) globalToggle.checked = true;
+    } else if (roleVal === 'global') {
+      badgeInput.value = '🌐 Global';
+      if (globalToggle) globalToggle.checked = true;
+    } else if (roleVal === 'rider') {
+      badgeInput.value = '🛵 RIDER';
+      if (globalToggle) globalToggle.checked = true;
+    } else if (roleVal === 'student') {
+      badgeInput.value = '🎓 MSU';
+    } else if (roleVal === 'member') {
+      badgeInput.value = '👤 Member';
+    }
+  }
+
+  async handleSaveUserRole(e) {
+    e.preventDefault();
+    const userId = document.getElementById('editRoleUserId')?.value;
+    const role = document.getElementById('editRoleSelect')?.value;
+    const badge = document.getElementById('editRoleBadgeInput')?.value.trim();
+    const canChatGlobal = document.getElementById('editRoleGlobalChatToggle')?.checked;
+    const trustScore = parseInt(document.getElementById('editRoleTrustScoreInput')?.value, 10);
+
+    if (!userId) return;
+
+    try {
+      const res = await fetch('/api/security/admin/update-role', {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          userId,
+          role,
+          badge,
+          canChatGlobal,
+          trustScore: isNaN(trustScore) ? 50 : trustScore
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        this.closeRoleEditModal();
+        if (window.app) window.app.showNotification(`✅ ${data.message}`, 'success');
+        this.loadAllUsers();
+      } else {
+        alert(data.error || 'ไม่สามารถบันทึกข้อมูลได้');
+      }
+    } catch (err) {
+      console.error('Error saving user role:', err);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    }
+  }
+
   async loadBannedUsers() {
     const tbody = document.getElementById('devBannedUsersTableBody');
     if (!tbody) return;

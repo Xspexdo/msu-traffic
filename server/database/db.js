@@ -248,6 +248,10 @@ function getInitialData() {
     message_reports: [],
     warnings: [],
     bans: [],
+    system_config: {
+      globalChatEnabled: true,
+      allowAllEmails: true
+    },
     audit_logs: [
       {
         id: "audit-init",
@@ -584,14 +588,17 @@ class Database {
     const pin = this.getPinById(pinId);
     if (!pin) return { success: false, error: 'NOT_FOUND', message: 'ไม่พบหมุดนี้' };
 
-    // 🔒 จำกัดการย้ายหมุดสูงสุด 3 ครั้งต่อหมุด สำหรับผู้ใช้ทั่วไป (Dev ย้ายได้ไม่จำกัด)
-    const currentMoves = pin.moveCount || 0;
-    if (!isDev && currentMoves >= 3) {
+    const now = Date.now();
+    const elapsedSeconds = Math.floor((now - (pin.createdAt || now)) / 1000);
+    const ALLOWED_WINDOW_SECONDS = 20;
+
+    // 🔒 ผู้ใช้ทั่วไปสามารถย้ายหมุดได้เรื่อยๆ ไม่จำกัดครั้ง ภายใน 20 วินาทีแรกหลังปักหมุด
+    if (!isDev && elapsedSeconds > ALLOWED_WINDOW_SECONDS) {
       return {
         success: false,
-        error: 'MOVE_LIMIT_REACHED',
-        message: 'คุณสามารถย้ายตำแหน่งหมุดนี้ได้สูงสุด 3 ครั้งเท่านั้น เพื่อความถูกต้องของข้อมูล',
-        remainingMoves: 0,
+        error: 'MOVE_TIME_EXPIRED',
+        message: `หมดเวลาย้ายตำแหน่งแล้ว (สามารถย้ายได้ภายใน ${ALLOWED_WINDOW_SECONDS} วินาทีหลังปักหมุด)`,
+        secondsRemaining: 0,
         pin
       };
     }
@@ -599,19 +606,17 @@ class Database {
     pin.lat = lat;
     pin.lng = lng;
     if (locationName) pin.locationName = locationName;
-    if (!isDev) {
-      pin.moveCount = currentMoves + 1;
-    }
+    pin.moveCount = (pin.moveCount || 0) + 1;
 
     this.saveData();
-    this.logAudit('PIN_MOVE', pin.reporterId, pinId, `ย้ายพิกัดหมุดเป็น [${lat}, ${lng}] (ครั้งที่ ${pin.moveCount || 1}/3)`);
+    this.logAudit('PIN_MOVE', pin.reporterId, pinId, `ย้ายพิกัดหมุดเป็น [${lat}, ${lng}]`);
     googleSheetsService.syncPinUpdate(pin).catch(e => console.warn('Sheets sync error:', e));
 
     return {
       success: true,
       pin,
-      moveCount: pin.moveCount || 0,
-      remainingMoves: isDev ? 'unlimited' : Math.max(0, 3 - (pin.moveCount || 0))
+      moveCount: pin.moveCount,
+      secondsRemaining: isDev ? 999 : Math.max(0, ALLOWED_WINDOW_SECONDS - elapsedSeconds)
     };
   }
 
@@ -828,9 +833,14 @@ class Database {
     const isDev = sender.isDev === true || cleanEmail === 'java5263@gmail.com';
     const isMsu = cleanEmail.endsWith('@msu.ac.th');
 
-    // ตรวจสอบว่าผู้ใช้มีสิทธิ์ RIDER หรือไม่
+    // ตรวจสอบว่าผู้ใช้มีสิทธิ์ RIDER หรือ Global Chat Permission หรือไม่
     const dbUser = this.getUserById(sender.id) || this.getUserByEmail(cleanEmail);
     const isRider = sender.isRider === true || (dbUser && dbUser.isRider === true);
+    const canChatGlobal = sender.canChatGlobal === true || (dbUser && dbUser.canChatGlobal === true) || (dbUser && dbUser.role === 'global');
+    
+    // ตรวจสอบสถานะ Global Chat ทั้งระบบ
+    const sysConfig = this.getSystemConfig();
+    const isGlobalChatOpen = sysConfig.globalChatEnabled !== false;
 
     // 🔒 ตรวจสอบว่าห้องเปิดใช้งานอยู่หรือไม่ (ถ้าปิดปรับปรุงอยู่ Dev ส่งได้ แต่ผู้ใช้ทั่วไปจะส่งไม่ได้)
     const targetRoom = (this.data.chat_rooms || []).find(r => r.id === roomId);
@@ -842,28 +852,33 @@ class Database {
       };
     }
 
-    // 🔒 2-Layer Geofence & Verification (@msu.ac.th หรือ RIDER ที่ได้รับการอนุมัติ)
-    if (!isDev) {
+    // 🔒 Geofence Check:
+    // หากเปิด Global Chat หรือผู้ใช้มียศ/สิทธิ์ canChatGlobal หรือเป็น Dev / Rider -> แชทได้ทั่วโลก 100%!
+    const isBypassed = isDev || canChatGlobal || isGlobalChatOpen || isRider;
+
+    if (!isBypassed) {
       if (!isMsu && !isRider) {
         return { 
           success: false, 
-          error: 'เฉพาะนิสิต มมส (@msu.ac.th) หรือผู้ใช้ที่ได้รับสิทธิ์ป้าย 🛵 RIDER เท่านั้นที่สามารถส่งข้อความได้' 
+          error: 'เฉพาะนิสิต มมส (@msu.ac.th), ผู้ใช้ที่ได้รับยศอนุญาต หรือเมื่อเปิดโหมด Global Chat เท่านั้นที่สามารถส่งข้อความได้' 
         };
       }
       const geoCheck = isInsideMSUGeofence(lat, lng);
       if (!geoCheck.inZone) {
         return {
           success: false,
-          error: `คุณอยู่นอกพื้นที่ มมส (${geoCheck.distanceKm} กม.) แชตจะเปิดให้ส่งได้เฉพาะเมื่ออยู่ในรัศมี 20 กม. รอบมหาวิทยาลัยเท่านั้น`,
+          error: `คุณอยู่นอกพื้นที่ มมส (${geoCheck.distanceKm} กม.) แชตจะเปิดให้ส่งได้เฉพาะเมื่ออยู่ในรัศมีรอบมหาวิทยาลัย หรือเปิดโหมดแชททั่วโลก`,
           distanceKm: geoCheck.distanceKm
         };
       }
     }
 
     const isOfficialAnnouncement = isAnnouncement === true && isDev;
-    let senderName = isAnonymous ? 'นิสิตนิรนาม' : sender.name;
-    let senderBadge = isDev ? '👑 DEV' : (isRider ? '🛵 RIDER' : (isMsu ? '🎓 MSU' : '👤 Member'));
-    let senderPicture = isAnonymous ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60' : sender.picture;
+    let senderName = isAnonymous ? 'นิสิตนิรนาม' : (sender.name || dbUser?.name || 'ผู้ใช้งาน');
+    
+    // กำหนดป้ายยศตามลำดับ: DEV > RIDER > GLOBAL > Custom Badge > MSU > Member
+    let senderBadge = isDev ? '👑 DEV' : (dbUser?.badge || (isRider ? '🛵 RIDER' : (canChatGlobal ? '🌐 Global' : (isMsu ? '🎓 MSU' : '👤 Member'))));
+    let senderPicture = isAnonymous ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60' : (sender.picture || dbUser?.picture);
     let senderEmail = isAnonymous ? '' : sender.email;
 
     if (isOfficialAnnouncement) {
@@ -874,6 +889,8 @@ class Database {
 
     const geo = isInsideMSUGeofence(lat, lng);
     const msgId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const isMsgGlobal = !geo.inZone || isGlobalChatOpen || canChatGlobal;
+
     const newMsg = {
       id: msgId,
       roomId: roomId || 'general',
@@ -885,27 +902,30 @@ class Database {
       text: text.trim(),
       isAnonymous: !isOfficialAnnouncement && isAnonymous === true,
       isAnnouncement: isOfficialAnnouncement,
+      isGlobal: isMsgGlobal,
       location: {
         lat: lat || null,
         lng: lng || null,
         distKm: geo.distanceKm,
-        inZone: geo.inZone
+        inZone: geo.inZone,
+        isGlobal: isMsgGlobal
       },
       createdAt: Date.now()
     };
 
     this.data.chat_messages.push(newMsg);
-    // Keep max 500 messages in storage
-    if (this.data.chat_messages.length > 500) {
-      this.data.chat_messages = this.data.chat_messages.slice(-400);
+    // Keep max 1000 messages in storage
+    if (this.data.chat_messages.length > 1000) {
+      this.data.chat_messages = this.data.chat_messages.slice(-750);
     }
 
-    // Increment room message count
-    const room = this.data.chat_rooms.find(r => r.id === roomId);
-    if (room) room.msgCount = (room.msgCount || 0) + 1;
+    if (targetRoom) {
+      targetRoom.msgCount = (targetRoom.msgCount || 0) + 1;
+    }
 
     this.addScore(sender.id, 1, 'มีส่วนร่วมในแชต มมส');
     this.saveData();
+    this.logAudit('CHAT_MSG', sender.id, roomId, `ส่งข้อความในห้อง [${roomId}] (${isMsgGlobal ? '🌐 Global' : '📍 Local'})`);
     return { success: true, message: newMsg };
   }
 
@@ -1424,6 +1444,125 @@ class Database {
         banReason: u.banReason || 'ละเมิดข้อกำหนดการใช้งาน',
         trustScore: u.trustScore || 0
       }));
+  }
+
+  // ----------------------------------------------------
+  // 🌐 Global Chat & System Config Operations
+  // ----------------------------------------------------
+  getSystemConfig() {
+    if (!this.data.system_config) {
+      this.data.system_config = {
+        globalChatEnabled: true,
+        allowAllEmails: true
+      };
+      this.saveData();
+    }
+    return this.data.system_config;
+  }
+
+  updateSystemConfig(newConfig = {}, adminId = 'dev_admin') {
+    if (!this.data.system_config) {
+      this.data.system_config = {};
+    }
+    this.data.system_config = {
+      ...this.data.system_config,
+      ...newConfig
+    };
+    this.saveData();
+    this.logAudit('SYSTEM_CONFIG_UPDATE', adminId, 'system_config', `อัปเดตการตั้งค่าระบบ: ${JSON.stringify(newConfig)}`);
+
+    if (this.io) {
+      this.io.emit('system_config_updated', this.data.system_config);
+      this.io.emit('global_chat_toggled', {
+        globalChatEnabled: this.data.system_config.globalChatEnabled === true,
+        updatedBy: adminId,
+        timestamp: Date.now()
+      });
+    }
+
+    return this.data.system_config;
+  }
+
+  // ----------------------------------------------------
+  // 👤 User Roles & Global Permission Management
+  // ----------------------------------------------------
+  getAllUsers() {
+    return Object.values(this.data.users).map(u => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      picture: u.picture,
+      role: u.role || 'member',
+      badge: u.badge || '👤 Member',
+      isDev: u.isDev || false,
+      isRider: u.isRider || false,
+      canChatGlobal: u.canChatGlobal === true,
+      trustScore: u.trustScore || 50,
+      weeklyScore: u.weeklyScore || 0,
+      allTimeScore: u.allTimeScore || 0,
+      pinsCreated: u.pinsCreated || 0,
+      status: u.status || 'active',
+      createdAt: u.createdAt,
+      lastActiveAt: u.lastActiveAt
+    }));
+  }
+
+  updateUserRole(userId, updateData = {}, adminId = 'dev_admin') {
+    const user = this.data.users[userId];
+    if (!user) {
+      return { success: false, error: 'NOT_FOUND', message: 'ไม่พบผู้ใช้งานนี้ในระบบ' };
+    }
+
+    if (updateData.role !== undefined) user.role = updateData.role;
+    if (updateData.badge !== undefined) user.badge = updateData.badge;
+    if (updateData.canChatGlobal !== undefined) user.canChatGlobal = updateData.canChatGlobal === true;
+    if (updateData.isRider !== undefined) user.isRider = updateData.isRider === true;
+    if (updateData.trustScore !== undefined) {
+      user.trustScore = Math.max(0, Math.min(100, parseInt(updateData.trustScore) || user.trustScore));
+    }
+
+    if (updateData.role === 'dev') {
+      user.isDev = true;
+      user.badge = '👑 DEV';
+      user.canChatGlobal = true;
+    } else if (updateData.role === 'global') {
+      user.canChatGlobal = true;
+      if (!updateData.badge) user.badge = '🌐 Global';
+    } else if (updateData.role === 'rider') {
+      user.isRider = true;
+      user.canChatGlobal = true;
+      if (!updateData.badge) user.badge = '🛵 RIDER';
+    } else if (updateData.role === 'student') {
+      if (!updateData.badge) user.badge = '🎓 MSU';
+    } else if (updateData.role === 'member') {
+      if (!updateData.badge) user.badge = '👤 Member';
+    }
+
+    this.saveData();
+    this.logAudit('USER_ROLE_UPDATED', adminId, userId, `ปรับยศ/สิทธิ์ผู้ใช้ ${user.name} (${user.email}): ยศ=${user.role}, ป้าย=${user.badge}, แชททั่วโลก=${user.canChatGlobal}`);
+
+    if (this.io) {
+      this.io.emit('user_role_changed', {
+        userId: user.id,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          badge: user.badge,
+          isDev: user.isDev,
+          isRider: user.isRider,
+          canChatGlobal: user.canChatGlobal,
+          trustScore: user.trustScore
+        }
+      });
+    }
+
+    return {
+      success: true,
+      user,
+      message: `ปรับยศและสิทธิ์ [${user.name}] เป็น "${user.badge || user.role}" (แชททั่วโลก: ${user.canChatGlobal ? '✅ อนุญาต' : '❌ ตามพื้นที่'}) เรียบร้อยแล้ว`
+    };
   }
 
   // ----------------------------------------------------

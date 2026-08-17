@@ -2,7 +2,7 @@
   "enabled": true,
   "webhookUrl": "https://script.google.com/macros/s/AKfycbxv7jL62zv04UFv6xNkFlzAdhmCI1YN2E1jt_g3Aj91LbpgLx1Zz59ZPKlb-_lcdYGqTQ/exec",
   "autoSyncNewPins": true,
-  "autoSyncChat": true,
+  "autoSyncChat": false,
   "autoSyncReports": true,
-  "lastSyncAt": 1786976821525
+  "lastSyncAt": 1786977137048
 }

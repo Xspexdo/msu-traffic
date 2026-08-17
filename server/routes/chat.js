@@ -32,28 +32,71 @@ module.exports = function(io) {
     }
   });
 
-  // 3. GET /api/chat/geocheck - ตรวจสอบพิกัด GPS ว่าอยู่ในเขต มมส หรือไม่
+  // 2.1 GET /api/chat/config - ดึงการตั้งค่าระบบแชท (Global Chat Mode)
+  router.get('/config', (req, res) => {
+    try {
+      const config = db.getSystemConfig();
+      res.json({ success: true, data: config });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 2.2 POST /api/chat/config - ปรับเปลี่ยนการตั้งค่าระบบแชท (เฉพาะ Dev)
+  router.post('/config', requireAuth, (req, res) => {
+    try {
+      const userEmail = (req.user.email || '').toLowerCase().trim();
+      const isDev = req.user.isDev === true || userEmail === 'java5263@gmail.com';
+
+      if (!isDev) {
+        return res.status(403).json({ success: false, error: 'เฉพาะผู้พัฒนา (Dev) เท่านั้นที่สามารถปรับการตั้งค่าระบบได้' });
+      }
+
+      const { globalChatEnabled, allowAllEmails } = req.body;
+      const updatedConfig = db.updateSystemConfig({
+        ...(globalChatEnabled !== undefined ? { globalChatEnabled: globalChatEnabled === true } : {}),
+        ...(allowAllEmails !== undefined ? { allowAllEmails: allowAllEmails === true } : {})
+      }, req.user.id);
+
+      res.json({
+        success: true,
+        message: `ปรับสถานะระบบแชททั่วโลกเป็น [${updatedConfig.globalChatEnabled ? 'เปิดใช้งาน (แชทได้ทั่วโลก)' : 'ปิดใช้งาน (จำกัดเขต มมส)'}] เรียบร้อยแล้ว`,
+        data: updatedConfig
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 3. GET /api/chat/geocheck - ตรวจสอบพิกัด GPS ว่าอยู่ในเขต มมส หรืออยู่ในโหมด Global Chat หรือไม่
   router.get('/geocheck', (req, res) => {
     try {
       const lat = parseFloat(req.query.lat);
       const lng = parseFloat(req.query.lng);
-      if (!lat || !lng) {
-        return res.json({ success: true, inZone: false, distanceKm: 999, message: 'กรุณาอนุญาตให้เข้าถึงตำแหน่ง GPS' });
-      }
-      const geo = db.data ? db.getChatRooms() : null; // sanity
-      // Use Haversine check
-      const dKhamriang = Math.round((6371 * 2 * Math.atan2(
-        Math.sqrt(Math.sin((16.2468 - lat) * Math.PI / 360) ** 2 + Math.cos(lat * Math.PI / 180) * Math.cos(16.2468 * Math.PI / 180) * Math.sin((103.2520 - lng) * Math.PI / 360) ** 2),
-        Math.sqrt(1 - (Math.sin((16.2468 - lat) * Math.PI / 360) ** 2 + Math.cos(lat * Math.PI / 180) * Math.cos(16.2468 * Math.PI / 180) * Math.sin((103.2520 - lng) * Math.PI / 360) ** 2))
-      )) * 10) / 10;
+      const sysConfig = db.getSystemConfig();
+      const isGlobalChat = sysConfig.globalChatEnabled !== false;
 
-      const inZone = dKhamriang <= 25.0;
+      let dKhamriang = 999;
+      if (lat && lng) {
+        dKhamriang = Math.round((6371 * 2 * Math.atan2(
+          Math.sqrt(Math.sin((16.2468 - lat) * Math.PI / 360) ** 2 + Math.cos(lat * Math.PI / 180) * Math.cos(16.2468 * Math.PI / 180) * Math.sin((103.2520 - lng) * Math.PI / 360) ** 2),
+          Math.sqrt(1 - (Math.sin((16.2468 - lat) * Math.PI / 360) ** 2 + Math.cos(lat * Math.PI / 180) * Math.cos(16.2468 * Math.PI / 180) * Math.sin((103.2520 - lng) * Math.PI / 360) ** 2))
+        )) * 10) / 10;
+      }
+
+      const inLocalZone = dKhamriang <= 25.0;
+      const canChat = inLocalZone || isGlobalChat;
+
       res.json({
         success: true,
-        inZone,
+        inZone: canChat,
+        inLocalZone,
+        isGlobalChat,
         distanceKm: dKhamriang,
-        nearCampus: dKhamriang <= 10 ? 'มอใหม่ (ขามเรียง)' : 'พื้นที่รอบ มมส',
-        message: inZone ? 'คุณอยู่ในรัศมี มมส สามารถแชตได้' : `คุณอยู่นอกพื้นที่ (${dKhamriang} กม.) สามารถอ่านได้อย่างเดียว`
+        nearCampus: inLocalZone ? (dKhamriang <= 10 ? 'มอใหม่ (ขามเรียง)' : 'พื้นที่รอบ มมส') : '🌐 ทั่วโลก (Global)',
+        message: isGlobalChat
+          ? '🌐 ระบบแชททั่วโลกเปิดใช้งานอยู่ สามารถร่วมพูดคุยได้จากทุกที่'
+          : (inLocalZone ? 'คุณอยู่ในรัศมี มมส สามารถแชตได้' : `คุณอยู่นอกพื้นที่ (${dKhamriang} กม.) สามารถอ่านได้อย่างเดียว`)
       });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });

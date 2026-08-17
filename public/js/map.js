@@ -304,16 +304,20 @@ class MSUMapManager {
         (report.reporter?.id && report.reporter.id === currentUser.id) ||
         (report.reporter?.email && report.reporter.email === currentUser.email)
       );
-      const movesUsed = report.moveCount || 0;
-      const canDrag = isDev || (isAuthor && movesUsed < 3);
+      const createdAtMs = new Date(report.createdAt).getTime();
+      const elapsedMs = Date.now() - createdAtMs;
+      const MOVE_WINDOW_MS = 20 * 1000;
+      const isWithin20s = elapsedMs < MOVE_WINDOW_MS;
+      const canDrag = isDev || (isAuthor && isWithin20s);
 
       let dragBadgeHtml = '';
       if (isDev) {
-        dragBadgeHtml = '<span class="dev-drag-crown" title="Dev สามารถลากหมุดนี้ได้ (ไม่จำกัด)">👑</span>';
-      } else if (isAuthor && movesUsed < 3) {
-        dragBadgeHtml = `<span class="author-drag-badge" title="โพสต์ของคุณ: ย้ายได้อีก ${3 - movesUsed} ครั้ง">✏️</span>`;
-      } else if (isAuthor && movesUsed >= 3) {
-        dragBadgeHtml = '<span class="author-drag-badge" style="background:#F1F5F9; border-color:#CBD5E1; color:#94A3B8;" title="ย้ายครบ 3 ครั้งแล้ว">🔒</span>';
+        dragBadgeHtml = '<span class="dev-drag-crown" title="Dev สามารถลากหมุดนี้ได้ (ไม่จำกัดเวลา)">👑</span>';
+      } else if (isAuthor && isWithin20s) {
+        const remainingSec = Math.max(0, Math.ceil((MOVE_WINDOW_MS - elapsedMs) / 1000));
+        dragBadgeHtml = `<span class="author-drag-badge pin-timer-badge" id="pin-timer-${report.id}" title="ย้ายได้เรื่อยๆ ใน 20 วินาที">⏱️ ${remainingSec}s</span>`;
+      } else if (isAuthor && !isWithin20s) {
+        dragBadgeHtml = '<span class="author-drag-badge" style="background:#F1F5F9; border-color:#CBD5E1; color:#94A3B8;" title="หมดเวลาย้าย (ล็อกตำแหน่งถาวรแล้ว)">🔒</span>';
       }
 
       const customIcon = L.divIcon({
@@ -336,28 +340,37 @@ class MSUMapManager {
         autoPan: canDrag
       });
 
-      // ✋ ถ้าเป็นเจ้าของโพสต์ หรือเป็น DEV: เมื่อลากหมุดเสร็จจะถามยืนยันก่อนบันทึกพิกัดใหม่ (ป้องกันการลากพลาด)
+      // ⏱️ ระบบนับถอยหลัง 20 วินาทีแบบ Real-time
+      if (isAuthor && isWithin20s && !isDev) {
+        if (!this.pinTimers) this.pinTimers = {};
+        if (this.pinTimers[report.id]) clearInterval(this.pinTimers[report.id]);
+
+        this.pinTimers[report.id] = setInterval(() => {
+          const currentRem = Math.max(0, Math.ceil((MOVE_WINDOW_MS - (Date.now() - createdAtMs)) / 1000));
+          const badgeEl = document.getElementById(`pin-timer-${report.id}`);
+          if (badgeEl) {
+            if (currentRem > 0) {
+              badgeEl.innerHTML = `⏱️ ${currentRem}s`;
+            } else {
+              badgeEl.outerHTML = '<span class="author-drag-badge" style="background:#F1F5F9; border-color:#CBD5E1; color:#94A3B8;" title="หมดเวลาย้าย (ล็อกตำแหน่งถาวรแล้ว)">🔒</span>';
+              if (marker && marker.dragging) marker.dragging.disable();
+              clearInterval(this.pinTimers[report.id]);
+              delete this.pinTimers[report.id];
+              if (window.app) {
+                window.app.showNotification(`🔒 หมุด "${report.title || report.locationName}" ล็อกตำแหน่งถาวรเรียบร้อยแล้ว`, 'info');
+              }
+            }
+          }
+        }, 1000);
+      }
+
+      // ✋ ถ้าอยู่ในช่วง 20 วินาที หรือเป็น DEV: แตะลากหมุดเพื่อเปลี่ยนตำแหน่งได้ทันที
       if (canDrag) {
         marker.on('dragend', async (e) => {
           const newPos = e.target.getLatLng();
           const oldLat = report.lat;
           const oldLng = report.lng;
-
           const pinTitle = report.title || report.locationName || 'ด่านตรวจ';
-          const remainingMovesText = isDev 
-            ? '👑 สิทธิ์ Dev: ย้ายได้ไม่จำกัดจำนวนครั้ง' 
-            : `✏️ คุณจะเหลือโควตาย้ายหมุดนี้อีก ${Math.max(0, 3 - (movesUsed + 1))} ครั้ง (จาก 3 ครั้ง)`;
-
-          const confirmMsg = `📍 [ยืนยันการย้ายตำแหน่งหมุด]\nคุณต้องการย้ายหมุด "${pinTitle}" ไปยังพิกัดใหม่นี้ใช่หรือไม่?\n\nพิกัดใหม่: [${newPos.lat.toFixed(5)}, ${newPos.lng.toFixed(5)}]\n${remainingMovesText}`;
-
-          // หากผู้ใช้กดยกเลิก: คืนค่าหมุดกลับไปที่ตำแหน่งเดิมทันที
-          if (!confirm(confirmMsg)) {
-            marker.setLatLng([oldLat, oldLng]);
-            if (window.app) {
-              window.app.showNotification('❌ ยกเลิกการย้ายหมุด (หมุดกลับสู่ตำแหน่งเดิมแล้ว)', 'info');
-            }
-            return;
-          }
 
           if (navigator.vibrate) navigator.vibrate(60);
 
@@ -375,7 +388,6 @@ class MSUMapManager {
             });
             const data = await res.json();
             if (data.success) {
-              // อัปเดตพิกัดอ้างอิงใน report ปัจจุบัน
               report.lat = newPos.lat;
               report.lng = newPos.lng;
               report.moveCount = data.moveCount;
@@ -383,7 +395,7 @@ class MSUMapManager {
               if (window.app) {
                 const msg = isDev
                   ? `👑 DEV: ย้ายตำแหน่งหมุด "${pinTitle}" สำเร็จแล้ว! (ไม่จำกัดครั้ง)`
-                  : `📍 ย้ายตำแหน่งสำเร็จ! (ย้ายไปแล้ว ${data.moveCount}/3 ครั้ง เหลืออีก ${data.remainingMoves} ครั้ง)`;
+                  : `📍 ย้ายตำแหน่งสำเร็จ! (เหลือเวลาย้ายอีก ${data.secondsRemaining} วินาที)`;
                 window.app.showNotification(msg, 'success');
               }
             } else {
@@ -401,12 +413,13 @@ class MSUMapManager {
 
       let dragTipText = '';
       if (isDev) {
-        dragTipText = '<div style="font-size: 0.72rem; color: #F59E0B; font-weight: 700; background: #FEF3C7; padding: 0.25rem 0.45rem; border-radius: 4px; margin-top: 0.2rem;">👑 สิทธิ์ Dev: แตะลากหมุดนี้เพื่อย้ายพิกัดได้ (ไม่จำกัด)</div>';
+        dragTipText = '<div style="font-size: 0.72rem; color: #F59E0B; font-weight: 700; background: #FEF3C7; padding: 0.25rem 0.45rem; border-radius: 4px; margin-top: 0.2rem;">👑 สิทธิ์ Dev: แตะลากหมุดนี้เพื่อย้ายพิกัดได้ (ไม่จำกัดเวลา)</div>';
       } else if (isAuthor) {
-        if (movesUsed < 3) {
-          dragTipText = `<div style="font-size: 0.72rem; color: #2563EB; font-weight: 700; background: #EFF6FF; border: 1px solid #BFDBFE; padding: 0.25rem 0.45rem; border-radius: 4px; margin-top: 0.2rem;">✏️ โพสต์ของคุณ: แตะลากย้ายได้ (ย้ายแล้ว ${movesUsed}/3 ครั้ง)</div>`;
+        if (isWithin20s) {
+          const currentRem = Math.max(0, Math.ceil((MOVE_WINDOW_MS - (Date.now() - createdAtMs)) / 1000));
+          dragTipText = `<div style="font-size: 0.72rem; color: #DC2626; font-weight: 700; background: #FEF2F2; border: 1px solid #FECACA; padding: 0.25rem 0.45rem; border-radius: 4px; margin-top: 0.2rem;">⏱️ ย้ายหมุดได้เรื่อยๆ ใน 20 วินาที (เหลืออีก ${currentRem} วิ)</div>`;
         } else {
-          dragTipText = `<div style="font-size: 0.72rem; color: #64748B; font-weight: 700; background: #F1F5F9; border: 1px solid #E2E8F0; padding: 0.25rem 0.45rem; border-radius: 4px; margin-top: 0.2rem;">🔒 ย้ายครบโควตา 3 ครั้งแล้ว (ล็อกตำแหน่ง)</div>`;
+          dragTipText = `<div style="font-size: 0.72rem; color: #64748B; font-weight: 700; background: #F1F5F9; border: 1px solid #E2E8F0; padding: 0.25rem 0.45rem; border-radius: 4px; margin-top: 0.2rem;">🔒 หมดเวลาแก้ไข 20 วินาทีแล้ว (ล็อกตำแหน่งถาวร)</div>`;
         }
       }
 

@@ -10,12 +10,12 @@
       "id": "dev_java5263",
       "email": "java5263@gmail.com",
       "name": "Java (Dev)",
-      "picture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s256-c",
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
       "role": "dev",
       "badge": "👑 DEV",
       "trustScore": 100,
-      "weeklyScore": 0,
-      "allTimeScore": 0,
+      "weeklyScore": 1,
+      "allTimeScore": 1,
       "pinsCreated": 0,
       "pinsVerified": 0,
       "reportsCount": 0,
@@ -24,13 +24,13 @@
       "isDev": true,
       "status": "active",
       "createdAt": 1786777538446,
-      "lastActiveAt": 1786975971605
+      "lastActiveAt": 1786976848760
     },
     "google_108560811899542656924": {
       "id": "google_108560811899542656924",
       "email": "69010371002@msu.ac.th",
       "name": "ธนพล สิมสา",
-      "picture": "https://lh3.googleusercontent.com/a/ACg8ocIOP2BiauWSF29LJrtUqju4FvEHZ725uEdr0JJXR41HLGTgHNU=s256-c",
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocIOP2BiauWSF29LJrtUqju4FvEHZ725uEdr0JJXR41HLGTgHNU=s96-c",
       "role": "student",
       "badge": "🎓 MSU",
       "trustScore": 100,
@@ -46,13 +46,33 @@
       "createdAt": 1786777583917,
       "lastActiveAt": 1786955875070
     },
+    "user_audit_test_msu_ac_th": {
+      "id": "user_audit_test_msu_ac_th",
+      "email": "audit_test@msu.ac.th",
+      "name": "Audit Tester",
+      "picture": "https://www.gravatar.com/avatar/a1794b9b0923bc3b97f96c4cfb5e3840?d=identicon&s=120",
+      "role": "student",
+      "badge": "🎓 MSU",
+      "trustScore": 100,
+      "weeklyScore": 0,
+      "allTimeScore": 0,
+      "pinsCreated": 0,
+      "pinsVerified": 0,
+      "reportsCount": 0,
+      "accurateReports": 0,
+      "isMsuStudent": true,
+      "isDev": false,
+      "status": "active",
+      "createdAt": 1786956196305,
+      "lastActiveAt": 1786975742678
+    },
     "google_105594921429605667441": {
       "id": "google_105594921429605667441",
       "email": "thanaphonsimsa5@gmail.com",
       "name": "Tha Na",
-      "picture": "https://lh3.googleusercontent.com/a/ACg8ocKCJCzPyCqDsf7SmR3AbX268ExWjO9qYo2Fw9XkIn-k1Hg9GQ=s256-c",
-      "role": "member",
-      "badge": "👤 Member",
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocKCJCzPyCqDsf7SmR3AbX268ExWjO9qYo2Fw9XkIn-k1Hg9GQ=s96-c",
+      "role": "global",
+      "badge": "🌐 Global Citizen",
       "trustScore": 100,
       "weeklyScore": 0,
       "allTimeScore": 0,
@@ -64,7 +84,8 @@
       "isDev": false,
       "status": "active",
       "createdAt": 1786974991191,
-      "lastActiveAt": 1786975816679
+      "lastActiveAt": 1786975816679,
+      "canChatGlobal": true
     }
   },
   "pins": [],
@@ -76,7 +97,7 @@
       "name": "ทั่วไป (General)",
       "icon": "💬",
       "desc": "พูดคุยแลกเปลี่ยนข่าวสารทั่วไปรอบ มมส",
-      "msgCount": 0
+      "msgCount": 1
     },
     {
       "id": "marketplace",
@@ -108,7 +129,29 @@
       "msgCount": 0
     }
   ],
-  "chat_messages": [],
+  "chat_messages": [
+    {
+      "id": "msg-1786977226102-rjiy",
+      "roomId": "general",
+      "senderId": "dev_java5263",
+      "senderName": "Java (Dev)",
+      "senderEmail": "java5263@gmail.com",
+      "senderBadge": "👑 DEV",
+      "senderPicture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
+      "text": "ทดสอบส่งข้อความ Global Chat ทั่วโลก",
+      "isAnonymous": false,
+      "isAnnouncement": false,
+      "isGlobal": true,
+      "location": {
+        "lat": 13.7563,
+        "lng": 100.5018,
+        "distKm": 403.4,
+        "inZone": false,
+        "isGlobal": true
+      },
+      "createdAt": 1786977226102
+    }
+  ],
   "message_reports": [],
   "warnings": [],
   "bans": [],
@@ -1110,8 +1153,21 @@
       "details": "ล้างข้อมูลระบบ: [🎖️ ยศ, 🏆 แต้ม/คะแนน]",
       "ip": "127.0.0.1",
       "createdAt": 1786975908485
+    },
+    {
+      "id": "audit-1786975975059-ikn",
+      "action": "PIN_DELETE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786975861144-hl38l",
+      "details": "ลบหมุดด่านถาวร: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975975059
     }
   ],
   "pin_chat_messages": [],
-  "rider_requests": []
+  "rider_requests": [],
+  "system_config": {
+    "globalChatEnabled": true,
+    "allowAllEmails": true
+  }
 }

@@ -1126,6 +1126,34 @@ body {
   z-index: 3;
 }
 
+.author-drag-badge.pin-timer-badge {
+  position: absolute;
+  top: -12px;
+  right: -16px;
+  bottom: auto;
+  width: auto;
+  min-width: 48px;
+  height: 22px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #FFFFFF !important;
+  font-family: var(--font-heading);
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  padding: 0 6px;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pinTimerPulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes pinTimerPulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 rgba(239, 68, 68, 0.4); }
+  100% { transform: scale(1.08); box-shadow: 0 0 12px rgba(239, 68, 68, 0.8); }
+}
+
 /* Checkpoint Cards */
 .report-card {
   background: #FFFFFF;
@@ -4808,5 +4836,60 @@ body.dark-theme {
   #navLegalBtn {
     display: none;
   }
+}
+
+/* =========================================================
+   🌐 GLOBAL CHAT SYSTEM & ROLE BADGES STYLES
+   ========================================================= */
+.badge-global {
+  background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%) !important;
+  color: #1D4ED8 !important;
+  border: 1px solid #93C5FD !important;
+  font-weight: 800 !important;
+}
+
+.geo-dot.dot-global {
+  background: #3B82F6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.7);
+  animation: pulse-global 2s infinite;
+}
+
+.fb-btn-global {
+  color: #94A3B8;
+  transition: all 0.2s ease;
+}
+
+.fb-btn-global:hover,
+.fb-btn-global.active {
+  color: #38BDF8 !important;
+  background: rgba(56, 189, 248, 0.15) !important;
+  transform: scale(1.05);
+}
+
+@keyframes pulse-global {
+  0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+[data-theme="dark"] .badge-global {
+  background: rgba(30, 58, 138, 0.5) !important;
+  color: #93C5FD !important;
+  border-color: #1E40AF !important;
+}
+
+[data-theme="dark"] #devRoleEditModal .modal-container {
+  background: #1E293B !important;
+  color: #F8FAFC !important;
+  border: 1px solid #334155 !important;
+}
+
+[data-theme="dark"] #devRoleEditModal .modal-body {
+  background: #1E293B !important;
+}
+
+[data-theme="dark"] #devRoleEditModal .modal-footer {
+  background: #0F172A !important;
+  border-top-color: #334155 !important;
 }
 

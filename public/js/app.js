@@ -620,7 +620,7 @@ class MSUApp {
       const data = await res.json();
       if (data.success) {
         this.closeReportModal();
-        this.showNotification('🎉 บันทึกรายงานด่านสำเร็จแล้ว (+5 EXP)', 'success');
+        this.showNotification('🎉 ปักหมุดสำเร็จ! (คุณสามารถแตะลากหมุดบนแผนที่เพื่อย้ายตำแหน่งได้เรื่อยๆ ใน 20 วินาที ⏱️)', 'success');
         document.getElementById('reportForm')?.reset();
         document.getElementById('reportLat').value = '';
         document.getElementById('reportLng').value = '';

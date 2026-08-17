@@ -454,5 +454,59 @@ router.post('/admin/rider-revoke', (req, res) => {
   res.json(result);
 });
 
+// 18. GET /api/security/admin/all-users - ดึงรายชื่อผู้ใช้ทั้งหมดในระบบพร้อมยศและสิทธิ์
+router.get('/admin/all-users', (req, res) => {
+  if (!checkDevPermission(req)) {
+    return res.status(403).json({ success: false, error: 'DEV_PERMISSION_REQUIRED', message: 'คุณไม่มีสิทธิ์ Developer' });
+  }
+
+  const users = db.getAllUsers();
+  res.json({ success: true, count: users.length, data: users });
+});
+
+// 19. POST /api/security/admin/update-role - ให้ยศ / ปรับเปลี่ยนยศ / มอบสิทธิ์แชททั่วโลก
+router.post('/admin/update-role', (req, res) => {
+  if (!checkDevPermission(req)) {
+    return res.status(403).json({ success: false, error: 'DEV_PERMISSION_REQUIRED', message: 'คุณไม่มีสิทธิ์ Developer' });
+  }
+
+  const { userId, role, badge, canChatGlobal, isRider, trustScore } = req.body;
+  if (!userId) {
+    return res.status(400).json({ success: false, error: 'กรุณาระบุ userId' });
+  }
+
+  const result = db.updateUserRole(userId, {
+    role,
+    badge,
+    canChatGlobal,
+    isRider,
+    trustScore
+  }, req.user?.id || 'dev_admin');
+
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+
+  res.json(result);
+});
+
+// 20. POST /api/security/admin/toggle-global-chat - สวิตช์เปิด/ปิดแชททั่วโลก
+router.post('/admin/toggle-global-chat', (req, res) => {
+  if (!checkDevPermission(req)) {
+    return res.status(403).json({ success: false, error: 'DEV_PERMISSION_REQUIRED', message: 'คุณไม่มีสิทธิ์ Developer' });
+  }
+
+  const { enabled } = req.body;
+  const config = db.updateSystemConfig({
+    globalChatEnabled: enabled === true
+  }, req.user?.id || 'dev_admin');
+
+  res.json({
+    success: true,
+    globalChatEnabled: config.globalChatEnabled,
+    message: `สลับโหมดแชททั่วโลกเป็น: ${config.globalChatEnabled ? '🌐 เปิดใช้งาน (ทั่วโลก)' : '📍 ปิดใช้งาน (จำกัดพื้นที่ มมส)'}`
+  });
+});
+
 module.exports = router;
 

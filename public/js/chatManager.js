@@ -21,13 +21,28 @@ class ChatManager {
     this.resetStatus = null;
     this.cooldownSeconds = 0;
     this.cooldownTimer = null;
+    this.globalChatEnabled = true;
   }
 
   async init() {
+    await this.loadConfig();
     await this.loadRooms();
     await this.loadMessages(this.currentRoom);
     this.updateDevClearBtn();
+    this.updateGlobalChatBtn();
     this.startMidnightResetCountdown();
+  }
+
+  async loadConfig() {
+    try {
+      const res = await fetch('/api/chat/config');
+      const data = await res.json();
+      if (data.success && data.data) {
+        this.globalChatEnabled = data.data.globalChatEnabled !== false;
+      }
+    } catch (e) {
+      console.warn('Could not load chat config, defaulting to enabled:', e);
+    }
   }
 
   // ----------------------------------------------------
@@ -130,6 +145,35 @@ class ChatManager {
       }
     });
 
+    // 1.2 รับแจ้งเตือนสลับโหมดแชททั่วโลก (Global Chat Toggled Real-time)
+    socket.on('global_chat_toggled', (data) => {
+      this.globalChatEnabled = data.globalChatEnabled === true;
+      this.updateGeofenceUI(this.isInsideGeofence, this.distanceKm);
+      this.updateRoomUIState();
+      this.updateGlobalChatBtn();
+      if (window.app) {
+        window.app.showNotification(
+          this.globalChatEnabled ? '🌐 โหมดแชททั่วโลก: เปิดใช้งานแล้ว (ส่งข้อความได้จากทุกที่ทั่วโลก)' : '📍 โหมดแชททั่วโลก: ปิดแล้ว (จำกัดเฉพาะในเขต มมส)',
+          this.globalChatEnabled ? 'success' : 'info'
+        );
+      }
+    });
+
+    // 1.3 รับแจ้งเตือนการเปลี่ยนยศ/สิทธิ์ผู้ใช้ (User Role & Permission Changed Real-time)
+    socket.on('user_role_changed', (data) => {
+      const curUser = window.authManager?.getUser();
+      if (curUser && (curUser.id === data.userId || curUser.email === data.user?.email)) {
+        Object.assign(curUser, data.user);
+        localStorage.setItem('msu_traffic_user', JSON.stringify(curUser));
+        this.updateGeofenceUI(this.isInsideGeofence, this.distanceKm);
+        this.updateRoomUIState();
+        if (window.app) {
+          window.app.showNotification(`🎖️ สิทธิ์และยศของคุณได้รับการอัปเดตเป็น: "${data.user.badge || data.user.role}"`, 'success');
+          window.app.updateAuthUI();
+        }
+      }
+    });
+
     // 2. รับแจ้งเตือนการแก้ไขข้อความ (Edit Message Real-time)
     socket.on('chat_message_edited', (updatedMsg) => {
       const idx = this.messages.findIndex(m => m.id === updatedMsg.id);
@@ -181,20 +225,16 @@ class ChatManager {
             </div>
           `;
         }
-        if (window.app) {
-          window.app.showNotification(`🧹 ห้องแชตนี้ถูกล้างข้อความแล้ว (${data.reason || 'สำเร็จ'})`, 'info');
-        }
+        this.fetchResetStatus();
       }
     });
   }
 
-  // 1. On-Demand Geolocation Tracking (ขอ GPS เมื่อผู้ใช้เริ่มใช้งานแชท)
+  // ----------------------------------------------------
+  // 📍 Location & Geofence Verification (2 Layers)
+  // ----------------------------------------------------
   async ensureLocation() {
-    if (this.userLocation) {
-      await this.checkGeofence();
-      return this.userLocation;
-    }
-
+    if (this.userLocation) return this.userLocation;
     if (!navigator.geolocation) {
       this.updateGeofenceUI(false, 999, 'เบราว์เซอร์ไม่รองรับ GPS');
       return null;
@@ -228,6 +268,9 @@ class ChatManager {
       if (data.success) {
         this.isInsideGeofence = data.inZone;
         this.distanceKm = data.distanceKm;
+        if (data.isGlobalChat !== undefined) {
+          this.globalChatEnabled = data.isGlobalChat;
+        }
         this.updateGeofenceUI(data.inZone, data.distanceKm, data.message);
       }
     } catch (e) {
@@ -242,12 +285,25 @@ class ChatManager {
 
     const user = window.authManager?.getUser();
     const isDev = window.authManager?.isDev();
+    const isRider = user?.isRider === true || user?.role === 'rider' || user?.badge?.includes('RIDER');
+    const isGlobalUser = user?.canChatGlobal === true || user?.role === 'global' || user?.badge?.includes('Global');
     const isMsu = user?.email && user.email.toLowerCase().endsWith('@msu.ac.th');
+
+    const isGlobalActive = this.globalChatEnabled === true;
 
     if (statusDot && statusText) {
       if (isDev) {
         statusDot.className = 'geo-dot dot-dev';
         statusText.innerHTML = `👑 <strong>Dev Bypass:</strong> ส่งข้อความได้อิสระ`;
+      } else if (isGlobalActive) {
+        statusDot.className = 'geo-dot dot-global';
+        statusText.innerHTML = `🌐 <strong>โหมดแชททั่วโลก:</strong> แชทได้จากทุกที่`;
+      } else if (isGlobalUser) {
+        statusDot.className = 'geo-dot dot-global';
+        statusText.innerHTML = `🌐 <strong>ยศ Global:</strong> สิทธิ์แชททั่วโลก`;
+      } else if (isRider) {
+        statusDot.className = 'geo-dot dot-rider';
+        statusText.innerHTML = `🛵 <strong>ยศ RIDER:</strong> ส่งข้อความได้อิสระ`;
       } else if (inZone && isMsu) {
         statusDot.className = 'geo-dot dot-online';
         statusText.innerHTML = `🟢 <strong>อยู่ในเขต มมส (${distKm} กม.):</strong> พร้อมส่งข้อความ`;
@@ -353,10 +409,14 @@ class ChatManager {
     const roomObj = this.rooms.find(r => r.id === this.currentRoom);
     const isClosed = roomObj && roomObj.enabled === false;
     const isDev = window.authManager?.isDev();
+    const user = window.authManager?.getUser();
+    const isRider = user?.isRider === true || user?.role === 'rider' || user?.badge?.includes('RIDER');
+    const isGlobalUser = user?.canChatGlobal === true || user?.role === 'global' || user?.badge?.includes('Global');
+    const isMsu = user?.email && user.email.toLowerCase().endsWith('@msu.ac.th');
+    const isGlobalActive = this.globalChatEnabled === true;
 
     const input = document.getElementById('chatMessageInput');
     const sendBtn = document.getElementById('chatSendBtn');
-    const form = document.getElementById('chatForm');
 
     // ถ้าห้องปิดปรับปรุง และไม่ใช่ Dev
     if (isClosed && !isDev) {
@@ -385,10 +445,20 @@ class ChatManager {
         sendBtn.style.cursor = 'pointer';
       }
     } else {
-      // สภาวะปกติ
+      // สภาวะปกติ: ตรวจสอบสิทธิ์การส่ง
+      const canSend = isDev || isGlobalActive || isGlobalUser || isRider || (isMsu && this.isInsideGeofence);
+
       if (input) {
         input.disabled = false;
-        input.placeholder = 'พิมพ์ข้อความ... (เฉพาะ @msu.ac.th ในเขต มมส)';
+        if (isGlobalActive) {
+          input.placeholder = 'พิมพ์ข้อความ... (🌐 โหมดแชททั่วโลก แชทได้จากทุกที่)';
+        } else if (isGlobalUser) {
+          input.placeholder = 'พิมพ์ข้อความ... (🌐 คุณได้รับยศสิทธิ์แชททั่วโลก)';
+        } else if (isRider) {
+          input.placeholder = 'พิมพ์ข้อความ... (🛵 สิทธิ์ป้าย RIDER)';
+        } else {
+          input.placeholder = 'พิมพ์ข้อความ... (กด Enter เพื่อส่ง)';
+        }
         input.style.backgroundColor = '';
         input.style.cursor = 'text';
       }
@@ -450,7 +520,7 @@ class ChatManager {
         <div style="text-align: center; color: #94A3B8; font-size: 0.82rem; padding: 3rem 1rem;">
           <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">💬</div>
           <div style="font-weight: 800; color: #334155; font-size: 0.95rem;">ยังไม่มีข้อความในห้องนี้</div>
-          <div style="color: #64748B; margin-top: 0.2rem;">พิมพ์ข้อความทักทายเพื่อนๆ ชาว มมส ได้เลย!</div>
+          <div style="color: #64748B; margin-top: 0.2rem;">พิมพ์ข้อความทักทายเพื่อนๆ ได้เลย!</div>
         </div>
       `;
       return;
@@ -494,15 +564,18 @@ class ChatManager {
     if (isAnnouncement) {
       badgeClass = 'badge-announcement';
       badgeText = '📢 ประกาศทางการ';
-    } else if (m.senderBadge?.includes('DEV')) {
+    } else if (m.senderBadge?.includes('DEV') || m.senderBadge?.includes('👑')) {
       badgeClass = 'badge-dev';
-      badgeText = '👑 DEVELOPER';
-    } else if (m.senderBadge?.includes('RIDER')) {
+      badgeText = m.senderBadge || '👑 DEV';
+    } else if (m.senderBadge?.includes('Global') || m.senderBadge?.includes('🌐')) {
+      badgeClass = 'badge-global';
+      badgeText = m.senderBadge || '🌐 Global';
+    } else if (m.senderBadge?.includes('RIDER') || m.senderBadge?.includes('🛵')) {
       badgeClass = 'badge-rider';
-      badgeText = '🛵 RIDER';
-    } else if (m.senderBadge?.includes('MSU')) {
+      badgeText = m.senderBadge || '🛵 RIDER';
+    } else if (m.senderBadge?.includes('MSU') || m.senderBadge?.includes('🎓')) {
       badgeClass = 'badge-msu';
-      badgeText = '🎓 นิสิต มมส';
+      badgeText = m.senderBadge || '🎓 MSU';
     }
 
     const avatarUrl = isAnnouncement 
