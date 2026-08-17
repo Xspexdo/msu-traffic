@@ -1076,6 +1076,106 @@ body {
   display: flex;
 }
 
+/* 📱 Responsive Dynamic Header Offset (When Announcement Bar is present) */
+body.has-announcement .map-campus-selector {
+  top: 58px;
+}
+
+body.has-announcement .map-rank-overlay {
+  top: 58px;
+}
+
+/* 📱 Mobile Specific Scale & Layout for Map Rank Overlay */
+@media (max-width: 640px) {
+  body.has-announcement .map-campus-selector {
+    top: 54px;
+    left: 8px;
+  }
+
+  body.has-announcement .map-rank-overlay {
+    top: 54px;
+    right: 8px;
+  }
+
+  .map-campus-selector {
+    top: 10px;
+    left: 8px;
+    padding: 0.15rem;
+    gap: 0.2rem;
+  }
+
+  .campus-btn {
+    padding: 0.25rem 0.6rem;
+    font-size: 0.7rem;
+  }
+
+  .map-rank-overlay {
+    top: 10px;
+    right: 8px;
+    width: 205px;
+    max-width: calc(100vw - 130px);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+  }
+
+  .map-rank-header {
+    padding: 0.35rem 0.5rem;
+  }
+
+  .map-rank-title {
+    font-size: 0.72rem;
+  }
+
+  .map-rank-toggle-btn {
+    width: 22px;
+    height: 22px;
+    font-size: 0.65rem;
+  }
+
+  .map-rank-content {
+    padding: 0.35rem 0.5rem;
+    gap: 0.25rem;
+  }
+
+  .map-rank-row {
+    font-size: 0.68rem;
+    gap: 0.25rem;
+  }
+
+  .map-rank-avatar {
+    width: 20px;
+    height: 20px;
+  }
+
+  .map-rank-name {
+    font-size: 0.68rem;
+  }
+
+  .map-rank-score {
+    font-size: 0.68rem;
+  }
+
+  .map-rank-my-row {
+    padding: 0.25rem 0.4rem;
+    gap: 0.3rem;
+  }
+
+  .map-rank-my-name {
+    font-size: 0.68rem;
+  }
+
+  .map-rank-all-btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.64rem;
+  }
+
+  .map-rank-collapsed-pill {
+    padding: 0.3rem 0.65rem;
+    font-size: 0.7rem;
+  }
+}
+
 .fab-report {
   position: absolute;
   bottom: calc(42vh + 14px);

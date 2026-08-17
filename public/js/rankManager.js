@@ -87,13 +87,12 @@ class RankManager {
   // =========================================================================
   initMapOverlay() {
     const overlay = document.getElementById('mapRankOverlay');
-    const isMobile = window.innerWidth <= 768;
     const storedState = localStorage.getItem('msu_map_rank_collapsed');
 
     if (storedState !== null) {
       this.isMapOverlayCollapsed = storedState === 'true';
     } else {
-      this.isMapOverlayCollapsed = isMobile; // Default collapsed on mobile/iPad!
+      this.isMapOverlayCollapsed = false; // แสดงผลเป็นค่าเริ่มต้นบนทุกอุปกรณ์รวมทั้งมือถือ
     }
 
     if (overlay) {

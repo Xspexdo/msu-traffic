@@ -364,8 +364,10 @@ class MSUApp {
     if (ann && ann.enabled !== false && ann.text) {
       textEl.textContent = ann.text;
       bar.classList.remove('hidden');
+      document.body.classList.add('has-announcement');
     } else {
       bar.classList.add('hidden');
+      document.body.classList.remove('has-announcement');
     }
   }
 
