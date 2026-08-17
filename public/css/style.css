@@ -3548,67 +3548,176 @@ textarea.form-control {
 }
 
 .dev-modal-container {
-  max-width: 960px;
+  max-width: 1120px;
   width: 95vw;
-  max-height: 90vh;
+  height: 88vh;
+  max-height: 860px;
   display: flex;
   flex-direction: column;
   background: #FFFFFF;
   border-radius: var(--radius-lg);
-  border: 1.5px solid #CBD5E1;
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+  border: 1.5px solid #334155;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.45);
   overflow: hidden;
 }
 
-.dev-tab-header {
+/* 🧭 Dev Modal 2-Column Sidebar Layout */
+.dev-modal-layout {
   display: flex;
-  background: #F1F5F9;
-  border-bottom: 1px solid #E2E8F0;
-  padding: 0.35rem 0.5rem 0 0.5rem;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 📁 Vertical Sidebar (Left) */
+.dev-tab-sidebar {
+  width: 255px;
+  min-width: 235px;
+  background: #0B132B;
+  border-right: 1.5px solid #1E293B;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.85rem 0.6rem;
+  overflow-y: auto;
+}
+
+.dev-sidebar-menu {
+  display: flex;
+  flex-direction: column;
   gap: 0.35rem;
-  overflow-x: auto;
 }
 
 .dev-tab-btn {
-  padding: 0.6rem 1rem;
-  border: none;
+  width: 100%;
+  padding: 0.68rem 0.85rem;
+  border: 1px solid transparent;
   background: transparent;
   font-family: var(--font-primary);
   font-size: 0.82rem;
   font-weight: 700;
-  color: #64748B;
-  border-radius: 8px 8px 0 0;
+  color: #94A3B8;
+  border-radius: 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  transition: all 0.15s ease;
+  gap: 0.55rem;
+  transition: all 0.18s ease;
+  text-align: left;
+  user-select: none;
+}
+
+.dev-tab-btn .dev-tab-icon {
+  font-size: 1.05rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+}
+
+.dev-tab-btn .dev-tab-text {
+  flex: 1;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dev-tab-btn:hover {
-  color: #1E293B;
-  background: rgba(255, 255, 255, 0.5);
+  color: #F8FAFC;
+  background: rgba(255, 255, 255, 0.07);
+  transform: translateX(3px);
 }
 
 .dev-tab-btn.active {
-  background: #FFFFFF;
-  color: #2563EB;
-  border-top: 2px solid #2563EB;
-  border-left: 1px solid #E2E8F0;
-  border-right: 1px solid #E2E8F0;
-  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.02);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.25) 0%, rgba(37, 99, 235, 0.45) 100%);
+  color: #60A5FA;
+  border-color: rgba(96, 165, 250, 0.4);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+  font-weight: 800;
+}
+
+.dev-tab-btn.btn-tab-reset:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #FCA5A5;
+}
+
+.dev-tab-btn.btn-tab-reset.active {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.25) 0%, rgba(220, 38, 38, 0.45) 100%);
+  color: #F87171;
+  border-color: rgba(248, 113, 113, 0.4);
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.25);
+}
+
+.dev-sidebar-footer {
+  padding-top: 0.75rem;
+  border-top: 1px solid #1E293B;
+  display: flex;
+  justify-content: center;
+}
+
+.dev-footer-pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #F59E0B;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* 📄 Main Content Area (Right) */
+.dev-tab-main-pane {
+  flex: 1;
+  min-width: 0;
+  background: #F8FAFC;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .dev-tab-content {
   display: none;
-  padding: 1.2rem;
-  overflow-y: auto;
-  flex: 1;
+  padding: 1.35rem 1.5rem;
+  width: 100%;
 }
 
 .dev-tab-content.active {
   display: block;
+  animation: fadeInDev 0.2s ease-out;
+}
+
+@keyframes fadeInDev {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+  .dev-modal-layout {
+    flex-direction: column;
+  }
+  .dev-tab-sidebar {
+    width: 100%;
+    min-width: 100%;
+    border-right: none;
+    border-bottom: 1.5px solid #1E293B;
+    padding: 0.45rem;
+  }
+  .dev-sidebar-menu {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 0.35rem;
+  }
+  .dev-tab-btn {
+    width: auto;
+    white-space: nowrap;
+    padding: 0.45rem 0.75rem;
+  }
+  .dev-sidebar-footer {
+    display: none;
+  }
 }
 
 .dev-table-wrapper {

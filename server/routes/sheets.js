@@ -1,45 +1,8 @@
-/**
- * MSU Traffic & Campus Life - Google Sheets & Cloud Sync Routes (Season 1)
- */
-
 const express = require('express');
 const router = express.Router();
 const googleSheetsService = require('../services/googleSheetsService');
 const db = require('../database/db');
-
-// Middleware to check Dev authorization
-function requireDev(req, res, next) {
-  const userHeader = req.headers['x-user-data'];
-  const authHeader = req.headers['authorization'];
-  let user = null;
-
-  if (userHeader) {
-    try {
-      user = JSON.parse(decodeURIComponent(userHeader));
-    } catch (e) {
-      try {
-        user = JSON.parse(userHeader);
-      } catch (err) {}
-    }
-  }
-
-  if (!user && authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    user = db.getUserById(token);
-    if (!user && (token === 'dev_secret_token_msu_traffic' || token.includes('dev'))) {
-      user = { id: 'dev-master', email: 'java5263@gmail.com', name: 'Master Dev', role: 'dev', isDev: true };
-    }
-  }
-
-  const isDevUser = user && (user.isDev === true || user.role === 'dev' || user.email === 'java5263@gmail.com');
-
-  if (!isDevUser) {
-    return res.status(403).json({ success: false, error: 'เฉพาะผู้พัฒนา (Dev) เท่านั้นที่สามารถเข้าถึงระบบตั้งค่า Google Sheets ได้' });
-  }
-
-  req.user = user;
-  next();
-}
+const { requireDev } = require('../middleware/authMiddleware');
 
 // 1. ดึงการตั้งค่า Google Sheets ปัจจุบัน
 router.get('/config', requireDev, (req, res) => {

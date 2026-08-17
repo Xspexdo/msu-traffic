@@ -7,20 +7,22 @@
   <!-- Open Graph / Discord / Facebook / LINE Link Preview Meta Tags -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://msu-traffic.onrender.com/">
-  <meta property="og:site_name" content="MSU Traffic">
+  <meta property="og:site_name" content="MSU Traffic & Campus Life">
   <meta property="og:title" content="MSU Traffic & Campus Life - มีด่านบอกด้วย ม.มหาสารคาม (Season 1)">
   <meta property="og:description" content="ระบบแจ้งเตือนด่านตรวจ สภาพจราจร และคอมมูนิตี้แชตท้องถิ่นสำหรับนิสิต ม.มหาสารคาม (มมส) Season 1">
-  <meta property="og:image" content="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=1200&auto=format&fit=crop&q=80">
+  <meta property="og:image" content="https://msu-traffic.onrender.com/images/preview.jpg">
+  <meta property="og:image:secure_url" content="https://msu-traffic.onrender.com/images/preview.jpg">
+  <meta property="og:image:type" content="image/jpeg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="MSU Traffic Map Preview">
+  <meta property="og:image:alt" content="MSU Traffic & Campus Life Preview">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="MSU Traffic & Campus Life - มีด่านบอกด้วย ม.มหาสารคาม">
   <meta name="twitter:description" content="ระบบแจ้งเตือนด่านตรวจ สภาพจราจร และคอมมูนิตี้แชตท้องถิ่นสำหรับนิสิต ม.มหาสารคาม (มมส)">
-  <meta name="twitter:image" content="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=1200&auto=format&fit=crop&q=80">
-  <meta name="theme-color" content="#2563EB">
+  <meta name="twitter:image" content="https://msu-traffic.onrender.com/images/preview.jpg">
+  <meta name="theme-color" content="#F59E0B">
 
   <!-- Google Fonts: Prompt & Kanit -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1066,31 +1068,48 @@
         <button class="modal-close-btn" style="color: #94A3B8; font-size: 1.2rem;" onclick="window.devManager.closeModal()">✕</button>
       </div>
 
-      <!-- Dev Tab Navigation -->
-      <div class="dev-tab-header">
-        <button class="dev-tab-btn active" data-tab="pins" onclick="window.devManager.switchTab('pins')">
-          <span>📍 จัดการหมุดรายงาน</span>
-          <span class="badge-pill badge-member" id="devPinCountBadge" style="font-size: 0.65rem; padding: 1px 6px;">0</span>
-        </button>
-        <button class="dev-tab-btn" data-tab="users" onclick="window.devManager.switchTab('users')">
-          <span>🛡️ จัดการผู้ใช้ & WAF IP</span>
-        </button>
-        <button class="dev-tab-btn" data-tab="profanity" onclick="window.devManager.switchTab('profanity')">
-          <span>🤬 ทดสอบ Filter คำหยาบ & Logs</span>
-        </button>
-        <button class="dev-tab-btn" data-tab="rider" onclick="window.devManager.switchTab('rider')" style="color: #059669;">
-          <span>🛵 จัดการสิทธิ์ RIDER</span>
-        </button>
-        <button class="dev-tab-btn" data-tab="sheets" onclick="window.devManager.switchTab('sheets')">
-          <span>📊 Google Sheets & Cloud Sync</span>
-        </button>
-        <button class="dev-tab-btn" data-tab="settings" onclick="window.devManager.switchTab('settings')" style="color: #2563EB;">
-          <span>⚙️ ตั้งค่าระบบ</span>
-        </button>
-        <button class="dev-tab-btn" data-tab="reset" onclick="window.devManager.switchTab('reset')" style="color: #EF4444;">
-          <span>🧹 ล้างข้อมูลระบบ (Reset)</span>
-        </button>
-      </div>
+      <!-- Dev Modal Layout: Sidebar on Left, Content on Right -->
+      <div class="dev-modal-layout">
+        <!-- Vertical Tab Sidebar (Left) -->
+        <aside class="dev-tab-sidebar">
+          <div class="dev-sidebar-menu">
+            <button class="dev-tab-btn active" data-tab="pins" onclick="window.devManager.switchTab('pins')">
+              <span class="dev-tab-icon">📍</span>
+              <span class="dev-tab-text">จัดการหมุดรายงาน</span>
+              <span class="badge-pill badge-member" id="devPinCountBadge" style="font-size: 0.65rem; padding: 1px 6px; margin-left: auto;">0</span>
+            </button>
+            <button class="dev-tab-btn" data-tab="users" onclick="window.devManager.switchTab('users')">
+              <span class="dev-tab-icon">🛡️</span>
+              <span class="dev-tab-text">จัดการผู้ใช้ & WAF IP</span>
+            </button>
+            <button class="dev-tab-btn" data-tab="profanity" onclick="window.devManager.switchTab('profanity')">
+              <span class="dev-tab-icon">🤬</span>
+              <span class="dev-tab-text">Filter คำหยาบ & Logs</span>
+            </button>
+            <button class="dev-tab-btn" data-tab="rider" onclick="window.devManager.switchTab('rider')" style="color: #10B981;">
+              <span class="dev-tab-icon">🛵</span>
+              <span class="dev-tab-text">จัดการสิทธิ์ RIDER</span>
+            </button>
+            <button class="dev-tab-btn" data-tab="sheets" onclick="window.devManager.switchTab('sheets')">
+              <span class="dev-tab-icon">📊</span>
+              <span class="dev-tab-text">Google Sheets Sync</span>
+            </button>
+            <button class="dev-tab-btn" data-tab="settings" onclick="window.devManager.switchTab('settings')" style="color: #60A5FA;">
+              <span class="dev-tab-icon">⚙️</span>
+              <span class="dev-tab-text">ตั้งค่าระบบ</span>
+            </button>
+            <button class="dev-tab-btn btn-tab-reset" data-tab="reset" onclick="window.devManager.switchTab('reset')" style="color: #F87171;">
+              <span class="dev-tab-icon">🧹</span>
+              <span class="dev-tab-text">ล้างข้อมูลระบบ</span>
+            </button>
+          </div>
+          <div class="dev-sidebar-footer">
+            <span class="dev-footer-pill">👑 Lead Dev Mode</span>
+          </div>
+        </aside>
+
+        <!-- Main Content Area (Right) -->
+        <main class="dev-tab-main-pane">
 
       <!-- TAB 1: PINS MODERATION -->
       <div class="dev-tab-content active" id="devTab-pins">
@@ -1644,6 +1663,8 @@
         </div>
       </div>
 
+        </main>
+      </div>
     </div>
   </div>
 

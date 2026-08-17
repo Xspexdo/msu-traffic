@@ -40,8 +40,8 @@ class GoogleSheetsService {
       console.warn('⚠️ Could not load sheets_config.json:', err.message);
     }
     return {
-      enabled: false,
-      webhookUrl: process.env.GOOGLE_SHEET_WEBHOOK_URL || '',
+      enabled: true,
+      webhookUrl: process.env.GOOGLE_SHEET_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxv7jL62zv04UFv6xNkFlzAdhmCI1YN2E1jt_g3Aj91LbpgLx1Zz59ZPKlb-_lcdYGqTQ/exec',
       autoSyncNewPins: true,
       autoSyncChat: false,
       autoSyncReports: true,

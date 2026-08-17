@@ -52,6 +52,21 @@ function requireAuth(req, res, next) {
   next();
 }
 
+function requireDev(req, res, next) {
+  const user = parseUserFromReq(req);
+
+  if (!user || !user.id || !user.isDev) {
+    return res.status(403).json({
+      success: false,
+      error: 'DEV_REQUIRED',
+      message: 'เฉพาะผู้พัฒนา (Dev) เท่านั้นที่สามารถเข้าถึงส่วนนี้ได้'
+    });
+  }
+
+  req.user = user;
+  next();
+}
+
 function optionalAuth(req, res, next) {
   const user = parseUserFromReq(req);
   if (user && user.id) {
@@ -61,7 +76,10 @@ function optionalAuth(req, res, next) {
 }
 
 module.exports = {
+  parseUserFromReq,
   requireAuth,
+  requireDev,
   optionalAuth
 };
+
 
