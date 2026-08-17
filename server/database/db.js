@@ -604,7 +604,7 @@ class Database {
       reporterObj = {
         ...reporterObj,
         name: 'MSU Traffic',
-        picture: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=120&auto=format&fit=crop&q=80',
+        picture: 'https://ui-avatars.com/api/?name=MSU+Traffic&background=1E3A8A&color=fff',
         badge: '📢 MSU Traffic',
         isOfficial: true,
         isAnnouncement: true
@@ -612,7 +612,7 @@ class Database {
     } else if (isAnon) {
       reporterObj.name = 'นิสิตนิรนาม';
       reporterObj.badge = '🎓 นิสิตนิรนาม';
-      reporterObj.picture = 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff';
+      reporterObj.picture = 'https://ui-avatars.com/api/?name=Anon&background=475569&color=fff';
       reporterObj.realName = realReporterObj.name;
       reporterObj.realEmail = realReporterObj.email;
       reporterObj.realId = realReporterObj.id;
@@ -980,7 +980,7 @@ class Database {
     if (isOfficialAnnouncement) {
       senderName = 'MSU Traffic';
       senderBadge = '📢 ประกาศทางการ';
-      senderPicture = 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=100&auto=format&fit=crop&q=80';
+      senderPicture = 'https://ui-avatars.com/api/?name=MSU+Traffic&background=1E3A8A&color=fff';
     }
 
     const geo = isInsideMSUGeofence(lat, lng);
@@ -1238,7 +1238,7 @@ class Database {
     if (isOfficialAnnouncement) {
       senderName = 'MSU Traffic';
       senderBadge = '📢 ประกาศทางการ';
-      senderPicture = 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=100&auto=format&fit=crop&q=80';
+      senderPicture = 'https://ui-avatars.com/api/?name=MSU+Traffic&background=1E3A8A&color=fff';
     }
 
     const msgId = `pinmsg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
@@ -2149,6 +2149,36 @@ class Database {
 
   clearPinChatMessages(pinId, by) {
     return this.clearPinChat(pinId, by);
+  }
+
+  // 📢 ระบบข้อความประชาสัมพันธ์ตัววิ่ง (Public Announcement Ticker)
+  getAnnouncement() {
+    if (!this.data.system_config) this.data.system_config = {};
+    if (!this.data.system_config.announcement) {
+      this.data.system_config.announcement = {
+        enabled: true,
+        text: "📢 ยินดีต้อนรับสู่ MSU Traffic • ขับขี่ปลอดภัย สวมหมวกกันน็อก เปิดไฟหน้ารถ • รายงานด่านแบบเรียลไทม์เพื่อความปลอดภัยของชาว มมส",
+        updatedAt: Date.now()
+      };
+    }
+    return this.data.system_config.announcement;
+  }
+
+  updateAnnouncement(text, enabled = true, updatedBy = 'dev_admin') {
+    if (!this.data.system_config) this.data.system_config = {};
+    this.data.system_config.announcement = {
+      enabled: Boolean(enabled),
+      text: typeof text === 'string' && text.trim() ? text.trim() : "📢 ขับขี่ปลอดภัย สวมหมวกกันน็อก เปิดไฟหน้ารถ • รายงานด่านแบบเรียลไทม์ MSU Traffic",
+      updatedAt: Date.now(),
+      updatedBy
+    };
+    this.saveData();
+
+    // ยิง Broadcast Socket.IO ทันทีแบบ Real-time ไปยังผู้ใช้ทุกคน
+    if (this.io) {
+      this.io.emit('announcement_updated', this.data.system_config.announcement);
+    }
+    return this.data.system_config.announcement;
   }
 }
 

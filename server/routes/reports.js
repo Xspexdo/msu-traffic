@@ -124,8 +124,8 @@ module.exports = function(io) {
           name: (req.body.isAnnouncement === true && isDev) ? 'MSU Traffic' : (isAnon ? 'นิสิตนิรนาม' : req.user.name),
           email: isAnon ? '' : req.user.email,
           picture: (req.body.isAnnouncement === true && isDev)
-            ? 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=120&auto=format&fit=crop&q=80' 
-            : (isAnon ? 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff' : req.user.picture),
+            ? 'https://ui-avatars.com/api/?name=MSU+Traffic&background=1E3A8A&color=fff' 
+            : (isAnon ? 'https://ui-avatars.com/api/?name=Anon&background=475569&color=fff' : req.user.picture),
           isDev: isDev,
           isMsuStudent: isMsu,
           isAnonymous: isAnon,

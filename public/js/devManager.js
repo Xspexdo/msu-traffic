@@ -115,6 +115,62 @@ class DevManager {
 
     // 3. โหลดสถานะห้องแชททั้งหมด
     this.loadChatRoomsSettings();
+
+    // 4. โหลดข้อความประชาสัมพันธ์ตัววิ่ง (Announcement Ticker)
+    this.loadAnnouncementSetting();
+  }
+
+  async loadAnnouncementSetting() {
+    try {
+      const res = await fetch('/api/security/announcement');
+      const data = await res.json();
+      if (data && data.success && data.data) {
+        const input = document.getElementById('devAnnouncementTextInput');
+        const toggle = document.getElementById('devAnnouncementEnabledToggle');
+        if (input) input.value = data.data.text || '';
+        if (toggle) toggle.checked = data.data.enabled !== false;
+      }
+    } catch (e) {
+      console.warn('Error loading announcement setting:', e);
+    }
+  }
+
+  setAnnouncementPreset(type) {
+    const input = document.getElementById('devAnnouncementTextInput');
+    if (!input) return;
+    if (type === 'helmet') {
+      input.value = "👮‍♂️ รณรงค์สวมหมวกนิรภัย 100% และพกใบขับขี่ทุกครั้งที่เดินทางรอบ มมส เพื่อความปลอดภัยและถูกระเบียบวินัยจราจร";
+    } else if (type === 'rain') {
+      input.value = "🌧️ ขณะนี้มีฝนตกในพื้นที่ มมส ท่าขอนยาง และขามเรียง ถนนลื่นโปรดลดความเร็วและระมัดระวังอุบัติเหตุครับ";
+    } else if (type === 'welcome') {
+      input.value = "🎓 ยินดีต้อนรับนิสิต มมส และบุคลากรทุกท่านสู่ระบบรายงานจราจร MSU Traffic • อัปเดตข้อมูลแบบเรียลไทม์ 24 ชม.";
+    }
+  }
+
+  async saveAnnouncementSettings() {
+    const input = document.getElementById('devAnnouncementTextInput');
+    const toggle = document.getElementById('devAnnouncementEnabledToggle');
+    const text = input ? input.value.trim() : '';
+    const enabled = toggle ? toggle.checked : true;
+
+    try {
+      const res = await fetch('/api/security/admin/announcement', {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ text, enabled })
+      });
+      const result = await res.json();
+      if (result.success) {
+        if (window.app) {
+          window.app.showNotification('📢 บันทึกและเริ่มวิ่งประชาสัมพันธ์สดเรียบร้อยแล้ว!', 'success');
+          window.app.applyAnnouncement(result.data);
+        }
+      } else {
+        if (window.app) window.app.showNotification(result.message || 'บันทึกไม่สำเร็จ', 'error');
+      }
+    } catch (err) {
+      if (window.app) window.app.showNotification('เกิดข้อผิดพลาดในการบันทึกประกาศ', 'error');
+    }
   }
 
   async loadGlobalChatSetting() {

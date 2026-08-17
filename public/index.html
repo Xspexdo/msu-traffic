@@ -136,6 +136,19 @@
     </div>
   </header>
 
+  <!-- 📢 PUBLIC ANNOUNCEMENT MARQUEE TICKER (แถบประชาสัมพันธ์ตัววิ่ง สไลด์ด้านข้าง) -->
+  <div class="announcement-ticker-bar" id="announcementTickerBar">
+    <div class="ticker-badge">
+      <span class="ticker-badge-icon">📢</span>
+      <span class="ticker-badge-text">ประชาสัมพันธ์</span>
+    </div>
+    <div class="ticker-track">
+      <div class="ticker-content" id="tickerMarqueeText">
+        ยินดีต้อนรับสู่ MSU Traffic • ขับขี่ปลอดภัย สวมหมวกกันน็อก เปิดไฟหน้ารถ • รายงานด่านแบบเรียลไทม์เพื่อความปลอดภัยของชาว มมส
+      </div>
+    </div>
+  </div>
+
   <!-- =========================================================
        MAIN APPLICATION VIEW CONTAINER
        ========================================================= -->
@@ -1398,6 +1411,48 @@
             </div>
           </div>
 
+          <!-- 📢 Announcement Ticker Settings Card (ตั้งค่าแถบประชาสัมพันธ์ตัววิ่ง) -->
+          <div style="background: #FFFFFF; border: 1.5px solid #FDE68A; border-radius: 14px; padding: 1.1rem 1.3rem; box-shadow: 0 2px 8px rgba(245,158,11,0.06);">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.85rem; flex-wrap: wrap;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 0.45rem;">
+                  <span style="font-size: 1.25rem;">📢</span>
+                  <h4 style="font-size: 0.95rem; font-weight: 800; color: #92400E; margin: 0;">แถบประชาสัมพันธ์ตัววิ่ง (Sliding Announcement Ticker)</h4>
+                  <span class="dev-badge" style="background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A;">วิ่งสไลด์อัตโนมัติ</span>
+                </div>
+                <p style="font-size: 0.76rem; color: #78350F; margin: 0.2rem 0 0 0;">
+                  ข้อความประชาสัมพันธ์จะวิ่งสไลด์จากขวาไปซ้ายด้านบนหน้าเว็บ แสดงให้ผู้ใช้ทุกคนเห็นแบบ Real-time
+                </p>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 700; color: #1E293B; cursor: pointer;">
+                  <input type="checkbox" id="devAnnouncementEnabledToggle" checked style="width: 18px; height: 18px; accent-color: #F59E0B;">
+                  <span>เปิดแถบตัววิ่ง</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Input Textarea -->
+            <div style="margin-bottom: 0.75rem;">
+              <textarea id="devAnnouncementTextInput" rows="2" placeholder="พิมพ์ข้อความที่ต้องการให้วิ่งประชาสัมพันธ์..." style="width: 100%; padding: 0.65rem 0.85rem; font-size: 0.85rem; border: 1.5px solid #CBD5E1; border-radius: 10px; font-family: var(--font-primary); resize: vertical; line-height: 1.4;"></textarea>
+            </div>
+
+            <!-- Quick Presets & Save Button -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+              <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center;">
+                <span style="font-size: 0.72rem; color: #64748B; font-weight: 700;">ข้อความด่วน:</span>
+                <button type="button" class="btn btn-outline btn-xs" onclick="window.devManager.setAnnouncementPreset('helmet')">👮‍♂️ เตือนหมวกกันน็อก</button>
+                <button type="button" class="btn btn-outline btn-xs" onclick="window.devManager.setAnnouncementPreset('rain')">🌧️ ฝนตกถนนลื่น</button>
+                <button type="button" class="btn btn-outline btn-xs" onclick="window.devManager.setAnnouncementPreset('welcome')">🎓 ยินดีต้อนรับนิสิต</button>
+              </div>
+
+              <button type="button" class="btn btn-primary btn-sm" onclick="window.devManager.saveAnnouncementSettings()" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); border-color: #F59E0B; font-weight: 800; padding: 0.45rem 1.1rem;">
+                <span>💾 บันทึกและเริ่มวิ่งทันที</span>
+              </button>
+            </div>
+          </div>
+
           <!-- Global Chat Toggle Card -->
           <div style="background: #FFFFFF; border: 1.5px solid #BFDBFE; border-radius: 14px; padding: 1.1rem 1.3rem; box-shadow: 0 2px 8px rgba(37,99,235,0.06);">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
@@ -1756,13 +1811,13 @@
 
   <!-- Application Scripts (with cache-busting) -->
   <script src="js/rateLimitAlert.js?v=2.11.0"></script>
-  <script src="js/auth.js?v=2.11.0"></script>
-  <script src="js/rankManager.js?v=2.11.0"></script>
-  <script src="js/chatManager.js?v=2.11.0"></script>
-  <script src="js/map.js?v=2.11.0"></script>
-  <script src="js/devManager.js?v=2.11.0"></script>
-  <script src="js/securityGatekeeper.js?v=2.11.0"></script>
-  <script src="js/app.js?v=2.11.0"></script>
+  <script src="js/auth.js?v=2.12.0"></script>
+  <script src="js/rankManager.js?v=2.12.0"></script>
+  <script src="js/chatManager.js?v=2.12.0"></script>
+  <script src="js/map.js?v=2.12.0"></script>
+  <script src="js/devManager.js?v=2.12.0"></script>
+  <script src="js/securityGatekeeper.js?v=2.12.0"></script>
+  <script src="js/app.js?v=2.12.0"></script>
 
 
   <script>

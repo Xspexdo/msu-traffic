@@ -333,6 +333,91 @@ body {
   background: var(--border);
 }
 
+/* ==========================================================================
+   📢 PUBLIC ANNOUNCEMENT MARQUEE TICKER (แถบประชาสัมพันธ์ตัววิ่ง สไลด์ด้านข้าง)
+   ========================================================================== */
+.announcement-ticker-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #0B0F19;
+  border-bottom: 1px solid #1E293B;
+  padding: 0.22rem 0.75rem;
+  overflow: hidden;
+  position: relative;
+  z-index: 990;
+  height: 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  transition: all 0.3s ease;
+}
+
+.announcement-ticker-bar.hidden {
+  display: none !important;
+}
+
+.ticker-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: #FFFFFF;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.16rem 0.55rem;
+  border-radius: 20px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(245, 158, 11, 0.4);
+  letter-spacing: -0.2px;
+  user-select: none;
+}
+
+.ticker-badge-icon {
+  font-size: 0.75rem;
+  animation: pulse-dev 2s infinite;
+}
+
+.ticker-track {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+  mask-image: linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent);
+}
+
+.ticker-content {
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 100%;
+  animation: marqueeTicker 28s linear infinite;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #F8FAFC;
+  letter-spacing: 0.1px;
+}
+
+.ticker-track:hover .ticker-content {
+  animation-play-state: paused;
+}
+
+@keyframes marqueeTicker {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-100%, 0, 0); }
+}
+
+/* Light Mode Theme */
+[data-theme="light"] .announcement-ticker-bar,
+:root:not([data-theme="dark"]) .announcement-ticker-bar {
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .ticker-content,
+:root:not([data-theme="dark"]) .ticker-content {
+  color: #1E293B;
+}
+
 @media (max-width: 580px) {
   .theme-toggle-text {
     display: none;
@@ -340,6 +425,12 @@ body {
   .theme-toggle-btn {
     padding: 0.35rem 0.5rem;
     font-size: 0.95rem;
+  }
+  .ticker-badge-text {
+    font-size: 0.64rem;
+  }
+  .ticker-content {
+    font-size: 0.72rem;
   }
 }
 

@@ -578,9 +578,18 @@ class ChatManager {
       badgeText = m.senderBadge || '🎓 MSU';
     }
 
-    const avatarUrl = isAnnouncement 
-      ? 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=120&auto=format&fit=crop&q=80'
-      : (m.senderPicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.senderName || 'MSU')}&background=2563EB&color=fff`);
+    let avatarUrl = '';
+    if (isAnnouncement) {
+      avatarUrl = 'https://ui-avatars.com/api/?name=MSU+Traffic&background=1E3A8A&color=fff';
+    } else if (m.isAnonymous) {
+      if (isDev) {
+        avatarUrl = m.realSenderPicture || m.senderPicture || (window.getAnonymousAvatar ? window.getAnonymousAvatar(m.id || m.senderId) : 'https://ui-avatars.com/api/?name=Anon&background=475569&color=fff');
+      } else {
+        avatarUrl = window.getAnonymousAvatar ? window.getAnonymousAvatar(m.id || m.senderId) : 'https://ui-avatars.com/api/?name=Anon&background=475569&color=fff';
+      }
+    } else {
+      avatarUrl = m.senderPicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.senderName || 'MSU')}&background=2563EB&color=fff`;
+    }
 
     let senderNameHtml = `<span class="chat-sender-name">${this.escapeHtml(m.senderName)}</span>`;
     if (m.isAnonymous) {

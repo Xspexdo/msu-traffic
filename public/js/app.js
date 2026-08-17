@@ -1,7 +1,23 @@
 /**
- * MSU Traffic & Campus Life - Main Application Controller (Season 1)
- * ควบคุม 5 แท็บหลัก (Home, Map, Rank, Chat, Profile), Socket.io, และระบบรายงานด่าน
+ * 🕵️‍♂️ Random Anonymous Emoji Avatar Generator
+ * สุ่มอีโมจิและพื้นหลังสีสดใสสำหรับผู้ใช้งานนิรนาม (คนทั่วไปเห็นอีโมจิ, Dev เห็นรูปจริง)
  */
+window.getAnonymousAvatar = function(seed) {
+  const emojis = ['🕵️‍♂️', '🦊', '🐱', '🐼', '🐸', '🐯', '🐨', '🦁', '🦉', '🦝', '👻', '🤖', '🎭', '🥷', '👾', '🦄', '🐙', '🦖', '🐧', '🐺', '🦔', '🐹', '🐰', '🐻'];
+  const colors = ['#2563EB', '#7C3AED', '#DB2777', '#EA580C', '#059669', '#0891B2', '#4F46E5', '#D97706', '#475569', '#0284C7', '#6366F1', '#10B981', '#E11D48', '#0D9488'];
+  
+  let hash = 0;
+  const str = String(seed || 'anon');
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  const emoji = emojis[Math.abs(hash) % emojis.length];
+  const bg = colors[Math.abs(hash * 31) % colors.length];
+  
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="${bg}"/><text x="50%" y="54%" font-size="46" font-family="Apple Color Emoji, Segoe UI Emoji, sans-serif" dominant-baseline="middle" text-anchor="middle">${emoji}</text></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+};
 
 class MSUApp {
   constructor() {
@@ -32,7 +48,8 @@ class MSUApp {
     await Promise.all([
       this.loadReports(),
       this.loadZones(),
-      this.loadStats()
+      this.loadStats(),
+      this.loadAnnouncement()
     ]);
 
     // 4. Bind DOM Events
@@ -222,12 +239,43 @@ class MSUApp {
         this.handlePinChatCountUpdate(data);
       });
 
+      this.socket.on('announcement_updated', (ann) => {
+        this.applyAnnouncement(ann);
+      });
+
       // Pass socket to managers
       if (window.rankManager) window.rankManager.bindSocketEvents(this.socket);
       if (window.chatManager) window.chatManager.bindSocketEvents(this.socket);
 
     } catch (e) {
       console.warn('Socket.io connection warning:', e);
+    }
+  }
+
+  // ----------------------------------------------------
+  // 📢 Announcement Ticker Loader & Sync
+  // ----------------------------------------------------
+  async loadAnnouncement() {
+    try {
+      const res = await fetch('/api/security/announcement');
+      const data = await res.json();
+      if (data && data.success && data.data) {
+        this.applyAnnouncement(data.data);
+      }
+    } catch (e) {
+      console.warn('Could not load announcement:', e);
+    }
+  }
+
+  applyAnnouncement(ann) {
+    const bar = document.getElementById('announcementTickerBar');
+    const textEl = document.getElementById('tickerMarqueeText');
+    if (!bar || !textEl) return;
+    if (ann && ann.enabled !== false && ann.text) {
+      textEl.textContent = ann.text;
+      bar.classList.remove('hidden');
+    } else {
+      bar.classList.add('hidden');
     }
   }
 
@@ -421,6 +469,19 @@ class MSUApp {
     else if (isDevPost) badgeHtml = '<span class="badge-dev">👑 DEV</span>';
     else if (isMsuStudent) badgeHtml = '<span class="badge-msu">🎓 MSU</span>';
 
+    let avatarUrl = '';
+    if (isAnnouncement) {
+      avatarUrl = 'https://ui-avatars.com/api/?name=MSU+Traffic&background=1E3A8A&color=fff';
+    } else if (rep.isAnonymous) {
+      if (isDev) {
+        avatarUrl = rep.realReporter?.picture || rep.reporter?.picture || window.getAnonymousAvatar(rep.id || rep.reporterId);
+      } else {
+        avatarUrl = window.getAnonymousAvatar(rep.id || rep.reporterId);
+      }
+    } else {
+      avatarUrl = rep.reporter?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(rep.reporter?.name || 'MSU')}&background=2563EB&color=fff`;
+    }
+
     return `
       <div class="report-card ${isAnnouncement ? 'card-announcement-official' : ''} ${isCleared ? 'card-cleared' : ''}" data-id="${rep.id}" onclick="window.mapManager?.focusReport('${rep.id}')" title="คลิกเพื่อดูตำแหน่งหมุดบนแผนที่" style="cursor: pointer;">
         ${isAnnouncement ? `
@@ -449,7 +510,7 @@ class MSUApp {
 
         <div class="card-footer">
           <div class="card-reporter">
-            <img class="reporter-avatar" src="${rep.reporter?.picture || 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff'}" alt="avatar">
+            <img class="reporter-avatar" src="${avatarUrl}" alt="avatar">
             ${rep.isAnonymous ? `
               ${isDev ? `
                 <div style="display: inline-flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
@@ -1111,11 +1172,19 @@ class MSUApp {
       badgeText = '🎓 นิสิต มมส';
     }
 
-    const avatarUrl = isAnnouncement 
-      ? 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=120&auto=format&fit=crop&q=80'
-      : (msg.senderPicture || 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff');
-
     const isDev = window.authManager?.isDev();
+    let avatarUrl = '';
+    if (isAnnouncement) {
+      avatarUrl = 'https://ui-avatars.com/api/?name=MSU+Traffic&background=1E3A8A&color=fff';
+    } else if (msg.isAnonymous) {
+      if (isDev) {
+        avatarUrl = msg.realSenderPicture || msg.senderPicture || window.getAnonymousAvatar(msg.id || msg.senderId);
+      } else {
+        avatarUrl = window.getAnonymousAvatar(msg.id || msg.senderId);
+      }
+    } else {
+      avatarUrl = msg.senderPicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.senderName || 'MSU')}&background=2563EB&color=fff`;
+    }
     let senderNameHtml = `<span class="pin-msg-name">${this.escapeHtml(msg.senderName)}</span>`;
     if (msg.isAnonymous) {
       if (isDev) {
@@ -1275,23 +1344,18 @@ class MSUApp {
     const user = window.authManager.getUser();
     if (user) {
       const isDev = window.authManager.isDev();
+      const isRider = user.isRider === true || user.role === 'rider' || (user.badge && user.badge.includes('RIDER'));
       const isMsu = user.email && user.email.endsWith('@msu.ac.th');
       let badgeHtml = '<span class="badge-pill badge-member">👤 Member</span>';
       if (isDev) badgeHtml = '<span class="badge-pill badge-dev">👑 DEV</span>';
+      else if (isRider) badgeHtml = '<span class="badge-pill badge-rider">🛵 RIDER</span>';
       else if (isMsu) badgeHtml = '<span class="badge-pill badge-msu">🎓 MSU</span>';
 
       container.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 0.4rem;">
-          ${isDev ? `
-            <button class="btn-dev-panel-nav" onclick="window.devManager?.openModal()" title="เปิดศูนย์ควบคุม Developer (Ctrl+Shift+D)">
-              <span>🛠️ Dev Panel</span>
-            </button>
-          ` : ''}
-          <div class="nav-user-pill" onclick="window.app.openProfileModal()" title="คลิกเพื่อเปิดดูโปรไฟล์ของคุณ">
-            <img src="${user.picture || 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff'}" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 1.5px solid #2563EB;">
-            <span class="nav-user-name" style="font-size: 0.78rem; font-weight: 700; max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${this.escapeHtml(user.name || 'โปรไฟล์')}</span>
-            ${badgeHtml}
-          </div>
+        <div class="nav-user-pill" onclick="window.app.openProfileModal()" title="คลิกเพื่อเปิดดูโปรไฟล์ของคุณ">
+          <img src="${user.picture || 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff'}" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 1.5px solid #2563EB;">
+          <span class="nav-user-name" style="font-size: 0.78rem; font-weight: 700; max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${this.escapeHtml(user.name || 'โปรไฟล์')}</span>
+          ${badgeHtml}
         </div>
       `;
     } else {

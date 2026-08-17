@@ -538,5 +538,22 @@ router.post('/admin/toggle-global-chat', (req, res) => {
   });
 });
 
+// 21. GET /api/security/announcement - ดึงข้อมูลข้อความประชาสัมพันธ์
+router.get('/announcement', (req, res) => {
+  const ann = db.getAnnouncement();
+  res.json({ success: true, data: ann });
+});
+
+// 22. POST /api/security/admin/announcement - แอดมิน/Dev อัปเดตข้อความประชาสัมพันธ์
+router.post('/admin/announcement', (req, res) => {
+  if (!checkDevPermission(req)) {
+    return res.status(403).json({ success: false, error: 'DEV_PERMISSION_REQUIRED', message: 'คุณไม่มีสิทธิ์ Developer' });
+  }
+
+  const { text, enabled } = req.body;
+  const ann = db.updateAnnouncement(text, enabled !== false, req.user?.id || 'dev_admin');
+  res.json({ success: true, data: ann, message: 'บันทึกและยิงประกาศข้อความประชาสัมพันธ์แบบ Real-time สำเร็จ!' });
+});
+
 module.exports = router;
 
