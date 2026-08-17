@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
 const { requireAuth } = require('../middleware/authMiddleware');
+const { requirePoW } = require('../middleware/powSecurity');
 
 const profanityFilter = require('../services/profanityFilter');
 
@@ -104,7 +105,7 @@ module.exports = function(io) {
   });
 
   // 4. POST /api/chat/messages - ส่งข้อความแชต (ต้องผ่านตัวกรองคำหยาบ + @msu.ac.th + ในรัศมี GPS)
-  router.post('/messages', requireAuth, (req, res) => {
+  router.post('/messages', requireAuth, requirePoW, (req, res) => {
     try {
       const { roomId, text, lat, lng, isAnonymous, isAnnouncement } = req.body;
       if (!text || !text.trim()) {
@@ -323,7 +324,7 @@ module.exports = function(io) {
   });
 
   // 10. POST /api/chat/rider/request - ยื่นขอสิทธิ์และป้าย RIDER
-  router.post('/rider/request', requireAuth, (req, res) => {
+  router.post('/rider/request', requireAuth, requirePoW, (req, res) => {
     try {
       const { platform, phone, note } = req.body;
       const result = db.requestRiderRole({

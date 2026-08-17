@@ -41,6 +41,17 @@ router.get('/status', (req, res) => {
   });
 });
 
+const { generateChallenge } = require('../middleware/powSecurity');
+
+// GET /api/security/challenge - ขอรับ Proof-of-Work Challenge Token สำหรับส่งคำขอแบบปลอดภัย
+router.get('/challenge', (req, res) => {
+  const challenge = generateChallenge();
+  res.json({
+    success: true,
+    challenge
+  });
+});
+
 // GET /api/security/vpn-check - ตรวจสอบว่า Client มุด VPN หรือใช้ Proxy หรือไม่
 router.get('/vpn-check', (req, res) => {
   const ip = getClientIp(req);

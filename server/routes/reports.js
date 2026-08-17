@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
 const { requireAuth, optionalAuth } = require('../middleware/authMiddleware');
+const { requirePoW } = require('../middleware/powSecurity');
 const profanityFilter = require('../services/profanityFilter');
 
 module.exports = function(io) {
@@ -45,7 +46,7 @@ module.exports = function(io) {
   });
 
   // POST /api/reports - สร้างหมุดรายงานด่านใหม่
-  router.post('/', requireAuth, (req, res) => {
+  router.post('/', requireAuth, requirePoW, (req, res) => {
     try {
       // 🚫 Ban Check
       const checkUser = db.getUserById(req.user.id);
@@ -153,7 +154,7 @@ module.exports = function(io) {
   });
 
   // POST /api/reports/:id/vote - โหวตยืนยันสถานะด่าน (👍 / 🚀)
-  router.post('/:id/vote', requireAuth, (req, res) => {
+  router.post('/:id/vote', requireAuth, requirePoW, (req, res) => {
     try {
       const { voteType } = req.body;
       if (!['up', 'down'].includes(voteType)) {
@@ -204,7 +205,7 @@ module.exports = function(io) {
   });
 
   // POST /api/reports/:id/report - รีพอร์ตหมุดด้วยระบบ Weighted Anti-Abuse
-  router.post('/:id/report', requireAuth, (req, res) => {
+  router.post('/:id/report', requireAuth, requirePoW, (req, res) => {
     try {
       const { reason, details } = req.body;
       if (!reason) {
@@ -325,7 +326,7 @@ module.exports = function(io) {
   });
 
   // POST /api/reports/:id/chat - ส่งข้อความเข้าห้องแชทหมุด (พร้อมตรวจคำหยาบ)
-  router.post('/:id/chat', requireAuth, (req, res) => {
+  router.post('/:id/chat', requireAuth, requirePoW, (req, res) => {
     try {
       const { text, isAnonymous, isAnnouncement } = req.body;
       const pinId = req.params.id;

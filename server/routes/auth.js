@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const db = require('../database/db');
+const { requirePoW } = require('../middleware/powSecurity');
 
 const DEV_EMAIL = 'java5263@gmail.com';
 
@@ -151,11 +152,11 @@ const handleEmailLogin = (req, res) => {
   }
 };
 
-router.post('/email-login', handleEmailLogin);
-router.post('/email', handleEmailLogin);
+router.post('/email-login', requirePoW, handleEmailLogin);
+router.post('/email', requirePoW, handleEmailLogin);
 
 // 3. POST /api/auth/demo - เข้าสู่ระบบด่วน
-router.post('/demo', (req, res) => {
+router.post('/demo', requirePoW, (req, res) => {
   try {
     const { email, name } = req.body;
     const userEmail = (email || '').toLowerCase().trim();

@@ -399,8 +399,10 @@ class Database {
   }
 
   generateMidnightLeaderboardSnapshot() {
+    const MIN_EXP_FOR_RANKING = 100; // ❗ นับแต้ม 100 EXP ขึ้นไปถึงจะเริ่มจัดอันดับ
+
     const list = Object.values(this.data.users)
-      .filter(u => ((u.weeklyScore || 0) > 0 || (u.allTimeScore || 0) > 0) && !u.email?.includes('audit_test') && !u.id?.startsWith('test_') && !u.id?.startsWith('user_demo_'))
+      .filter(u => (((u.weeklyScore || 0) >= MIN_EXP_FOR_RANKING || (u.allTimeScore || 0) >= MIN_EXP_FOR_RANKING || u.isDev)) && !u.email?.includes('audit_test') && !u.id?.startsWith('test_') && !u.id?.startsWith('user_demo_'))
       .map(u => ({
         id: u.id,
         name: u.name,
@@ -423,6 +425,7 @@ class Database {
     this.data.leaderboard_snapshot = {
       calculatedAt: Date.now(),
       nextCalculationAt: nextMidnight.getTime(),
+      minExpRequired: MIN_EXP_FOR_RANKING,
       rankings: list
     };
 
@@ -1314,9 +1317,11 @@ class Database {
   }
 
   getAllTimeLeaderboard(limit = 10) {
-    // ❗ เฉพาะผู้ใช้จริงที่มีคะแนนมากกว่า 0 EXP เท่านั้น
+    const MIN_EXP_FOR_RANKING = 100; // ❗ นับแต้ม 100 EXP ขึ้นไปถึงจะเริ่มจัดอันดับ
+
+    // ❗ เฉพาะผู้ใช้จริงที่มีคะแนนอย่างน้อย 100 EXP เท่านั้น
     const list = Object.values(this.data.users)
-      .filter(u => (u.allTimeScore || 0) > 0 && !u.email?.includes('audit_test') && !u.id?.startsWith('test_') && !u.id?.startsWith('user_demo_'))
+      .filter(u => (((u.allTimeScore || 0) >= MIN_EXP_FOR_RANKING || u.isDev)) && !u.email?.includes('audit_test') && !u.id?.startsWith('test_') && !u.id?.startsWith('user_demo_'))
       .map(u => ({
         id: u.id,
         name: u.name,

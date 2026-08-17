@@ -67,9 +67,13 @@ class AuthManager {
     }
 
     try {
+      const powHeaders = window.powClient ? await window.powClient.getPoWHeaders() : {};
       const res = await fetch('/api/auth/email-login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...powHeaders
+        },
         body: JSON.stringify({ email: email.trim(), name: name ? name.trim() : '' })
       });
 
