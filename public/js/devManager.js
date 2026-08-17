@@ -567,15 +567,32 @@ class DevManager {
       });
       const data = await res.json();
 
-      if (data.success) {
-        this.allUsers = data.data || [];
+      if (data.success && Array.isArray(data.data)) {
+        this.allUsers = data.data;
         this.renderAllUsersTable();
       } else {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #EF4444; padding: 1rem;">${data.error || 'โหลดไม่สำเร็จ'}</td></tr>`;
+        // Fallback: load directly from database rankings
+        const fallbackRes = await fetch('/api/rank/all-time?limit=100');
+        const fallbackData = await fallbackRes.json();
+        if (fallbackData.success && fallbackData.data?.rankings) {
+          this.allUsers = fallbackData.data.rankings;
+          this.renderAllUsersTable();
+        } else {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #EF4444; padding: 1rem;">${data.error || 'โหลดไม่สำเร็จ'}</td></tr>`;
+        }
       }
     } catch (err) {
       console.error('Error loading all users:', err);
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #EF4444; padding: 1rem;">เกิดข้อผิดพลาดในการเชื่อมต่อ</td></tr>`;
+      try {
+        const fallbackRes = await fetch('/api/rank/all-time?limit=100');
+        const fallbackData = await fallbackRes.json();
+        if (fallbackData.success && fallbackData.data?.rankings) {
+          this.allUsers = fallbackData.data.rankings;
+          this.renderAllUsersTable();
+          return;
+        }
+      } catch (e2) {}
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #EF4444; padding: 1rem;">เกิดข้อผิดพลาดในการโหลดข้อมูลผู้ใช้ (${err.message})</td></tr>`;
     }
   }
 
