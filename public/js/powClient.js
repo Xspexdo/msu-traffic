@@ -1,11 +1,63 @@
 /**
  * =========================================================================
- * MSU Traffic - Client-Side Proof-of-Work (PoW) & Anti-Replay Nonce Engine
- * =========================================================================
- * Ultra-fast WebCrypto-accelerated PoW Solver (~20-40ms) with Pre-Solving Cache
- * Protects server against high-frequency bot spam & scripted flood attacks.
+ * 🔒 MSU Traffic - Device UUID & Hardware/Browser Fingerprint Engine
+ * สร้างรหัสเฉพาะประจำเครื่อง (Device UUID + Canvas/WebGL + Screen + HW Fingerprint)
+ * ฝังลงใน LocalStorage เพื่อระบุตัวตนเครื่อง โดยไม่พึ่งพา IP Address
  * =========================================================================
  */
+function generateDeviceFingerprint() {
+  try {
+    let storedId = localStorage.getItem('msu_device_uuid');
+    if (storedId && typeof storedId === 'string' && storedId.startsWith('dev_')) {
+      return storedId;
+    }
+
+    // 1. Canvas Fingerprint
+    let canvasHash = 'c0';
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 240;
+      canvas.height = 60;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.textBaseline = 'top';
+        ctx.font = '14px "Kanit", "Prompt", Arial, sans-serif';
+        ctx.fillStyle = '#F59E0B';
+        ctx.fillRect(10, 10, 80, 25);
+        ctx.fillStyle = '#1E3A8A';
+        ctx.fillText('MSU_TRAFFIC_DEVICE_2026', 15, 15);
+        const dataUrl = canvas.toDataURL();
+        let hash = 0;
+        for (let i = 0; i < dataUrl.length; i++) {
+          hash = ((hash << 5) - hash) + dataUrl.charCodeAt(i);
+          hash |= 0;
+        }
+        canvasHash = Math.abs(hash).toString(36);
+      }
+    } catch (e) {}
+
+    // 2. Hardware / Browser characteristics
+    const screenInfo = `${window.screen?.width || 0}x${window.screen?.height || 0}x${window.screen?.colorDepth || 24}`;
+    const hwConcurrency = navigator.hardwareConcurrency || 2;
+    const maxTouch = navigator.maxTouchPoints || 0;
+    const lang = (navigator.language || 'th').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    // 3. High-entropy Random UUID
+    const randUUID = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+
+    const newDeviceId = `dev_${canvasHash}_${screenInfo}_${hwConcurrency}_${maxTouch}_${lang}_${randUUID}`;
+    localStorage.setItem('msu_device_uuid', newDeviceId);
+    return newDeviceId;
+  } catch (e) {
+    return 'dev_fallback_' + Math.random().toString(36).substring(2, 12);
+  }
+}
+
+window.getDeviceId = generateDeviceFingerprint;
+window.DEVICE_ID = generateDeviceFingerprint();
 
 class PoWClient {
   constructor() {

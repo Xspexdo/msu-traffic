@@ -146,14 +146,19 @@ class MSUMapManager {
         myPins = JSON.parse(localStorage.getItem('msu_my_pins') || '[]');
       } catch (e) {}
 
-      // Permission to drag (รองรับ IP matching จาก Server, User ID, และ Local Cache)
-      const isAuthor = report.isMyPin === true || (currentUser && (
+      // Permission to drag (ล็อกตาม User ID จริง หรือ Device UUID ประจำเครื่องเท่านั้น)
+      const currentDeviceId = window.getDeviceId ? window.getDeviceId() : (localStorage.getItem('msu_device_uuid') || '');
+      const isAuthor = (currentUser && (
         (report.reporter?.id && report.reporter.id === currentUser.id) ||
         (report.realReporter?.id && report.realReporter.id === currentUser.id) ||
         (report.reporterId && report.reporterId === currentUser.id) ||
         (report.reporter?.email && report.reporter.email === currentUser.email) ||
         (report.realReporter?.email && report.realReporter.email === currentUser.email)
-      )) || myPins.includes(report.id);
+      )) || (!currentUser && (
+        report.isMyPin === true ||
+        (currentDeviceId && report.deviceId && report.deviceId === currentDeviceId) ||
+        myPins.includes(report.id)
+      ));
 
       const createdAtMs = new Date(report.createdAt).getTime();
       const elapsedMs = Date.now() - createdAtMs;

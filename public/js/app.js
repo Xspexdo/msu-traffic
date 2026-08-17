@@ -422,7 +422,8 @@ class MSUApp {
   // ----------------------------------------------------
   async loadReports() {
     try {
-      const res = await fetch('/api/reports');
+      const headers = window.authManager ? window.authManager.getAuthHeader() : {};
+      const res = await fetch('/api/reports', { headers });
       const data = await res.json();
       if (data.success && data.data) {
         this.reports = data.data;
@@ -600,7 +601,17 @@ class MSUApp {
     try {
       myPins = JSON.parse(localStorage.getItem('msu_my_pins') || '[]');
     } catch (e) {}
-    const isAuthor = rep.isMyPin === true || (currentUserId && (rep.reporterId === currentUserId || rep.reporter?.email === currentUserEmail)) || myPins.includes(rep.id);
+    const currentDeviceId = window.getDeviceId ? window.getDeviceId() : (localStorage.getItem('msu_device_uuid') || '');
+    const isAuthor = (currentUserId && (
+      rep.reporterId === currentUserId ||
+      rep.reporter?.email === currentUserEmail ||
+      rep.realReporter?.id === currentUserId ||
+      rep.realReporter?.email === currentUserEmail
+    )) || (!currentUserId && (
+      rep.isMyPin === true ||
+      (currentDeviceId && rep.deviceId && rep.deviceId === currentDeviceId) ||
+      myPins.includes(rep.id)
+    ));
     const canDelete = isDev || isAuthor;
 
     const timeInfo = this.formatTimeInfo(rep.createdAt, rep.expiresAt, rep.status);
@@ -867,7 +878,8 @@ class MSUApp {
       description,
       lifespanHours: parseFloat(lifespanHours),
       isAnonymous,
-      isAnnouncement
+      isAnnouncement,
+      deviceId: window.getDeviceId ? window.getDeviceId() : (localStorage.getItem('msu_device_uuid') || '')
     };
 
     try {
@@ -884,6 +896,16 @@ class MSUApp {
 
       const data = await res.json();
       if (data.success) {
+        // บันทึก ID หมุดลงในเครื่อง เพื่อล็อกสิทธิ์ความเป็นเจ้าของ
+        if (data.data?.id) {
+          try {
+            const currentMyPins = JSON.parse(localStorage.getItem('msu_my_pins') || '[]');
+            if (!currentMyPins.includes(data.data.id)) {
+              currentMyPins.push(data.data.id);
+              localStorage.setItem('msu_my_pins', JSON.stringify(currentMyPins));
+            }
+          } catch (e) {}
+        }
         this.closeReportModal();
         this.showNotification('🎉 ปักหมุดสำเร็จ! (คุณสามารถแตะลากหมุดบนแผนที่เพื่อย้ายตำแหน่งได้เรื่อยๆ ใน 20 วินาที ⏱️)', 'success');
         document.getElementById('reportForm')?.reset();

@@ -1544,9 +1544,16 @@
     }
   ],
   "visitors": {
-    "total": 50,
-    "today": 50,
+    "total": 53,
+    "today": 53,
     "lastDate": "2026-08-18",
-    "dailyHistory": {}
+    "dailyHistory": {},
+    "monthlyHistory": {
+      "2026-08": 1
+    },
+    "visitedIpsToday": {
+      "::1": 1786994487884,
+      "127.0.0.1": 1786994487884
+    }
   }
 }

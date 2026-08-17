@@ -52,8 +52,14 @@ class AuthManager {
   }
 
   getAuthHeader() {
-    if (!this.currentUser) return {};
+    const deviceId = window.getDeviceId ? window.getDeviceId() : (localStorage.getItem('msu_device_uuid') || '');
+    const headers = {};
+    if (deviceId) {
+      headers['X-Device-Id'] = deviceId;
+    }
+    if (!this.currentUser) return headers;
     return {
+      ...headers,
       'Authorization': `Bearer ${this.currentUser.token || 'auth-token'}`,
       'X-User-Data': encodeURIComponent(JSON.stringify(this.currentUser))
     };

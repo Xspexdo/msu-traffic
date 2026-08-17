@@ -71,9 +71,10 @@ module.exports = function(io) {
     }
   });
 
-  // GET /api/reports - ดึงหมุดทั้งหมด (ระบุ isMyPin อัตโนมัติตาม IP / User Account)
+  // GET /api/reports - ดึงหมุดทั้งหมด (ระบุ isMyPin ตาม User Account หรือ Device ID ประจำเครื่อง)
   router.get('/', optionalAuth, (req, res) => {
     try {
+      const deviceId = (req.headers['x-device-id'] || req.query.deviceId || '').trim();
       const clientIp = getClientIp(req);
       const userId = req.user?.id;
       const userEmail = (req.user?.email || '').toLowerCase().trim();
@@ -82,12 +83,17 @@ module.exports = function(io) {
       const { zone, type, status, search } = req.query;
       const pins = db.getPins({ zone, type, status, search });
 
-      // แนบ flag isMyPin ให้ตรงกับ IP หรือ User ID ของผู้เรียกโดยอัตโนมัติ
+      // แนบ flag isMyPin ให้ตรงกับ User ID / Email หรือ Device ID ประจำเครื่องเท่านั้น (ตัด IP ออก)
       const pinsWithOwnership = pins.map(p => {
-        const isAuthor = isDev ||
-          (userId && (p.reporterId === userId || p.realReporter?.id === userId)) ||
-          (userEmail && (p.reporter?.email === userEmail || p.realReporter?.email === userEmail)) ||
-          (clientIp && (p.ip === clientIp || p.reporter?.ip === clientIp || p.realReporter?.ip === clientIp));
+        let isAuthor = false;
+        if (isDev) {
+          isAuthor = true;
+        } else if (userId || userEmail) {
+          isAuthor = (userId && (p.reporterId === userId || p.realReporter?.id === userId)) ||
+                     (userEmail && (p.reporter?.email === userEmail || p.realReporter?.email === userEmail));
+        } else if (deviceId) {
+          isAuthor = !!(p.deviceId && p.deviceId === deviceId);
+        }
 
         return {
           ...p,
@@ -133,10 +139,11 @@ module.exports = function(io) {
   // GET /api/reports/quota - ตรวจสอบโควตาการปักหมุดของผู้ใช้ปัจจุบัน
   router.get('/quota', optionalAuth, (req, res) => {
     try {
+      const deviceId = (req.headers['x-device-id'] || req.query.deviceId || '').trim();
       const clientIp = getClientIp(req);
       const isAnon = req.query.isAnonymous === 'true';
       if (!req.user || !req.user.id) {
-        const quota = db.checkUserPinQuota('anonymous_guest', '', false, true, clientIp);
+        const quota = db.checkUserPinQuota('anonymous_guest', '', false, true, clientIp, deviceId);
         return res.json({
           success: true,
           quota
@@ -144,7 +151,7 @@ module.exports = function(io) {
       }
       const userEmail = (req.user.email || '').toLowerCase().trim();
       const isDev = req.user.isDev === true || userEmail === 'java5263@gmail.com';
-      const quota = db.checkUserPinQuota(req.user.id, userEmail, isDev, isAnon, clientIp);
+      const quota = db.checkUserPinQuota(req.user.id, userEmail, isDev, isAnon, clientIp, deviceId);
       res.json({
         success: true,
         quota
@@ -157,12 +164,13 @@ module.exports = function(io) {
   // POST /api/reports - สร้างหมุดรายงานด่านใหม่ (รองรับทั้งสมาชิก และนิสิตนิรนาม/Guest)
   router.post('/', optionalAuth, requirePoW, (req, res) => {
     try {
+      const deviceId = (req.headers['x-device-id'] || req.body.deviceId || '').trim();
       const clientIp = getClientIp(req);
       const isGuest = !req.user || !req.user.id;
       const isAnon = isGuest || req.body.isAnonymous === true;
 
       const userEmail = (!isGuest && req.user.email ? req.user.email : '').toLowerCase().trim();
-      const userId = !isGuest ? req.user.id : `guest_${clientIp.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      const userId = !isGuest ? req.user.id : (deviceId ? `guest_${deviceId.slice(-10)}` : `guest_${clientIp.replace(/[^a-zA-Z0-9]/g, '_')}`);
       const userName = !isGuest && req.user.name ? req.user.name : 'นิสิตนิรนาม';
       const userPicture = !isGuest && req.user.picture ? req.user.picture : '';
       const isDev = !isGuest && (req.user.isDev === true || userEmail === 'java5263@gmail.com');
@@ -181,9 +189,9 @@ module.exports = function(io) {
       }
 
       // 🔒 ตรวจสอบโควตา:
-      // - โหมดนิรนาม / ไม่ได้ล็อกอิน: 1 หมุด/วัน (24 ชม.) ต่อ User ID, Email จริง และ IP Address เพื่อกันสแปม
+      // - โหมดนิรนาม / ไม่ได้ล็อกอิน: 1 หมุด/วัน (24 ชม.) ต่อ User ID, Email จริง หรือ Device ID ประจำเครื่อง
       // - สมาชิกทั่วไป: 3 หมุด/ชม. (ยกเว้น Dev)
-      const quota = db.checkUserPinQuota(userId, userEmail, isDev, isAnon, clientIp);
+      const quota = db.checkUserPinQuota(userId, userEmail, isDev, isAnon, clientIp, deviceId);
       if (!quota.allowed) {
         return res.status(429).json({
           success: false,
@@ -269,6 +277,7 @@ module.exports = function(io) {
         isAnonymous: isAnon,
         isAnnouncement: req.body.isAnnouncement === true && isDev,
         ip: clientIp,
+        deviceId: deviceId || null,
         reporterId: userId,
         reporter: {
           id: userId,
@@ -382,7 +391,7 @@ module.exports = function(io) {
     }
   });
 
-  // DELETE /api/reports/:id - ลบหมุดรายงาน (เจ้าของโพสต์ หรือ Dev หรือตรงกับ IP ที่สร้าง)
+  // DELETE /api/reports/:id - ลบหมุดรายงาน (เจ้าของโพสต์ตาม User ID / Device ID หรือ Dev)
   router.delete('/:id', optionalAuth, (req, res) => {
     try {
       const pinId = req.params.id;
@@ -391,22 +400,27 @@ module.exports = function(io) {
         return res.status(404).json({ success: false, error: 'ไม่พบหมุดนี้' });
       }
 
-      const clientIp = getClientIp(req);
+      const deviceId = (req.headers['x-device-id'] || req.query.deviceId || req.body.deviceId || '').trim();
       const isGuest = !req.user || !req.user.id;
       const userEmail = (!isGuest && req.user.email ? req.user.email : '').toLowerCase().trim();
-      const userId = !isGuest ? req.user.id : `guest_${clientIp.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      const userId = !isGuest ? req.user.id : null;
       const isDev = !isGuest && (req.user.isDev === true || userEmail === 'java5263@gmail.com');
 
-      const isAuthor = userId === pin.reporterId || 
-                       userId === pin.realReporter?.id ||
-                       (userEmail && (userEmail === pin.reporter?.email || userEmail === pin.realReporter?.email)) ||
-                       (clientIp && (pin.ip === clientIp || pin.reporter?.ip === clientIp || pin.realReporter?.ip === clientIp));
+      let isAuthor = false;
+      if (isDev) {
+        isAuthor = true;
+      } else if (userId || userEmail) {
+        isAuthor = (userId && (pin.reporterId === userId || pin.realReporter?.id === userId)) ||
+                   (userEmail && (pin.reporter?.email === userEmail || pin.realReporter?.email === userEmail));
+      } else if (deviceId) {
+        isAuthor = !!(pin.deviceId && pin.deviceId === deviceId);
+      }
 
       if (!isDev && !isAuthor) {
         return res.status(403).json({ success: false, error: 'คุณไม่มีสิทธิ์ลบหมุดของผู้อื่น' });
       }
 
-      const result = db.deletePin(pinId, userId);
+      const result = db.deletePin(pinId, userId || deviceId || 'anon');
 
       if (io) {
         io.emit('report_deleted', pinId);
@@ -424,7 +438,7 @@ module.exports = function(io) {
     }
   });
 
-  // PUT /api/reports/:id/location - ย้ายพิกัดหมุด (เจ้าของโพสต์ หรือ Dev)
+  // PUT /api/reports/:id/location - ย้ายพิกัดหมุด (เจ้าของโพสต์ตาม User ID / Device ID หรือ Dev)
   router.put('/:id/location', optionalAuth, (req, res) => {
     try {
       const { lat, lng, locationName } = req.body;
@@ -434,16 +448,21 @@ module.exports = function(io) {
         return res.status(404).json({ success: false, error: 'ไม่พบหมุดนี้' });
       }
 
-      const clientIp = getClientIp(req);
+      const deviceId = (req.headers['x-device-id'] || req.body.deviceId || '').trim();
       const isGuest = !req.user || !req.user.id;
       const userEmail = (!isGuest && req.user.email ? req.user.email : '').toLowerCase().trim();
-      const userId = !isGuest ? req.user.id : `guest_${clientIp.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      const userId = !isGuest ? req.user.id : null;
       const isDev = !isGuest && (req.user.isDev === true || userEmail === 'java5263@gmail.com');
 
-      const isAuthor = userId === pin.reporterId || 
-                       userId === pin.realReporter?.id ||
-                       (userEmail && (userEmail === pin.reporter?.email || userEmail === pin.realReporter?.email)) ||
-                       (clientIp && (pin.ip === clientIp || pin.reporter?.ip === clientIp || pin.realReporter?.ip === clientIp));
+      let isAuthor = false;
+      if (isDev) {
+        isAuthor = true;
+      } else if (userId || userEmail) {
+        isAuthor = (userId && (pin.reporterId === userId || pin.realReporter?.id === userId)) ||
+                   (userEmail && (pin.reporter?.email === userEmail || pin.realReporter?.email === userEmail));
+      } else if (deviceId) {
+        isAuthor = !!(pin.deviceId && pin.deviceId === deviceId);
+      }
 
       if (!isDev && !isAuthor) {
         return res.status(403).json({ success: false, error: 'คุณไม่มีสิทธิ์แก้ไขพิกัดหมุดของผู้อื่น' });

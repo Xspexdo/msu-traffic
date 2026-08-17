@@ -694,9 +694,10 @@ class Database {
   // 1. โหมดนิรนาม (isAnonymous): จำกัด 1 หมุด ต่อ 1 วัน (24 ชม.) ต่อ บัญชี/อีเมล และต่อ IP (ป้องกันการสแปม)
   // 2. สมาชิกทั่วไป: 3 หมุด ต่อ 1 ชั่วโมง
   // 3. Dev: ไม่จำกัดโควตา
-  checkUserPinQuota(userId, userEmail, isDev = false, isAnonymous = false, clientIp = '') {
+  checkUserPinQuota(userId, userEmail, isDev = false, isAnonymous = false, clientIp = '', deviceId = '') {
     const cleanEmail = (userEmail || '').toLowerCase().trim();
     const cleanIp = (clientIp || '').trim();
+    const cleanDeviceId = (deviceId || '').trim();
     if (isDev || cleanEmail === 'java5263@gmail.com') {
       return { allowed: true, isDev: true, countLastHour: 0, maxPerHour: 999, remainingLastHour: 999, remainingToday: 999 };
     }
@@ -705,7 +706,7 @@ class Database {
     const ONE_HOUR_MS = 60 * 60 * 1000;
     const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
-    // 🕵️‍♂️ กฎโควตาโหมดนิรนาม: 1 หมุด ต่อ 24 ชั่วโมง (ตรวจสอบทั้ง User ID, Email จริง และ IP Address)
+    // 🕵️‍♂️ กฎโควตาโหมดนิรนาม: 1 หมุด ต่อ 24 ชั่วโมง (ตรวจสอบตาม User ID, Email จริง หรือ Device ID ประจำเครื่อง)
     if (isAnonymous) {
       const anonPins = (this.data.pins || []).filter(p => {
         if (p.status === 'deleted') return false;
@@ -717,8 +718,8 @@ class Database {
           (p.reporter?.email && p.reporter.email.toLowerCase().trim() === cleanEmail) ||
           (p.reporter?.realEmail && p.reporter.realEmail.toLowerCase().trim() === cleanEmail)
         );
-        const isMatchIp = cleanIp && (p.ip === cleanIp || (p.reporter?.ip && p.reporter.ip === cleanIp) || (p.realReporter?.ip && p.realReporter.ip === cleanIp));
-        return isMatchId || isMatchEmail || isMatchIp;
+        const isMatchDevice = cleanDeviceId && p.deviceId === cleanDeviceId;
+        return isMatchId || isMatchEmail || isMatchDevice;
       }).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
       const anonPinsLast24h = anonPins.filter(p => (now - (p.createdAt || 0)) < TWENTY_FOUR_HOURS_MS);
@@ -859,6 +860,7 @@ class Database {
       isAnonymous: isAnon,
       isAnnouncement: isAnnouncement,
       ip: clientIp,
+      deviceId: pinData.deviceId || null,
       reporterId: pinData.reporterId || 'anonymous',
       reporter: reporterObj,
       realReporter: realReporterObj,
