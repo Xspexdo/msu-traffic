@@ -219,19 +219,22 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  font-family: var(--font-primary);
+  font-size: 0.76rem;
   font-weight: 700;
   cursor: pointer;
-  padding: 0.42rem 0.85rem;
-  border-radius: var(--radius-full);
-  border: 1.5px solid var(--border);
+  padding: 0.35rem 0.75rem !important;
+  border-radius: 20px !important;
+  border: 1px solid var(--border) !important;
   background: var(--bg-card);
   color: var(--text-main);
   transition: all 0.2s ease;
+  user-select: none;
 }
 
 .nav-menu-trigger-btn:hover {
-  background: #F1F5F9;
-  border-color: #CBD5E1;
+  background: var(--border-light);
+  border-color: #94A3B8 !important;
 }
 
 .nav-menu-dropdown-content {
@@ -300,14 +303,15 @@ body {
 
 /* Dark theme for dropdown menu */
 [data-theme="dark"] .nav-menu-trigger-btn {
-  background: #151D2A;
-  border-color: var(--border);
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid #334155 !important;
   color: #F8FAFC;
 }
 
 [data-theme="dark"] .nav-menu-trigger-btn:hover {
-  background: #1E293B;
-  border-color: #475569;
+  background: #334155;
+  border-color: #64748B !important;
+  color: #FFFFFF;
 }
 
 [data-theme="dark"] .nav-menu-dropdown-content {
@@ -5020,6 +5024,60 @@ body.dark-theme {
 }
 
 [data-theme="dark"] #devRoleEditModal .modal-footer {
+  background: #0F172A !important;
+  border-top-color: #334155 !important;
+}
+
+/* 🔍 DEV ANONYMOUS REVEAL & INSPECT PILL BUTTON */
+.dev-anon-inspect-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  color: #1D4ED8;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  cursor: pointer;
+  line-height: 1.2;
+  transition: all 0.15s ease;
+  vertical-align: middle;
+  font-family: inherit;
+}
+
+.dev-anon-inspect-btn:hover {
+  background: #DBEAFE;
+  border-color: #3B82F6;
+  color: #1E40AF;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.15);
+}
+
+[data-theme="dark"] .dev-anon-inspect-btn {
+  background: rgba(30, 58, 138, 0.4) !important;
+  border-color: #1E40AF !important;
+  color: #93C5FD !important;
+}
+
+[data-theme="dark"] .dev-anon-inspect-btn:hover {
+  background: rgba(30, 58, 138, 0.7) !important;
+  border-color: #3B82F6 !important;
+  color: #BFDBFE !important;
+}
+
+[data-theme="dark"] #devUserInspectModal .modal-container {
+  background: #1E293B !important;
+  color: #F8FAFC !important;
+  border: 1px solid #334155 !important;
+}
+
+[data-theme="dark"] #devUserInspectModal .modal-body {
+  background: #1E293B !important;
+}
+
+[data-theme="dark"] #devUserInspectModal .modal-footer {
   background: #0F172A !important;
   border-top-color: #334155 !important;
 }

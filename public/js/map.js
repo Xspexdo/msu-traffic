@@ -527,7 +527,20 @@ class MSUMapManager {
               <span>${isCleared ? 'ยกเลิกด่านแล้ว' : 'กำลังตั้งด่าน'}</span>
             </div>
             <div class="popup-reporter-info">
-              <span class="reporter-name">${report.reporter?.name || 'นิสิต มมส'}</span>
+              ${report.isAnonymous ? `
+                ${isDev ? `
+                  <span class="reporter-name" style="display: inline-flex; align-items: center; gap: 0.3rem; flex-wrap: wrap;">
+                    <span>🕵️‍♂️ นิสิตนิรนาม</span>
+                    <button type="button" class="dev-anon-inspect-btn" onclick="event.stopPropagation(); window.devManager?.inspectUser('${report.realReporter?.id || report.reporterId || report.reporter?.id}')" title="สิทธิ์ Dev: ดูข้อมูลจริงและโปรไฟล์">
+                      (จริง: ${this.escapeHtml(report.realReporter?.name || report.reporter?.realName || report.reporter?.name || 'ผู้ใช้ มมส')} #${(report.realReporter?.id || report.reporterId || '').slice(-6)}) ℹ️ info
+                    </button>
+                  </span>
+                ` : `
+                  <span class="reporter-name">🕵️‍♂️ นิสิตนิรนาม</span>
+                `}
+              ` : `
+                <span class="reporter-name">${this.escapeHtml(report.reporter?.name || 'นิสิต มมส')}</span>
+              `}
               ${badgeHtml}
               ${window.rankManager ? window.rankManager.getRankBadgeHtml(report.reporter?.rank, 'xs') : ''}
             </div>

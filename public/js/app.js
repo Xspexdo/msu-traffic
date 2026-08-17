@@ -440,7 +440,20 @@ class MSUApp {
         <div class="card-footer">
           <div class="card-reporter">
             <img class="reporter-avatar" src="${rep.reporter?.picture || 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff'}" alt="avatar">
-            <span style="font-weight: 600;">${isAnnouncement ? 'MSU Traffic' : (rep.reporter?.name || 'นิสิต มมส')}</span>
+            ${rep.isAnonymous ? `
+              ${isDev ? `
+                <div style="display: inline-flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                  <span style="font-weight: 700; color: #475569;">🕵️‍♂️ นิสิตนิรนาม</span>
+                  <button type="button" class="dev-anon-inspect-btn" onclick="event.stopPropagation(); window.devManager?.inspectUser('${rep.realReporter?.id || rep.reporterId || rep.reporter?.id}')" title="สิทธิ์ Dev: คลิกดูข้อมูลจริงและโปรไฟล์">
+                    (จริง: ${this.escapeHtml(rep.realReporter?.name || rep.reporter?.realName || rep.reporter?.name || 'ผู้ใช้ มมส')} #${(rep.realReporter?.id || rep.reporterId || '').slice(-6)}) ℹ️ info
+                  </button>
+                </div>
+              ` : `
+                <span style="font-weight: 600; color: #64748B;">🕵️‍♂️ นิสิตนิรนาม</span>
+              `}
+            ` : `
+              <span style="font-weight: 600;">${isAnnouncement ? 'MSU Traffic' : this.escapeHtml(rep.reporter?.name || 'นิสิต มมส')}</span>
+            `}
             ${badgeHtml}
           </div>
 
@@ -1081,6 +1094,25 @@ class MSUApp {
       ? 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=120&auto=format&fit=crop&q=80'
       : (msg.senderPicture || 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff');
 
+    const isDev = window.authManager?.isDev();
+    let senderNameHtml = `<span class="pin-msg-name">${this.escapeHtml(msg.senderName)}</span>`;
+    if (msg.isAnonymous) {
+      if (isDev) {
+        const realName = msg.realSenderName || msg.senderName || 'นิสิต มมส';
+        const realId = msg.realSenderId || msg.senderId || '';
+        senderNameHtml = `
+          <span class="pin-msg-name" style="display: inline-flex; align-items: center; gap: 0.3rem; flex-wrap: wrap;">
+            <span>🕵️‍♂️ นิสิตนิรนาม</span>
+            <button type="button" class="dev-anon-inspect-btn" onclick="event.stopPropagation(); window.devManager?.inspectUser('${realId}')" title="สิทธิ์ Dev: คลิกดูข้อมูลจริง">
+              (จริง: ${this.escapeHtml(realName)} #${realId.slice(-6)}) ℹ️ info
+            </button>
+          </span>
+        `;
+      } else {
+        senderNameHtml = `<span class="pin-msg-name">🕵️‍♂️ นิสิตนิรนาม</span>`;
+      }
+    }
+
     return `
       <div class="pin-msg-row ${isSelf && !isAnnouncement ? 'self' : ''} ${isAnnouncement ? 'pin-msg-announcement' : ''}" id="pin-msg-${msg.id}">
         <div class="pin-msg-avatar-wrap">
@@ -1089,7 +1121,7 @@ class MSUApp {
         </div>
         <div class="pin-msg-content">
           <div class="pin-msg-meta">
-            <span class="pin-msg-name">${msg.senderName}</span>
+            ${senderNameHtml}
             <span class="chat-badge ${badgeClass}">${badgeText}</span>
             ${rankBadgeHtml}
             <span class="pin-msg-header-time">${timeStr}</span>

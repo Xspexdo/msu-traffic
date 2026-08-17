@@ -1667,18 +1667,93 @@
     </div>
   </div>
 
+  <!-- MODAL: 🔍 สิทธิ์ Dev: ตรวจสอบข้อมูลโปรไฟล์ผู้ใช้งานจริง (User Inspector Modal) -->
+  <div class="modal-overlay" id="devUserInspectModal" style="z-index: 10010;">
+    <div class="modal-container" style="max-width: 460px;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color: #FFFFFF; border-bottom: 2px solid #3B82F6;">
+        <div class="modal-title" style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 1.25rem;">🔍</span>
+          <div>
+            <span style="font-weight: 800; font-size: 0.95rem; color: #FFFFFF;">ตรวจสอบข้อมูลผู้ใช้งานจริง (Dev Inspector)</span>
+            <div style="font-size: 0.68rem; color: #93C5FD;">ข้อมูลจริงเบื้องหลังโพสต์/แชทนิรนาม</div>
+          </div>
+        </div>
+        <button class="modal-close-btn" style="color: #94A3B8;" onclick="window.devManager.closeInspectUserModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.2rem; display: flex; flex-direction: column; gap: 1rem;">
+        
+        <!-- User Top Profile Card -->
+        <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 1rem; display: flex; align-items: center; gap: 1rem;">
+          <img id="inspectUserAvatar" src="" alt="avatar" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2.5px solid #3B82F6; box-shadow: 0 4px 10px rgba(0,0,0,0.08);">
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+              <div id="inspectUserName" style="font-size: 1rem; font-weight: 800; color: #0F172A; word-break: break-word;"></div>
+              <span id="inspectUserBadge" class="dev-badge badge-member" style="font-size: 0.68rem;"></span>
+            </div>
+            <div id="inspectUserEmail" style="font-size: 0.76rem; color: #64748B; margin-top: 2px; word-break: break-all;"></div>
+          </div>
+        </div>
+
+        <!-- Detail Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          
+          <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; padding: 0.75rem;">
+            <div style="font-size: 0.68rem; color: #64748B; font-weight: 700; text-transform: uppercase;">User ID</div>
+            <div id="inspectUserId" style="font-size: 0.75rem; font-family: monospace; font-weight: 700; color: #334155; word-break: break-all; margin-top: 3px;"></div>
+          </div>
+
+          <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; padding: 0.75rem;">
+            <div style="font-size: 0.68rem; color: #64748B; font-weight: 700; text-transform: uppercase;">ยศหลักในระบบ (Role)</div>
+            <div id="inspectUserRole" style="font-size: 0.8rem; font-weight: 800; color: #1E293B; margin-top: 3px;"></div>
+          </div>
+
+          <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; padding: 0.75rem;">
+            <div style="font-size: 0.68rem; color: #64748B; font-weight: 700; text-transform: uppercase;">Trust Score</div>
+            <div id="inspectUserTrustScore" style="font-size: 0.95rem; font-weight: 800; color: #10B981; margin-top: 2px;"></div>
+          </div>
+
+          <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; padding: 0.75rem;">
+            <div style="font-size: 0.68rem; color: #64748B; font-weight: 700; text-transform: uppercase;">สถานะบัญชี</div>
+            <div id="inspectUserStatus" style="font-size: 0.8rem; font-weight: 800; margin-top: 3px;"></div>
+          </div>
+
+        </div>
+
+        <!-- Global Chat Status Card -->
+        <div style="background: #EFF6FF; border: 1.5px solid #BFDBFE; border-radius: 10px; padding: 0.75rem 0.9rem; display: flex; align-items: center; justify-content: space-between;">
+          <div style="font-size: 0.76rem; color: #1E40AF; font-weight: 700;">สิทธิ์การส่งแชท:</div>
+          <div id="inspectUserGlobalStatus" style="font-size: 0.78rem; font-weight: 800;"></div>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div>
+          <div style="font-size: 0.72rem; color: #64748B; font-weight: 700; margin-bottom: 0.45rem;">⚡ จัดการผู้ใช้นี้ทันที:</div>
+          <div id="inspectUserActions" style="display: flex; gap: 0.4rem; flex-wrap: wrap;"></div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="padding: 0.75rem 1.2rem; background: #F8FAFC; border-top: 1px solid #E2E8F0; display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-primary btn-sm" onclick="window.devManager.closeInspectUserModal()" style="font-weight: 700;">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Socket.io Client -->
   <script src="/socket.io/socket.io.js"></script>
 
   <!-- Application Scripts (with cache-busting) -->
-  <script src="js/rateLimitAlert.js?v=2.10.0"></script>
-  <script src="js/auth.js?v=2.10.0"></script>
-  <script src="js/rankManager.js?v=2.10.0"></script>
-  <script src="js/chatManager.js?v=2.10.0"></script>
-  <script src="js/map.js?v=2.10.0"></script>
-  <script src="js/devManager.js?v=2.10.0"></script>
-  <script src="js/securityGatekeeper.js?v=2.10.0"></script>
-  <script src="js/app.js?v=2.10.0"></script>
+  <script src="js/rateLimitAlert.js?v=2.11.0"></script>
+  <script src="js/auth.js?v=2.11.0"></script>
+  <script src="js/rankManager.js?v=2.11.0"></script>
+  <script src="js/chatManager.js?v=2.11.0"></script>
+  <script src="js/map.js?v=2.11.0"></script>
+  <script src="js/devManager.js?v=2.11.0"></script>
+  <script src="js/securityGatekeeper.js?v=2.11.0"></script>
+  <script src="js/app.js?v=2.11.0"></script>
 
 
   <script>

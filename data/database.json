@@ -14,9 +14,9 @@
       "role": "dev",
       "badge": "👑 DEV",
       "trustScore": 100,
-      "weeklyScore": 0,
-      "allTimeScore": 0,
-      "pinsCreated": 0,
+      "weeklyScore": 6,
+      "allTimeScore": 6,
+      "pinsCreated": 1,
       "pinsVerified": 0,
       "reportsCount": 0,
       "accurateReports": 0,
@@ -24,7 +24,8 @@
       "isDev": true,
       "status": "active",
       "createdAt": 1786777538446,
-      "lastActiveAt": 1786978030742
+      "lastActiveAt": 1786978173548,
+      "todayEarnedExp": 6
     },
     "google_108560811899542656924": {
       "id": "google_108560811899542656924",
@@ -87,7 +88,51 @@
       "lastActiveAt": 1786975816679
     }
   },
-  "pins": [],
+  "pins": [
+    {
+      "id": "pin-1786978174899-27mz2",
+      "title": "รายงานด่าน หน้าป้าย มมส",
+      "locationName": "หน้าป้าย มมส",
+      "customLocation": "",
+      "campusZone": "มอใหม่ (ขามเรียง)",
+      "lat": 16.2468,
+      "lng": 103.2514,
+      "type": "helmet",
+      "direction": "",
+      "description": "",
+      "imageUrl": null,
+      "severity": "medium",
+      "isAnonymous": true,
+      "isAnnouncement": false,
+      "reporterId": "dev_java5263",
+      "reporter": {
+        "realName": "Java (Dev)",
+        "realEmail": "java5263@gmail.com",
+        "realId": "dev_java5263"
+      },
+      "realReporter": {
+        "id": "dev_java5263",
+        "name": "Java (Dev)",
+        "email": "java5263@gmail.com",
+        "picture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
+        "badge": "👑 DEV",
+        "trustScore": 100
+      },
+      "likes": [],
+      "views": 1,
+      "votes": {
+        "up": [
+          "dev_java5263"
+        ],
+        "down": []
+      },
+      "reports": [],
+      "status": "active",
+      "moveCount": 0,
+      "createdAt": 1786978174899,
+      "expiresAt": 1786999774899
+    }
+  ],
   "pin_reports": [],
   "pin_likes": [],
   "chat_rooms": [
@@ -96,7 +141,7 @@
       "name": "ทั่วไป (General)",
       "icon": "💬",
       "desc": "พูดคุยแลกเปลี่ยนข่าวสารทั่วไปรอบ มมส",
-      "msgCount": 0
+      "msgCount": 1
     },
     {
       "id": "marketplace",
@@ -128,7 +173,34 @@
       "msgCount": 0
     }
   ],
-  "chat_messages": [],
+  "chat_messages": [
+    {
+      "id": "msg-1786978174934-md5t",
+      "roomId": "general",
+      "senderId": "dev_java5263",
+      "senderName": "นิสิตนิรนาม",
+      "senderEmail": "",
+      "senderBadge": "👑 DEV",
+      "senderPicture": "https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff",
+      "realSenderId": "dev_java5263",
+      "realSenderName": "Java (Dev)",
+      "realSenderEmail": "java5263@gmail.com",
+      "realSenderBadge": "👑 DEV",
+      "realSenderPicture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
+      "text": "ทดสอบแชทนิรนาม",
+      "isAnonymous": true,
+      "isAnnouncement": false,
+      "isGlobal": true,
+      "location": {
+        "lat": null,
+        "lng": null,
+        "distKm": 999,
+        "inZone": false,
+        "isGlobal": true
+      },
+      "createdAt": 1786978174934
+    }
+  ],
   "message_reports": [],
   "warnings": [],
   "bans": [],
@@ -1157,8 +1229,26 @@
       "details": "อัปเดตการตั้งค่า Google Sheets (Enabled: true)",
       "ip": "127.0.0.1",
       "createdAt": 1786976871035
+    },
+    {
+      "id": "audit-1786978174900-np2",
+      "action": "PIN_CREATE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786978174899-27mz2",
+      "details": "ปักหมุดด่านใหม่: หน้าป้าย มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786978174900
     }
   ],
   "pin_chat_messages": [],
-  "rider_requests": []
+  "rider_requests": [],
+  "leaderboard_snapshot": {
+    "calculatedAt": 1786978174898,
+    "nextCalculationAt": 1786986000000,
+    "rankings": []
+  },
+  "system_config": {
+    "globalChatEnabled": true,
+    "allowAllEmails": true
+  }
 }
