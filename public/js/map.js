@@ -141,12 +141,19 @@ class MSUMapManager {
       const typeLabel = this.getTypeShortLabel(report.type);
       const themeColor = this.getTypeColor(report.type);
 
-      // Permission to drag
-      const isAuthor = currentUser && (
+      let myPins = [];
+      try {
+        myPins = JSON.parse(localStorage.getItem('msu_my_pins') || '[]');
+      } catch (e) {}
+
+      // Permission to drag (รองรับ IP matching จาก Server, User ID, และ Local Cache)
+      const isAuthor = report.isMyPin === true || (currentUser && (
         (report.reporter?.id && report.reporter.id === currentUser.id) ||
+        (report.realReporter?.id && report.realReporter.id === currentUser.id) ||
         (report.reporterId && report.reporterId === currentUser.id) ||
-        (report.reporter?.email && report.reporter.email === currentUser.email)
-      );
+        (report.reporter?.email && report.reporter.email === currentUser.email) ||
+        (report.realReporter?.email && report.realReporter.email === currentUser.email)
+      )) || myPins.includes(report.id);
 
       const createdAtMs = new Date(report.createdAt).getTime();
       const elapsedMs = Date.now() - createdAtMs;
@@ -234,6 +241,13 @@ class MSUMapManager {
           const oldLat = report.lat;
           const oldLng = report.lng;
           const pinTitle = report.title || report.locationName || 'ด่านตรวจ';
+
+          // 💬 ถามยืนยันก่อนย้ายตำแหน่งหมุดจริง
+          const confirmMsg = `📍 คุณต้องการย้ายตำแหน่งหมุด "${pinTitle}" ไปยังจุดใหม่นี้ใช่หรือไม่?\n\n• กด [ตกลง] เพื่อยืนยันการปักตำแหน่งใหม่\n• กด [ยกเลิก] เพื่อคืนกลับตำแหน่งเดิม`;
+          if (!confirm(confirmMsg)) {
+            marker.setLatLng([oldLat, oldLng]);
+            return;
+          }
 
           if (navigator.vibrate) navigator.vibrate(60);
 
@@ -366,8 +380,9 @@ class MSUMapManager {
             <span class="pill-label">รีพอร์ต</span>
           </button>
           ${canDelete ? `
-            <button class="btn-action-pill pill-delete" title="ลบรายงานนี้" onclick="window.app.deleteReport('${report.id}', event)">
+            <button class="btn-action-pill pill-delete" style="background: #FEF2F2; border-color: #FECACA; color: #DC2626; font-weight: 700;" title="ลบหมุดนี้ออกจากแผนที่" onclick="window.app.deleteReport('${report.id}', event)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              <span>ลบหมุด</span>
             </button>
           ` : ''}
         </div>

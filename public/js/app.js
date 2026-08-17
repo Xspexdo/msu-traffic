@@ -562,7 +562,11 @@ class MSUApp {
     const currentUserEmail = window.authManager?.getUser()?.email;
     const isDev = window.authManager?.isDev();
 
-    const isAuthor = currentUserId && (rep.reporterId === currentUserId || rep.reporter?.email === currentUserEmail);
+    let myPins = [];
+    try {
+      myPins = JSON.parse(localStorage.getItem('msu_my_pins') || '[]');
+    } catch (e) {}
+    const isAuthor = rep.isMyPin === true || (currentUserId && (rep.reporterId === currentUserId || rep.reporter?.email === currentUserEmail)) || myPins.includes(rep.id);
     const canDelete = isDev || isAuthor;
 
     const timeInfo = this.formatTimeInfo(rep.createdAt, rep.expiresAt, rep.status);
@@ -676,8 +680,9 @@ class MSUApp {
               </button>
             ` : ''}
             ${canDelete ? `
-              <button class="btn-action-pill pill-delete" title="ลบประกาศนี้" onclick="window.app.deleteReport('${rep.id}', event)">
+              <button class="btn-action-pill pill-delete" style="background: #FEF2F2; border-color: #FECACA; color: #DC2626; font-weight: 700;" title="ลบประกาศนี้" onclick="window.app.deleteReport('${rep.id}', event)">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                <span>ลบ</span>
               </button>
             ` : ''}
           </div>
@@ -773,12 +778,7 @@ class MSUApp {
   async handleReportSubmit(e) {
     e.preventDefault();
 
-    if (!window.authManager.isLoggedIn()) {
-      this.closeReportModal();
-      window.authManager.openLoginModal('กรุณาเข้าสู่ระบบด้วย Google หรือ @msu.ac.th ก่อนส่งรายงานด่าน');
-      return;
-    }
-
+    const isLoggedIn = window.authManager?.isLoggedIn();
     const type = document.querySelector('input[name="checkpointType"]:checked')?.value;
     const presetSelect = document.getElementById('reportPresetZone');
     const customLoc = document.getElementById('reportCustomLocation')?.value.trim();
@@ -787,7 +787,7 @@ class MSUApp {
     const direction = document.getElementById('reportDirection')?.value.trim();
     const description = document.getElementById('reportDescription')?.value.trim();
     const campusZone = document.getElementById('reportCampusZone')?.value;
-    const isAnonymous = document.getElementById('reportIsAnonymous')?.checked || false;
+    const isAnonymous = !isLoggedIn ? true : (document.getElementById('reportIsAnonymous')?.checked || false);
 
     let locationName = '';
     if (customLoc) {
@@ -987,8 +987,17 @@ class MSUApp {
     if (annBox) {
       annBox.style.display = isDev ? 'flex' : 'none';
     }
-    const annToggle = document.getElementById('reportIsAnnouncement');
-    if (annToggle) annToggle.checked = false;
+    // 🕵️‍♂️ Anonymous Option: ถ้ายังไม่ล็อกอิน ให้ติ๊กและล็อกไว้เป็นโหมดนิสิตนิรนาม
+    const isLoggedIn = window.authManager?.isLoggedIn();
+    const anonCheckbox = document.getElementById('reportIsAnonymous');
+    if (anonCheckbox) {
+      if (!isLoggedIn) {
+        anonCheckbox.checked = true;
+        anonCheckbox.disabled = true;
+      } else {
+        anonCheckbox.disabled = false;
+      }
+    }
 
     // ⏱️ Update Quota Badge UI
     this.updateReportQuotaUI();
@@ -997,6 +1006,7 @@ class MSUApp {
   async updateReportQuotaUI() {
     const quotaBadge = document.getElementById('pinQuotaRemainingBadge');
     const quotaBanner = document.getElementById('pinQuotaBanner');
+    const quotaText = document.getElementById('pinQuotaText');
     if (!quotaBadge || !quotaBanner) return;
 
     const isDev = window.authManager?.isDev();
@@ -1007,33 +1017,69 @@ class MSUApp {
       quotaBadge.style.background = '#FEF3C7';
       quotaBadge.style.borderColor = '#F59E0B';
       quotaBadge.style.color = '#B45309';
+      if (quotaText) {
+        quotaText.innerHTML = `<span>👑</span><span><strong>โควตา DEV:</strong> ไม่จำกัดจำนวน</span>`;
+      }
       quotaBadge.textContent = '👑 ไม่จำกัด (Dev)';
       return;
     }
 
+    const isLoggedIn = window.authManager?.isLoggedIn();
+    const isAnonymousChecked = document.getElementById('reportIsAnonymous')?.checked || false;
+    const isAnonMode = !isLoggedIn || isAnonymousChecked;
+
     try {
-      const res = await fetch('/api/reports/quota', {
+      const res = await fetch(`/api/reports/quota?isAnonymous=${isAnonMode}`, {
         headers: window.authManager ? window.authManager.getAuthHeader() : {}
       });
       const data = await res.json();
       if (data.success && data.quota) {
         const q = data.quota;
-        if (!q.allowed) {
-          quotaBanner.style.background = '#FEF2F2';
-          quotaBanner.style.borderColor = '#FECACA';
-          quotaBanner.style.color = '#991B1B';
-          quotaBadge.style.background = '#FEE2E2';
-          quotaBadge.style.borderColor = '#EF4444';
-          quotaBadge.style.color = '#DC2626';
-          quotaBadge.textContent = `ครบ 3/3 หมุด (รออีก ${q.remainingMinutes || 60} นาที)`;
+        if (isAnonMode) {
+          // 🕵️‍♂️ โหมดนิรนาม / ไม่ได้ล็อกอิน: 1 หมุด/วัน
+          if (quotaText) {
+            quotaText.innerHTML = `<span>🕵️‍♂️</span><span><strong>โควตานิสิตนิรนาม:</strong> 1 หมุด / วัน (จำกัดตาม IP)</span>`;
+          }
+          if (!q.allowed) {
+            quotaBanner.style.background = '#FEF2F2';
+            quotaBanner.style.borderColor = '#FECACA';
+            quotaBanner.style.color = '#991B1B';
+            quotaBadge.style.background = '#FEE2E2';
+            quotaBadge.style.borderColor = '#EF4444';
+            quotaBadge.style.color = '#DC2626';
+            const waitTime = q.remainingHours > 0 ? `${q.remainingHours} ชม. ` : `${q.remainingMinutes || 60} นาที`;
+            quotaBadge.textContent = `ครบ 1/1 หมุด (รออีก ${waitTime})`;
+          } else {
+            quotaBanner.style.background = '#F8FAFC';
+            quotaBanner.style.borderColor = '#CBD5E1';
+            quotaBanner.style.color = '#334155';
+            quotaBadge.style.background = '#E2E8F0';
+            quotaBadge.style.borderColor = '#94A3B8';
+            quotaBadge.style.color = '#1E293B';
+            quotaBadge.textContent = `เหลือ ${q.remainingToday !== undefined ? q.remainingToday : 1}/1 หมุด (วันนี้)`;
+          }
         } else {
-          quotaBanner.style.background = '#F0FDF4';
-          quotaBanner.style.borderColor = '#BBF7D0';
-          quotaBanner.style.color = '#166534';
-          quotaBadge.style.background = '#DCFCE7';
-          quotaBadge.style.borderColor = '#86EFAC';
-          quotaBadge.style.color = '#15803D';
-          quotaBadge.textContent = `เหลือ ${q.remainingLastHour !== undefined ? q.remainingLastHour : (q.remainingToday !== undefined ? q.remainingToday : 3)}/3 หมุด (ชม.นี้)`;
+          // 👤 สมาชิกทั่วไป (ล็อกอินแล้ว และไม่ติ๊กนิรนาม): 3 หมุด/ชม.
+          if (quotaText) {
+            quotaText.innerHTML = `<span>⏱️</span><span><strong>โควตาสมาชิก:</strong> 3 หมุด / ชั่วโมง</span>`;
+          }
+          if (!q.allowed) {
+            quotaBanner.style.background = '#FEF2F2';
+            quotaBanner.style.borderColor = '#FECACA';
+            quotaBanner.style.color = '#991B1B';
+            quotaBadge.style.background = '#FEE2E2';
+            quotaBadge.style.borderColor = '#EF4444';
+            quotaBadge.style.color = '#DC2626';
+            quotaBadge.textContent = `ครบ 3/3 หมุด (รออีก ${q.remainingMinutes || 60} นาที)`;
+          } else {
+            quotaBanner.style.background = '#F0FDF4';
+            quotaBanner.style.borderColor = '#BBF7D0';
+            quotaBanner.style.color = '#166534';
+            quotaBadge.style.background = '#DCFCE7';
+            quotaBadge.style.borderColor = '#86EFAC';
+            quotaBadge.style.color = '#15803D';
+            quotaBadge.textContent = `เหลือ ${q.remainingLastHour !== undefined ? q.remainingLastHour : (q.remainingToday !== undefined ? q.remainingToday : 3)}/3 หมุด (ชม.นี้)`;
+          }
         }
       }
     } catch (e) {

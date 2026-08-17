@@ -71,14 +71,34 @@ module.exports = function(io) {
     }
   });
 
-  // GET /api/reports - ดึงหมุดทั้งหมด
-  router.get('/', (req, res) => {
+  // GET /api/reports - ดึงหมุดทั้งหมด (ระบุ isMyPin อัตโนมัติตาม IP / User Account)
+  router.get('/', optionalAuth, (req, res) => {
     try {
+      const clientIp = getClientIp(req);
+      const userId = req.user?.id;
+      const userEmail = (req.user?.email || '').toLowerCase().trim();
+      const isDev = req.user?.isDev === true || userEmail === 'java5263@gmail.com';
+
       const { zone, type, status, search } = req.query;
       const pins = db.getPins({ zone, type, status, search });
+
+      // แนบ flag isMyPin ให้ตรงกับ IP หรือ User ID ของผู้เรียกโดยอัตโนมัติ
+      const pinsWithOwnership = pins.map(p => {
+        const isAuthor = isDev ||
+          (userId && (p.reporterId === userId || p.realReporter?.id === userId)) ||
+          (userEmail && (p.reporter?.email === userEmail || p.realReporter?.email === userEmail)) ||
+          (clientIp && (p.ip === clientIp || p.reporter?.ip === clientIp || p.realReporter?.ip === clientIp));
+
+        return {
+          ...p,
+          isMyPin: isAuthor
+        };
+      });
+
       res.json({
         success: true,
-        data: pins,
+        data: pinsWithOwnership,
+        clientIp,
         count: pins.length
       });
     } catch (err) {
@@ -134,28 +154,36 @@ module.exports = function(io) {
     }
   });
 
-  // POST /api/reports - สร้างหมุดรายงานด่านใหม่
-  router.post('/', requireAuth, requirePoW, (req, res) => {
+  // POST /api/reports - สร้างหมุดรายงานด่านใหม่ (รองรับทั้งสมาชิก และนิสิตนิรนาม/Guest)
+  router.post('/', optionalAuth, requirePoW, (req, res) => {
     try {
-      // 🚫 Ban Check
-      const checkUser = db.getUserById(req.user.id);
-      if (checkUser && checkUser.status === 'banned') {
-        return res.status(403).json({
-          success: false,
-          error: 'ACCOUNT_BANNED',
-          message: `🚫 บัญชีของคุณถูกระงับการใช้งาน (${checkUser.banReason || 'ละเมิดข้อกำหนด'})`
-        });
+      const clientIp = getClientIp(req);
+      const isGuest = !req.user || !req.user.id;
+      const isAnon = isGuest || req.body.isAnonymous === true;
+
+      const userEmail = (!isGuest && req.user.email ? req.user.email : '').toLowerCase().trim();
+      const userId = !isGuest ? req.user.id : `guest_${clientIp.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      const userName = !isGuest && req.user.name ? req.user.name : 'นิสิตนิรนาม';
+      const userPicture = !isGuest && req.user.picture ? req.user.picture : '';
+      const isDev = !isGuest && (req.user.isDev === true || userEmail === 'java5263@gmail.com');
+      const isMsu = !isGuest && userEmail.endsWith('@msu.ac.th');
+
+      // 🚫 Ban Check (สำหรับผู้ใช้ที่ล็อกอิน)
+      if (!isGuest) {
+        const checkUser = db.getUserById(userId);
+        if (checkUser && checkUser.status === 'banned') {
+          return res.status(403).json({
+            success: false,
+            error: 'ACCOUNT_BANNED',
+            message: `🚫 บัญชีของคุณถูกระงับการใช้งาน (${checkUser.banReason || 'ละเมิดข้อกำหนด'})`
+          });
+        }
       }
 
-      const userEmail = (req.user.email || '').toLowerCase().trim();
-      const isDev = req.user.isDev === true || userEmail === 'java5263@gmail.com';
-      const isAnon = req.body.isAnonymous === true;
-      const clientIp = getClientIp(req);
-
       // 🔒 ตรวจสอบโควตา:
-      // - โหมดนิรนาม: 1 หมุด/วัน (24 ชม.) ต่อ User ID, Email จริง และ IP Address เพื่อกันสแปม
+      // - โหมดนิรนาม / ไม่ได้ล็อกอิน: 1 หมุด/วัน (24 ชม.) ต่อ User ID, Email จริง และ IP Address เพื่อกันสแปม
       // - สมาชิกทั่วไป: 3 หมุด/ชม. (ยกเว้น Dev)
-      const quota = db.checkUserPinQuota(req.user.id, userEmail, isDev, isAnon, clientIp);
+      const quota = db.checkUserPinQuota(userId, userEmail, isDev, isAnon, clientIp);
       if (!quota.allowed) {
         return res.status(429).json({
           success: false,
@@ -186,9 +214,6 @@ module.exports = function(io) {
         return res.status(400).json({ success: false, error: 'กรุณาระบุพิกัดสถานที่' });
       }
 
-      const isAnon = isAnonymous === true;
-      const isMsu = userEmail.endsWith('@msu.ac.th');
-
       let cleanTitle = req.body.title || '';
       let cleanLocationName = locationName || customLocation || 'จุดตรวจรอบ มมส';
       let cleanCustomLocation = customLocation || '';
@@ -207,11 +232,13 @@ module.exports = function(io) {
             cleanCustomLocation = profanityFilter.censorProfanity(cleanCustomLocation);
             cleanDescription = profanityFilter.censorProfanity(cleanDescription);
             cleanDirection = profanityFilter.censorProfanity(cleanDirection);
-            db.logAudit('DEV_PIN_PROFANITY_CENSORED', req.user.id, 'pin_submit', `Dev ปักหมุดที่มีคำหยาบ (เซนเซอร์ข้อความเรียบร้อย)`);
+            db.logAudit('DEV_PIN_PROFANITY_CENSORED', userId, 'pin_submit', `Dev ปักหมุดที่มีคำหยาบ (เซนเซอร์ข้อความเรียบร้อย)`);
           } else {
             // 👤 สมาชิกทั่วไป: บล็อกและลดคะแนน Trust
-            db.updateTrustScore(req.user.id, -10, `ตรวจพบคำหยาบในการรายงานด่าน: ${toxCheck.reason}`);
-            db.logAudit('PIN_PROFANITY_BLOCKED', req.user.id, 'pin_submit', `บล็อกโพสต์ด่าน: ${textToCheck} (${toxCheck.reason})`);
+            if (!isGuest) {
+              db.updateTrustScore(userId, -10, `ตรวจพบคำหยาบในการรายงานด่าน: ${toxCheck.reason}`);
+            }
+            db.logAudit('PIN_PROFANITY_BLOCKED', userId, 'pin_submit', `บล็อกโพสต์ด่าน: ${textToCheck} (${toxCheck.reason})`);
             return res.status(400).json({
               success: false,
               error: 'PROFANITY_DETECTED',
@@ -224,6 +251,7 @@ module.exports = function(io) {
       let userBadge = '👤 Member';
       if (isDev) userBadge = '👑 DEV';
       else if (isMsu) userBadge = '🎓 MSU';
+      else if (isGuest) userBadge = '🎓 นิสิตนิรนาม';
 
       const newPin = db.addPin({
         title: cleanTitle || null,
@@ -241,20 +269,20 @@ module.exports = function(io) {
         isAnonymous: isAnon,
         isAnnouncement: req.body.isAnnouncement === true && isDev,
         ip: clientIp,
-        reporterId: req.user.id,
+        reporterId: userId,
         reporter: {
-          id: req.user.id,
-          name: (req.body.isAnnouncement === true && isDev) ? 'MSU Traffic' : (isAnon ? 'นิสิตนิรนาม' : req.user.name),
-          email: isAnon ? '' : req.user.email,
+          id: userId,
+          name: (req.body.isAnnouncement === true && isDev) ? 'MSU Traffic' : (isAnon ? 'นิสิตนิรนาม' : userName),
+          email: isAnon ? '' : userEmail,
           picture: (req.body.isAnnouncement === true && isDev)
             ? 'https://ui-avatars.com/api/?name=MSU+Traffic&background=1E3A8A&color=fff' 
-            : (isAnon ? 'https://ui-avatars.com/api/?name=Anon&background=475569&color=fff' : req.user.picture),
+            : (isAnon ? 'https://ui-avatars.com/api/?name=Anon&background=475569&color=fff' : userPicture),
           isDev: isDev,
           isMsuStudent: isMsu,
           isAnonymous: isAnon,
           isAnnouncement: req.body.isAnnouncement === true && isDev,
           badge: (req.body.isAnnouncement === true && isDev) ? '📢 MSU Traffic' : userBadge,
-          role: isDev ? 'dev' : (isMsu ? 'student' : 'member'),
+          role: isDev ? 'dev' : (isMsu ? 'student' : (isGuest ? 'guest' : 'member')),
           ip: clientIp
         }
       });
@@ -267,7 +295,7 @@ module.exports = function(io) {
 
       res.status(201).json({
         success: true,
-        message: 'รายงานจุดตรวจสำเร็จแล้ว (+5 EXP 🎖️)',
+        message: isGuest ? 'รายงานจุดตรวจสำเร็จในฐานะนิสิตนิรนาม 🕵️‍♂️ (โควตา 1 หมุด/วัน)' : 'รายงานจุดตรวจสำเร็จแล้ว (+5 EXP 🎖️)',
         data: newPin
       });
     } catch (err) {
@@ -354,13 +382,31 @@ module.exports = function(io) {
     }
   });
 
-  // DELETE /api/reports/:id - ลบหมุดรายงาน (เจ้าของโพสต์ หรือ Dev)
+  // DELETE /api/reports/:id - ลบหมุดรายงาน (เจ้าของโพสต์ หรือ Dev หรือตรงกับ IP ที่สร้าง)
   router.delete('/:id', optionalAuth, (req, res) => {
     try {
       const pinId = req.params.id;
-      const user = req.user || {};
-      
-      const result = db.deletePin(pinId, user.id || 'dev_admin');
+      const pin = db.getPinById(pinId);
+      if (!pin) {
+        return res.status(404).json({ success: false, error: 'ไม่พบหมุดนี้' });
+      }
+
+      const clientIp = getClientIp(req);
+      const isGuest = !req.user || !req.user.id;
+      const userEmail = (!isGuest && req.user.email ? req.user.email : '').toLowerCase().trim();
+      const userId = !isGuest ? req.user.id : `guest_${clientIp.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      const isDev = !isGuest && (req.user.isDev === true || userEmail === 'java5263@gmail.com');
+
+      const isAuthor = userId === pin.reporterId || 
+                       userId === pin.realReporter?.id ||
+                       (userEmail && (userEmail === pin.reporter?.email || userEmail === pin.realReporter?.email)) ||
+                       (clientIp && (pin.ip === clientIp || pin.reporter?.ip === clientIp || pin.realReporter?.ip === clientIp));
+
+      if (!isDev && !isAuthor) {
+        return res.status(403).json({ success: false, error: 'คุณไม่มีสิทธิ์ลบหมุดของผู้อื่น' });
+      }
+
+      const result = db.deletePin(pinId, userId);
 
       if (io) {
         io.emit('report_deleted', pinId);
@@ -379,7 +425,7 @@ module.exports = function(io) {
   });
 
   // PUT /api/reports/:id/location - ย้ายพิกัดหมุด (เจ้าของโพสต์ หรือ Dev)
-  router.put('/:id/location', requireAuth, (req, res) => {
+  router.put('/:id/location', optionalAuth, (req, res) => {
     try {
       const { lat, lng, locationName } = req.body;
       const pin = db.getPinById(req.params.id);
@@ -388,8 +434,16 @@ module.exports = function(io) {
         return res.status(404).json({ success: false, error: 'ไม่พบหมุดนี้' });
       }
 
-      const isDev = req.user.isDev === true || req.user.email === 'java5263@gmail.com';
-      const isAuthor = req.user.id === pin.reporterId || req.user.email === pin.reporter?.email;
+      const clientIp = getClientIp(req);
+      const isGuest = !req.user || !req.user.id;
+      const userEmail = (!isGuest && req.user.email ? req.user.email : '').toLowerCase().trim();
+      const userId = !isGuest ? req.user.id : `guest_${clientIp.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      const isDev = !isGuest && (req.user.isDev === true || userEmail === 'java5263@gmail.com');
+
+      const isAuthor = userId === pin.reporterId || 
+                       userId === pin.realReporter?.id ||
+                       (userEmail && (userEmail === pin.reporter?.email || userEmail === pin.realReporter?.email)) ||
+                       (clientIp && (pin.ip === clientIp || pin.reporter?.ip === clientIp || pin.realReporter?.ip === clientIp));
 
       if (!isDev && !isAuthor) {
         return res.status(403).json({ success: false, error: 'คุณไม่มีสิทธิ์แก้ไขพิกัดหมุดของผู้อื่น' });

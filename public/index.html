@@ -47,7 +47,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
   <!-- Main Stylesheet (with cache-busting) -->
-  <link rel="stylesheet" href="css/style.css?v=3.0.0">
+  <link rel="stylesheet" href="css/style.css?v=3.0.1">
 
   <!-- Immediate Theme Check to avoid flash of light mode -->
   <script>
@@ -650,12 +650,12 @@
       <form id="reportForm" onsubmit="window.app.handleReportSubmit(event)">
         <div class="modal-body">
           <!-- ⏱️ User Pin Quota Notice Banner -->
-          <div class="pin-quota-banner" id="pinQuotaBanner" style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px; padding: 0.6rem 0.85rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; font-size: 0.76rem; color: #166534;">
-            <div style="display: flex; align-items: center; gap: 0.45rem;">
-              <span>⏱️</span>
-              <span><strong>โควตาปักหมุด:</strong> 3 หมุด / ชั่วโมง</span>
+          <div class="pin-quota-banner" id="pinQuotaBanner" style="background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 10px; padding: 0.6rem 0.85rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; font-size: 0.76rem; color: #334155;">
+            <div id="pinQuotaText" style="display: flex; align-items: center; gap: 0.45rem;">
+              <span>🕵️‍♂️</span>
+              <span><strong>โควตานิสิตนิรนาม:</strong> 1 หมุด / วัน (จำกัดตาม IP)</span>
             </div>
-            <span id="pinQuotaRemainingBadge" style="font-weight: 800; background: #DCFCE7; padding: 2px 8px; border-radius: 6px; border: 1px solid #86EFAC;">เหลือ 3/3 หมุด (ชม.นี้)</span>
+            <span id="pinQuotaRemainingBadge" style="font-weight: 800; background: #E2E8F0; padding: 2px 8px; border-radius: 6px; border: 1px solid #94A3B8; color: #1E293B;">เหลือ 1/1 หมุด (วันนี้)</span>
           </div>
 
           <!-- Checkpoint Type Radio Group -->
@@ -740,17 +740,9 @@
             <input type="text" class="form-control" id="reportDirection" placeholder="เช่น ฝั่งขาเข้ามอใหม่, ฝั่งมุ่งหน้าท่าขอนยาง">
           </div>
 
-          <!-- Coordinates -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-            <div class="form-group">
-              <label class="form-label" style="font-size: 0.75rem; color: #64748B;">ละติจูด (Lat)</label>
-              <input type="text" class="form-control" id="reportLat" readonly style="background: #F1F5F9; font-size: 0.8rem;">
-            </div>
-            <div class="form-group">
-              <label class="form-label" style="font-size: 0.75rem; color: #64748B;">ลองจิจูด (Lng)</label>
-              <input type="text" class="form-control" id="reportLng" readonly style="background: #F1F5F9; font-size: 0.8rem;">
-            </div>
-          </div>
+          <!-- Coordinates (Hidden) -->
+          <input type="hidden" id="reportLat">
+          <input type="hidden" id="reportLng">
 
           <!-- Lifespan / Auto-Decay Duration Selector -->
           <div class="form-group">
@@ -777,7 +769,7 @@
               </label>
               <div style="font-size: 0.72rem; color: #64748B;">แสดงชื่อเป็น "นิสิตนิรนาม" (จำกัด 1 หมุด/วัน ต่อบัญชีและ IP เพื่อป้องกันการสแปม)</div>
             </div>
-            <input type="checkbox" id="reportIsAnonymous" style="width: 20px; height: 20px; cursor: pointer; accent-color: #2563EB;">
+            <input type="checkbox" id="reportIsAnonymous" onchange="window.app.updateReportQuotaUI()" style="width: 20px; height: 20px; cursor: pointer; accent-color: #2563EB;">
           </div>
 
           <!-- 📢 Announcement Option (โพสต์ในนาม MSU Traffic - เฉพาะ Dev/Admin) -->
@@ -2214,10 +2206,10 @@
   <script src="js/notificationManager.js?v=3.1.0"></script>
   <script src="js/rankManager.js?v=3.1.0"></script>
   <script src="js/chatManager.js?v=3.1.0"></script>
-  <script src="js/map.js?v=3.1.0"></script>
+  <script src="js/map.js?v=3.2.1"></script>
   <script src="js/devManager.js?v=3.1.0"></script>
   <script src="js/securityGatekeeper.js?v=3.1.0"></script>
-  <script src="js/app.js?v=3.2.0"></script>
+  <script src="js/app.js?v=3.3.2"></script>
 
 
   <script>
