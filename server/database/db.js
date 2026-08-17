@@ -344,37 +344,93 @@ class Database {
   }
 
   // ----------------------------------------------------
-  // 🏆 Daily Rank Reset Engine (รีเซ็ตทุก 1 วัน / 24 ชั่วโมง)
+  // 🏆 Midnight Batch Leaderboard Engine (คำนวณและสรุปอันดับทุกเที่ยงคืน 00:00 น.)
   // ----------------------------------------------------
-  checkDailyReset() {
-    const now = Date.now();
-    const cycleEnd = this.data.dayEnd || this.data.weekEnd || 0;
-    if (!cycleEnd || now >= cycleEnd) {
-      this.data.dayNumber = (this.data.dayNumber || 1) + 1;
-      this.data.weekNumber = this.data.dayNumber;
-      this.data.dayStart = now;
-      
-      // Calculate end of day (24 hours or next midnight)
-      const nextMidnight = new Date();
-      nextMidnight.setHours(24, 0, 0, 0);
-      this.data.dayEnd = nextMidnight.getTime() > now ? nextMidnight.getTime() : (now + 24 * 60 * 60 * 1000);
-      this.data.weekEnd = this.data.dayEnd; // Sync for legacy clients
+  checkMidnightLeaderboardCalculation() {
+    try {
+      const now = new Date();
+      // เวลาประเทศไทย (UTC+7)
+      const thaiTime = new Date(Date.now() + (7 * 3600 * 1000));
+      const todayStr = thaiTime.toISOString().slice(0, 10);
+      const thaiHour = thaiTime.getUTCHours();
 
-      // Reset users active daily scores
-      Object.values(this.data.users).forEach(user => {
-        user.weeklyScore = 0;
-      });
-
-      this.saveData();
-      console.log(`🏆 [RANK ENGINE] Daily reset completed for Day ${this.data.dayNumber}`);
-      if (this.io) {
-        this.io.emit('leaderboard_update', this.getWeeklyLeaderboard(10));
+      // ถ้ายังไม่มี Snapshot อันดับรอบแรก ให้สร้างทันที
+      if (!this.data.leaderboard_snapshot || !this.data.leaderboard_snapshot.rankings) {
+        this.generateMidnightLeaderboardSnapshot();
+        return;
       }
+
+      // เมื่อขึ้นวันใหม่ (เที่ยงคืนเป็นต้นไป) และยังไม่ได้สรุปผลของวันนี้
+      if (this.data.lastLeaderboardCalcDate !== todayStr && thaiHour >= 0) {
+        this.processMidnightCalculation(todayStr);
+      }
+    } catch (e) {
+      console.error('Error in checkMidnightLeaderboardCalculation:', e);
     }
   }
 
+  processMidnightCalculation(todayStr) {
+    console.log(`🌙 [MIDNIGHT ENGINE] Starting midnight ranking calculation for: ${todayStr}`);
+
+    // คำนวณและบันทึกผล Snapshot ประจำวันรอบเที่ยงคืน
+    this.data.lastLeaderboardCalcDate = todayStr;
+    this.data.dayNumber = (this.data.dayNumber || 1) + 1;
+    this.data.weekNumber = this.data.dayNumber;
+
+    // คำนวณเวลาเที่ยงคืนถัดไป
+    const nextMidnight = new Date();
+    nextMidnight.setHours(24, 0, 0, 0);
+    this.data.dayEnd = nextMidnight.getTime();
+    this.data.weekEnd = nextMidnight.getTime();
+
+    // บันทึก Snapshot อันดับทางการ
+    this.generateMidnightLeaderboardSnapshot();
+
+    this.saveData();
+    this.logAudit('MIDNIGHT_LEADERBOARD_CALC', 'system', 'leaderboard', `คำนวณและจัดอันดับผู้ใช้รอบเที่ยงคืนเรียบร้อยแล้ว (วันที่ ${todayStr})`);
+
+    if (this.io) {
+      this.io.emit('leaderboard_update', this.getWeeklyLeaderboard(10));
+    }
+  }
+
+  generateMidnightLeaderboardSnapshot() {
+    const list = Object.values(this.data.users)
+      .filter(u => ((u.weeklyScore || 0) > 0 || (u.allTimeScore || 0) > 0) && !u.email?.includes('audit_test') && !u.id?.startsWith('test_') && !u.id?.startsWith('user_demo_'))
+      .map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        picture: u.picture || 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff',
+        badge: u.badge,
+        isDev: u.isDev,
+        trustScore: u.trustScore || 50,
+        score: u.weeklyScore || 0,
+        todayScore: u.todayEarnedExp || 0,
+        allTimeScore: u.allTimeScore || 0,
+        pinsCreated: u.pinsCreated || 0,
+        rank: calculateRank(u.allTimeScore, u.isDev)
+      }))
+      .sort((a, b) => b.score - a.score);
+
+    const nextMidnight = new Date();
+    nextMidnight.setHours(24, 0, 0, 0);
+
+    this.data.leaderboard_snapshot = {
+      calculatedAt: Date.now(),
+      nextCalculationAt: nextMidnight.getTime(),
+      rankings: list
+    };
+
+    return this.data.leaderboard_snapshot;
+  }
+
+  checkDailyReset() {
+    return this.checkMidnightLeaderboardCalculation();
+  }
+
   checkWeeklyReset() {
-    return this.checkDailyReset();
+    return this.checkMidnightLeaderboardCalculation();
   }
 
   // ----------------------------------------------------
@@ -474,6 +530,7 @@ class Database {
     const user = this.data.users[userId];
     if (!user) return;
 
+    user.todayEarnedExp = Math.max(0, (user.todayEarnedExp || 0) + points);
     user.weeklyScore = Math.max(0, (user.weeklyScore || 0) + points);
     user.allTimeScore = Math.max(0, (user.allTimeScore || 0) + points);
     this.saveData();
@@ -1199,32 +1256,26 @@ class Database {
   // 🏆 Leaderboard Operations (Daily / All-Time)
   // ----------------------------------------------------
   getWeeklyLeaderboard(limit = 10) {
-    // ❗ เฉพาะผู้ใช้จริงที่มีคะแนนมากกว่า 0 EXP เท่านั้นที่จะขึ้นแสดงบนอันดับ
-    const list = Object.values(this.data.users)
-      .filter(u => (u.weeklyScore || 0) > 0 && !u.email?.includes('audit_test') && !u.id?.startsWith('test_') && !u.id?.startsWith('user_demo_'))
-      .map(u => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        picture: u.picture,
-        badge: u.badge,
-        isDev: u.isDev,
-        trustScore: u.trustScore || 50,
-        score: u.weeklyScore || 0,
-        pinsCreated: u.pinsCreated || 0,
-        rank: calculateRank(u.allTimeScore, u.isDev)
-      }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
+    if (!this.data.leaderboard_snapshot || !this.data.leaderboard_snapshot.rankings) {
+      this.generateMidnightLeaderboardSnapshot();
+    }
+
+    const nextMidnight = new Date();
+    nextMidnight.setHours(24, 0, 0, 0);
+
+    const snapshotRankings = this.data.leaderboard_snapshot?.rankings || [];
 
     return {
       season: this.data.season,
       seasonName: this.data.seasonName,
       dayNumber: this.data.dayNumber || 1,
       weekNumber: this.data.dayNumber || 1,
-      dayEnd: this.data.dayEnd || (Date.now() + (24 * 60 * 60 * 1000)),
-      weekEnd: this.data.dayEnd || this.data.weekEnd || (Date.now() + (24 * 60 * 60 * 1000)),
-      rankings: list
+      dayEnd: this.data.dayEnd || nextMidnight.getTime(),
+      weekEnd: this.data.weekEnd || nextMidnight.getTime(),
+      lastCalculatedAt: this.data.leaderboard_snapshot?.calculatedAt || Date.now(),
+      nextCalculationAt: this.data.leaderboard_snapshot?.nextCalculationAt || nextMidnight.getTime(),
+      isMidnightBatch: true,
+      rankings: snapshotRankings.slice(0, limit)
     };
   }
 

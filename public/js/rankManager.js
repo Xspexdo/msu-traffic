@@ -139,13 +139,13 @@ class RankManager {
     // Render my status row in HUD
     if (myStatusContainer) {
       if (this.myStats) {
-        const rank = this.myStats.rank || {};
+        const todayExp = this.myStats.todayEarnedExp || this.myStats.weeklyScore || 0;
         myStatusContainer.innerHTML = `
           <div class="map-rank-my-row">
             <img src="${this.myStats.picture}" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover;">
             <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
               <span class="map-rank-my-name" style="font-weight: 700; font-size: 0.72rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">อันดับของคุณ (${this.myStats.name})</span>
-              <span style="font-size: 0.64rem; color: #10B981; font-weight: 700;">+${this.myStats.weeklyScore || 0} EXP (วันนี้)</span>
+              <span style="font-size: 0.64rem; color: #10B981; font-weight: 700;">+${todayExp} EXP วันนี้ (รอรวมรอบเที่ยงคืน 🌙)</span>
             </div>
             <span style="font-weight: 800; font-size: 0.75rem; color: #3B82F6;">${this.myStats.allTimeScore || 0} EXP</span>
           </div>
@@ -204,18 +204,26 @@ class RankManager {
     const list = (this.currentTab === 'weekly' ? (this.weeklyData?.rankings || []) : this.allTimeData)
       .filter(u => (u.score || 0) > 0);
 
+    const midnightBanner = `
+      <div style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); color: #F8FAFC; padding: 0.55rem 0.8rem; border-radius: 10px; font-size: 0.72rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; border: 1px solid #334155;">
+        <span>🌙 <strong>อันดับทางการรอบเที่ยงคืน</strong> (ประมวลผลคะแนนทุก 00:00 น.)</span>
+        <span style="color: #60A5FA; font-weight: 700; font-size: 0.66rem; background: rgba(59, 130, 246, 0.2); padding: 2px 6px; border-radius: 4px;">ตัดรอบ 00:00 น.</span>
+      </div>
+    `;
+
     if (list.length === 0) {
       container.innerHTML = `
+        ${midnightBanner}
         <div style="text-align: center; color: #94A3B8; padding: 2.5rem 1rem;">
           <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏆</div>
-          <div style="font-weight: 700; color: #334155;">ยังไม่มีคะแนนในรอบวันนี้ (0 EXP)</div>
-          <div style="font-size: 0.78rem; margin-top: 0.2rem;">ร่วมปักหมุดหรือช่วยโหวตยืนยันด่านเพื่อเป็นที่ 1 ของ มมส!</div>
+          <div style="font-weight: 700; color: #334155;">ยังไม่มีคะแนนในรอบที่ผ่านมา (0 EXP)</div>
+          <div style="font-size: 0.78rem; margin-top: 0.2rem;">ร่วมปักหมุดหรือช่วยโหวตยืนยันด่านเพื่อรอรวมคะแนนรอบเที่ยงคืน!</div>
         </div>
       `;
       return;
     }
 
-    container.innerHTML = list.map((user, idx) => {
+    container.innerHTML = midnightBanner + list.map((user, idx) => {
       let medalBadge = `<span class="rank-pos-number">#${idx + 1}</span>`;
       if (idx === 0) medalBadge = '<span class="rank-medal medal-gold">🥇 1</span>';
       else if (idx === 1) medalBadge = '<span class="rank-medal medal-silver">🥈 2</span>';
@@ -346,7 +354,7 @@ class RankManager {
       const minutes = Math.floor((diff / (1000 * 60)) % 60);
       const seconds = Math.floor((diff / 1000) % 60);
 
-      timerElem.textContent = `รีเซ็ตอันดับประจำวันในอีก ${hours} ชม. ${minutes} นาที ${seconds} วิ`;
+      timerElem.textContent = `🌙 ตัดรอบและสรุปผลอันดับในอีก ${hours} ชม. ${minutes} นาที ${seconds} วิ`;
     }, 1000);
   }
 
