@@ -2431,73 +2431,7 @@ class Database {
     let hasChanges = false;
     const changes = [];
 
-    // 1. หมุดด่าน (Pins Sync & Restore)
-    if (Array.isArray(sheetData.pins) && sheetData.pins.length > 0) {
-      if (!this.data.deleted_pins) this.data.deleted_pins = [];
-      const now = Date.now();
-
-      sheetData.pins.forEach(sp => {
-        if (!sp.id || !sp.lat || !sp.lng) return;
-        const pinId = String(sp.id).trim();
-
-        // 🚫 ถ้าหมุดนี้เคยถูกลบไปแล้ว หรือสถานะเป็น deleted ห้ามกู้คืนกลับมาเด็ดขาด
-        if (this.data.deleted_pins.includes(pinId)) return;
-        if (sp.status === 'deleted') return;
-
-        const localPin = this.data.pins.find(p => p.id === pinId);
-        if (!localPin) {
-          // ตรวจสอบความถูกต้องของ timestamp
-          let parsedCreatedAt = now;
-          if (sp.createdAt) {
-            const parsed = typeof sp.createdAt === 'number' ? sp.createdAt : new Date(sp.createdAt).getTime();
-            if (!isNaN(parsed) && parsed > 0 && parsed < 2500000000000) {
-              parsedCreatedAt = parsed;
-            }
-          }
-
-          let parsedExpiresAt = parsedCreatedAt + (6 * 3600 * 1000);
-          if (sp.expiresAt) {
-            const parsed = typeof sp.expiresAt === 'number' ? sp.expiresAt : new Date(sp.expiresAt).getTime();
-            if (!isNaN(parsed) && parsed > 0 && parsed < 2500000000000) {
-              parsedExpiresAt = parsed;
-            }
-          }
-
-          // ถ้าหมุดหมดอายุไปแล้วและไม่ใช่สถานะ active จะไม่กู้คืนมาแสดงเป็นด่านใหม่
-          const isExpired = now > parsedExpiresAt;
-          const targetStatus = isExpired ? 'cleared' : (sp.status || 'active');
-
-          this.data.pins.push({
-            id: pinId,
-            title: sp.title || sp.locationName,
-            locationName: sp.locationName,
-            campusZone: sp.campusZone || 'มอใหม่ (ขามเรียง)',
-            lat: parseFloat(sp.lat),
-            lng: parseFloat(sp.lng),
-            type: sp.type || 'checkpoint',
-            direction: sp.direction || '',
-            description: sp.description || '',
-            status: targetStatus,
-            reporter: sp.reporter || { name: 'ผู้ใช้ มมส', badge: 'Member' },
-            reporterId: sp.reporter?.email || 'restored_user',
-            likes: [],
-            views: 1,
-            votes: { up: [], down: [] },
-            moveCount: 0,
-            createdAt: parsedCreatedAt,
-            expiresAt: parsedExpiresAt
-          });
-          hasChanges = true;
-          changes.push(`Restored pin: ${pinId}`);
-        } else if (sp.status && localPin.status !== sp.status) {
-          localPin.status = sp.status;
-          hasChanges = true;
-          changes.push(`Updated pin status ${pinId} -> ${sp.status}`);
-        }
-      });
-    }
-
-    // 2. ห้องแชต (Chat Rooms Status from Sheet)
+    // 1. ห้องแชต (Chat Rooms Status from Sheet)
     if (Array.isArray(sheetData.chatRooms) && sheetData.chatRooms.length > 0) {
       if (!this.data.chat_rooms) this.data.chat_rooms = [];
       sheetData.chatRooms.forEach(sr => {

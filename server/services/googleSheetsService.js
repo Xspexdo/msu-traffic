@@ -51,7 +51,7 @@ class GoogleSheetsService {
     return {
       enabled: true,
       webhookUrl: process.env.GOOGLE_SHEET_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxv7jL62zv04UFv6xNkFlzAdhmCI1YN2E1jt_g3Aj91LbpgLx1Zz59ZPKlb-_lcdYGqTQ/exec',
-      autoSyncNewPins: true,
+      autoSyncNewPins: false,
       autoSyncChat: false,
       autoSyncReports: true,
       autoSyncSettings: true,
@@ -127,53 +127,19 @@ class GoogleSheetsService {
     }
   }
 
-  // 1. ซิงค์เมื่อมีหมุดด่านใหม่ (Real-time Instant Push)
+  // 1. หมุดด่าน (ปิดการซิงค์หมุดขึ้นชีตตามการตั้งค่า - Pin sync disabled)
   async syncNewPin(pin) {
-    if (!this.config.enabled || !this.config.autoSyncNewPins) return;
-    return this.sendPayload('NEW_PIN', {
-      id: pin.id,
-      title: pin.title || pin.locationName,
-      type: pin.type,
-      locationName: pin.locationName,
-      campusZone: pin.campusZone,
-      lat: pin.lat,
-      lng: pin.lng,
-      direction: pin.direction || '',
-      description: pin.description || '',
-      reporterName: pin.reporter?.name || 'นิรนาม',
-      reporterEmail: pin.reporter?.email || '',
-      reporterBadge: pin.reporter?.badge || 'Member',
-      isOfficial: pin.isAnnouncement || pin.reporter?.name === 'MSU Traffic',
-      status: pin.status || 'active',
-      createdAt: new Date(pin.createdAt).toLocaleString('th-TH'),
-      expiresAt: new Date(pin.expiresAt).toLocaleString('th-TH')
-    });
+    return { success: true, disabled: true };
   }
 
-  // 2. ซิงค์เมื่อหมุดถูกอัปเดต / โหวต / ปรับสถานะ / ย้ายจุด
+  // 2. ซิงค์เมื่อหมุดถูกอัปเดต (ปิดการซิงค์หมุดขึ้นชีต)
   async syncPinUpdate(pin) {
-    if (!this.config.enabled) return;
-    return this.sendPayload('UPDATE_PIN', {
-      id: pin.id,
-      status: pin.status,
-      upVotes: pin.votes?.up?.length || 0,
-      downVotes: pin.votes?.down?.length || 0,
-      likes: pin.likes?.length || 0,
-      chatCount: pin.chatCount || 0,
-      moveCount: pin.moveCount || 0,
-      lat: pin.lat,
-      lng: pin.lng,
-      updatedAt: new Date().toLocaleString('th-TH')
-    });
+    return { success: true, disabled: true };
   }
 
-  // 3. ซิงค์เมื่อหมุดถูกลบ
+  // 3. ซิงค์เมื่อหมุดถูกลบ (ปิดการซิงค์หมุดขึ้นชีต)
   async syncPinDelete(pinId) {
-    if (!this.config.enabled) return;
-    return this.sendPayload('DELETE_PIN', {
-      id: pinId,
-      deletedAt: new Date().toLocaleString('th-TH')
-    });
+    return { success: true, disabled: true };
   }
 
   // 4. ซิงค์รายงานรีพอร์ตหมุดเท็จ/ไม่เหมาะสม
@@ -305,25 +271,7 @@ class GoogleSheetsService {
     this.isSyncing = true;
 
     try {
-      const pinsList = (dbData.pins || []).map(p => ({
-        id: p.id,
-        title: p.title || p.locationName,
-        type: p.type,
-        locationName: p.locationName,
-        campusZone: p.campusZone,
-        lat: p.lat,
-        lng: p.lng,
-        direction: p.direction || '',
-        description: p.description || '',
-        reporterName: p.reporter?.name || 'นิรนาม',
-        reporterEmail: p.reporter?.email || '',
-        reporterBadge: p.reporter?.badge || 'Member',
-        status: p.status,
-        upVotes: p.votes?.up?.length || 0,
-        downVotes: p.votes?.down?.length || 0,
-        createdAt: new Date(p.createdAt).toLocaleString('th-TH'),
-        expiresAt: new Date(p.expiresAt).toLocaleString('th-TH')
-      }));
+      const pinsList = []; // ปิดการซิงค์หมุดขึ้นชีต 100% (Pin sync to Google Sheets disabled)
 
       const usersList = Object.values(dbData.users || {}).map(u => ({
         id: u.id,
