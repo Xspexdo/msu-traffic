@@ -117,6 +117,13 @@ class ChatManager {
       }
       this.updateRoomUnreadBadge(newMsg.roomId);
       this.fetchResetStatus(); // อัปเดตเวลาสนทนาล่าสุด
+
+      // 🔔 Browser Notification (เมื่อไม่ได้อยู่หน้าจอแชทหรือพับแท็บไว้)
+      const currentUserId = window.authManager?.getUser()?.id;
+      if (newMsg.senderId !== currentUserId && window.notificationManager) {
+        const roomObj = this.rooms.find(r => r.id === newMsg.roomId);
+        window.notificationManager.notifyNewChatMessage(newMsg, roomObj ? roomObj.name : '');
+      }
     });
 
     // 1.1 รับการเปลี่ยนสถานะห้องแชต (เปิด/ปิด ปรับปรุง เรียลไทม์)

@@ -24,7 +24,7 @@
       "isDev": true,
       "status": "active",
       "createdAt": 1786777538446,
-      "lastActiveAt": 1786986630041
+      "lastActiveAt": 1786987826192
     },
     "google_108560811899542656924": {
       "id": "google_108560811899542656924",
@@ -87,9 +87,14 @@
       "lastActiveAt": 1786975816679
     }
   },
-  "pins": [],
   "pin_reports": [],
   "pin_likes": [],
+  "deleted_pins": [
+    "pin-1786986030284-cz899",
+    "pin-1786986018763-7jzu1",
+    "pin-1786986006602-4qhxv"
+  ],
+  "pins": [],
   "chat_rooms": [
     {
       "id": "general",
@@ -98,7 +103,8 @@
       "desc": "พูดคุยแลกเปลี่ยนข่าวสารทั่วไปรอบ มมส",
       "msgCount": 0,
       "lastAutoResetDate": "2026-08-18",
-      "lastAutoResetTime": 1786986016454
+      "lastAutoResetTime": 1786986016454,
+      "enabled": true
     },
     {
       "id": "marketplace",
@@ -106,28 +112,31 @@
       "icon": "🛍️",
       "desc": "ส่งต่อของใช้ หนังสือ หอพัก อุปกรณ์การเรียน",
       "msgCount": 0,
-      "enabled": false
+      "enabled": true
     },
     {
       "id": "friends",
       "name": "หาเพื่อน (Find Friends)",
       "icon": "👥",
       "desc": "หาเพื่อนติว กินข้าว เล่นกีฬา กลับหอ",
-      "msgCount": 0
+      "msgCount": 0,
+      "enabled": true
     },
     {
       "id": "help",
       "name": "ช่วยเหลือ & ของหาย (Help)",
       "icon": "🆘",
       "desc": "ของหาย ถามทาง ขอความช่วยเหลือนิสิต",
-      "msgCount": 0
+      "msgCount": 0,
+      "enabled": true
     },
     {
       "id": "events",
       "name": "กิจกรรม (Events)",
       "icon": "🎪",
       "desc": "กิจกรรมรอบมหาวิทยาลัย คอนเสิร์ต งานคณะ",
-      "msgCount": 0
+      "msgCount": 0,
+      "enabled": true
     }
   ],
   "chat_messages": [],
@@ -1285,6 +1294,51 @@
       "details": "รีเซ็ตแชทอัตโนมัติรอบเที่ยงคืน (1 ข้อความ) เนื่องจากไม่มีการสนทนา 15 นาที",
       "ip": "127.0.0.1",
       "createdAt": 1786986016454
+    },
+    {
+      "id": "audit-1786986871265-wpb",
+      "action": "SHEETS_FULL_SYNC",
+      "userId": "dev_java5263",
+      "targetId": "google_sheets",
+      "details": "สั่ง Full Sync ข้อมูลทั้งหมดขึ้น Google Sheets สำเร็จ",
+      "ip": "127.0.0.1",
+      "createdAt": 1786986871265
+    },
+    {
+      "id": "audit-1786987055124-fpj",
+      "action": "SHEETS_CONFIG_UPDATE",
+      "userId": "dev_java5263",
+      "targetId": "google_sheets",
+      "details": "อัปเดตการตั้งค่า Google Sheets (Enabled: true)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786987055124
+    },
+    {
+      "id": "audit-1786987192373-xvq",
+      "action": "SHEETS_CONFIG_UPDATE",
+      "userId": "dev_java5263",
+      "targetId": "google_sheets",
+      "details": "อัปเดตการตั้งค่า Google Sheets (Enabled: true)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786987192373
+    },
+    {
+      "id": "audit-1786987478272-p9z",
+      "action": "SHEETS_CONFIG_UPDATE",
+      "userId": "dev_java5263",
+      "targetId": "google_sheets",
+      "details": "อัปเดตการตั้งค่า Google Sheets (Enabled: true)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786987478272
+    },
+    {
+      "id": "audit-1786987500370-prv",
+      "action": "SHEETS_FULL_SYNC",
+      "userId": "dev_java5263",
+      "targetId": "google_sheets",
+      "details": "สั่ง Full Sync ข้อมูลทั้งหมดขึ้น Google Sheets สำเร็จ",
+      "ip": "127.0.0.1",
+      "createdAt": 1786987500370
     }
   ],
   "pin_chat_messages": [],
@@ -1326,44 +1380,108 @@
   "dayNumber": 3,
   "dayEnd": 1787072400000,
   "system_config": {
-    "globalChatEnabled": false,
+    "globalChatEnabled": true,
     "allowAllEmails": true,
     "announcement": {
       "enabled": true,
-      "text": "📢 ประกาศทดสอบจาก Google Sheet",
-      "updatedAt": 1786982835821
+      "text": "📢 ยินดีต้อนรับสู่ MSU Traffic • ขับขี่ปลอดภัย สวมหมวกกันน็อก เปิดไฟหน้ารถ • รายงานด่านแบบเรียลไทม์เพื่อความปลอดภัยของชาว มมส",
+      "updatedAt": 1786987311193
     },
     "donateEnabled": false
   },
   "categories": [
     {
       "key": "helmet",
-      "name": "หมวกกันน็อก",
+      "name": "หมวก/ใบขับขี่",
       "icon": "👮‍♂️",
-      "sub": "ตรวจหมวก"
+      "sub": "ใบขับขี่ / อุปกรณ์ส่วนควบ"
+    },
+    {
+      "key": "alcohol",
+      "name": "เป่าแอล",
+      "icon": "🍺",
+      "sub": "เป่าแอลกอฮอล์ยามค่ำคืน"
+    },
+    {
+      "key": "security",
+      "name": "ตรวจค้น",
+      "icon": "🚔",
+      "sub": "ตรวจค้นสิ่งผิดกฎหมาย"
+    },
+    {
+      "key": "traffic",
+      "name": "รถติด",
+      "icon": "🚗",
+      "sub": "ชะลอตัวช่วงเร่งด่วน"
+    },
+    {
+      "key": "accident",
+      "name": "อุบัติเหตุ",
+      "icon": "⚠️",
+      "sub": "โปรดระมัดระวัง"
     }
   ],
   "rank_tiers": [
     {
       "level": 1,
       "key": "novice",
-      "name": "มือใหม่",
+      "name": "ผู้สัญจรมือใหม่",
+      "title": "Novice Scout",
       "minExp": 0,
-      "maxExp": 50
+      "maxExp": 99,
+      "icon": "🥉",
+      "color": "#B45309",
+      "badgeClass": "rank-bronze"
     },
     {
       "level": 2,
       "key": "scout",
-      "name": "สายสืบ",
-      "minExp": 51,
-      "maxExp": 200
+      "name": "สายสืบ มมส",
+      "title": "Campus Scout",
+      "minExp": 100,
+      "maxExp": 299,
+      "icon": "🥈",
+      "color": "#475569",
+      "badgeClass": "rank-silver"
     },
     {
       "level": 3,
+      "key": "warden",
+      "name": "ผู้พิทักษ์ทางหลวง",
+      "title": "Traffic Warden",
+      "minExp": 300,
+      "maxExp": 699,
+      "icon": "🥇",
+      "color": "#D97706",
+      "badgeClass": "rank-gold"
+    },
+    {
+      "level": 4,
+      "key": "veteran",
+      "name": "ยอดสายตรวจขามเรียง",
+      "title": "Khamriang Veteran",
+      "minExp": 700,
+      "maxExp": 1499,
+      "icon": "💎",
+      "color": "#2563EB",
+      "badgeClass": "rank-diamond"
+    },
+    {
+      "level": 5,
       "key": "legend",
-      "name": "ตำนาน",
-      "minExp": 201,
-      "maxExp": "ไม่จำกัด"
+      "name": "ตำนานมีด่านบอกด้วย",
+      "title": "MSU Legend",
+      "minExp": 1500,
+      "maxExp": null,
+      "icon": "👑",
+      "color": "#7C3AED",
+      "badgeClass": "rank-legend"
     }
-  ]
+  ],
+  "visitors": {
+    "total": 2,
+    "today": 2,
+    "lastDate": "2026-08-18",
+    "dailyHistory": {}
+  }
 }

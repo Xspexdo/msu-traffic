@@ -137,7 +137,11 @@ app.get('*', (req, res) => {
 io.on('connection', (socket) => {
   const ip = socket.clientIp || '127.0.0.1';
 
-  // Send current stats immediately upon connecting
+  // Record this visit and broadcast updated stats to all clients
+  db.recordVisit();
+  io.emit('stats_update', db.getStatistics());
+
+  // Send current stats immediately to this socket
   socket.emit('stats_update', db.getStatistics());
 
   socket.on('disconnect', () => {

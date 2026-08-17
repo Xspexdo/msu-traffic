@@ -377,15 +377,26 @@ class GoogleSheetsService {
 
   // 11. ดึงข้อมูลทั้งหมดจาก Google Sheets กลับมา (Two-Way Pull)
   async fetchFullDataFromSheets() {
-    if (!this.config.enabled || !this.config.webhookUrl) return null;
+    if (!this.config.enabled || !this.config.webhookUrl) return { _error: 'disabled' };
+
+    let lastRawResponse = null;
 
     // วิธีที่ 1: ดึงข้อมูลผ่าน POST 'FETCH_ALL' (เสถียรที่สุดและรองรับ Redirects อัตโนมัติ)
     try {
       const postResult = await this.sendPayload('FETCH_ALL', {});
-      if (postResult && postResult.success && postResult.data && postResult.data.status === 'OK') {
-        return postResult.data;
+      if (postResult && postResult.success && postResult.data) {
+        const d = postResult.data;
+        // รองรับทั้ง { status: 'OK', ... } และ object ทั่วไปที่มีข้อมูลอยู่
+        if (d.status === 'OK' || d.pins !== undefined || d.settings !== undefined || d.chatRooms !== undefined) {
+          return d;
+        }
+        lastRawResponse = postResult.body || JSON.stringify(d);
+      } else if (postResult && !postResult.success) {
+        lastRawResponse = postResult.error || postResult.body;
       }
-    } catch (e) {}
+    } catch (e) {
+      lastRawResponse = e.message;
+    }
 
     // วิธีที่ 2: Fallback ดึงข้อมูลผ่าน GET (doGet)
     try {
@@ -395,21 +406,54 @@ class GoogleSheetsService {
         signal: AbortSignal.timeout(10000)
       });
       if (res.ok) {
-        return await res.json();
+        const text = await res.text();
+        try {
+          const json = JSON.parse(text);
+          if (json && (json.status === 'OK' || json.pins !== undefined || json.settings !== undefined)) {
+            return json;
+          }
+          lastRawResponse = text;
+        } catch (e) {
+          lastRawResponse = text?.substring(0, 200);
+        }
+      } else {
+        lastRawResponse = `HTTP ${res.status}: ${await res.text().catch(() => '')}`.substring(0, 200);
       }
-    } catch (err) {}
+    } catch (err) {
+      lastRawResponse = lastRawResponse || err.message;
+    }
 
-    return null;
+    return { _error: 'no_valid_data', _raw: lastRawResponse };
   }
 
   // 12. ฟังก์ชันดึงและประยุกต์ใช้ข้อมูลจาก Google Sheets (Auto Apply Remote Changes)
   async pullAndApplyFromSheets(db) {
-    if (!this.config.enabled || !this.config.webhookUrl) return { success: false, reason: 'Sheets sync disabled' };
-    
+    if (!this.config.enabled || !this.config.webhookUrl) {
+      return { success: false, reason: 'ปิดการใช้งาน Google Sheets หรือยังไม่ได้ตั้งค่า Webhook URL' };
+    }
+
     try {
       const sheetData = await this.fetchFullDataFromSheets();
-      if (!sheetData || sheetData.status !== 'OK') {
-        return { success: false, reason: 'Invalid response from Google Sheets' };
+
+      if (!sheetData || sheetData._error) {
+        const raw = sheetData?._raw;
+        // วิเคราะห์ว่าเกิดอะไรขึ้นจาก raw response
+        let reason = 'Google Apps Script ไม่ส่งข้อมูลกลับมา';
+        if (!this.config.webhookUrl) {
+          reason = 'ยังไม่ได้ตั้งค่า Webhook URL';
+        } else if (raw && (raw.includes('Script function not found') || raw.includes('doPost'))) {
+          reason = 'Google Apps Script ยังไม่รองรับ FETCH_ALL — กรุณา Deploy Script ใหม่';
+        } else if (raw && raw.includes('Authorization')) {
+          reason = 'Google Apps Script ไม่ได้ตั้งค่า "Anyone" access — กรุณา Redeploy';
+        } else if (raw && (raw.includes('404') || raw.includes('not found'))) {
+          reason = 'Webhook URL ไม่ถูกต้องหรือหมดอายุ — กรุณาสร้าง Deployment ใหม่';
+        } else if (raw && raw.startsWith('<!DOCTYPE')) {
+          reason = 'Webhook URL ส่ง HTML กลับมาแทน JSON — ตรวจสอบ URL และ Deploy ใหม่';
+        } else if (raw) {
+          reason = `Response ไม่ถูกต้อง: ${raw.substring(0, 120)}`;
+        }
+        console.warn('⚠️ Google Sheets Pull failed:', reason);
+        return { success: false, reason };
       }
 
       // นำข้อมูลจาก Sheets มาประยุกต์ใช้ใน database
@@ -470,9 +514,11 @@ function readAllSheetsData(ss) {
   var pins = [];
   if (pinSheet && pinSheet.getLastRow() > 1) {
     var pinData = pinSheet.getRange(2, 1, pinSheet.getLastRow() - 1, pinSheet.getLastColumn()).getValues();
-    pins = pinData.map(function(row) {
+    pins = pinData.filter(function(row) {
+      return row[0] && String(row[0]).trim() !== "" && row[12] !== "deleted";
+    }).map(function(row) {
       return {
-        id: row[0],
+        id: String(row[0]).trim(),
         title: row[1],
         type: row[2],
         locationName: row[3],
@@ -482,7 +528,7 @@ function readAllSheetsData(ss) {
         direction: row[7],
         description: row[8],
         reporter: { name: row[9], email: row[10], badge: row[11] },
-        status: row[12],
+        status: row[12] || "active",
         createdAt: row[13],
         expiresAt: row[14]
       };
@@ -612,6 +658,33 @@ function doPost(e) {
       sheet.appendRow([
         data.id, data.title, data.type, data.locationName, data.campusZone, data.lat, data.lng, data.direction, data.description, data.reporterName, data.reporterEmail, data.reporterBadge, data.status, data.createdAt, data.expiresAt
       ]);
+    }
+
+    if (action === "DELETE_PIN") {
+      var pinSheet = ss.getSheetByName("📌 รายงานด่าน (Pins)");
+      if (pinSheet && pinSheet.getLastRow() > 1) {
+        var pData = pinSheet.getRange(2, 1, pinSheet.getLastRow() - 1, 1).getValues();
+        for (var i = pData.length - 1; i >= 0; i--) {
+          if (String(pData[i][0]).trim() === String(data.id).trim()) {
+            pinSheet.deleteRow(i + 2);
+          }
+        }
+      }
+    }
+
+    if (action === "UPDATE_PIN") {
+      var pinSheet = ss.getSheetByName("📌 รายงานด่าน (Pins)");
+      if (pinSheet && pinSheet.getLastRow() > 1) {
+        var pData = pinSheet.getRange(2, 1, pinSheet.getLastRow() - 1, 1).getValues();
+        for (var i = 0; i < pData.length; i++) {
+          if (String(pData[i][0]).trim() === String(data.id).trim()) {
+            if (data.status) pinSheet.getRange(i + 2, 13).setValue(data.status);
+            if (data.lat) pinSheet.getRange(i + 2, 6).setValue(data.lat);
+            if (data.lng) pinSheet.getRange(i + 2, 7).setValue(data.lng);
+            break;
+          }
+        }
+      }
     }
 
     if (action === "FULL_SYNC") {

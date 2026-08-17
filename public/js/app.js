@@ -44,6 +44,8 @@ class MSUApp {
     if (window.rankManager) window.rankManager.init();
     if (window.chatManager) window.chatManager.init();
     if (window.securityGatekeeper) window.securityGatekeeper.init();
+    if (window.notificationManager) window.notificationManager.init();
+    this.initPwaInstaller();
 
     // 3. Load Data in parallel
     await Promise.all([
@@ -438,10 +440,14 @@ class MSUApp {
     const elActive = document.getElementById('homeStatActive');
     const elToday = document.getElementById('homeStatToday');
     const elCleared = document.getElementById('homeStatCleared');
+    const elVisitsToday = document.getElementById('homeStatVisitsToday');
+    const elVisitsTotal = document.getElementById('homeStatVisitsTotal');
 
     if (elActive) elActive.textContent = stats.active || 0;
     if (elToday) elToday.textContent = stats.today || 0;
     if (elCleared) elCleared.textContent = stats.cleared || 0;
+    if (elVisitsToday) elVisitsToday.textContent = (stats.todayVisits || 0).toLocaleString();
+    if (elVisitsTotal) elVisitsTotal.textContent = (stats.totalVisits || 0).toLocaleString();
   }
 
   renderZoneOptions() {
@@ -734,6 +740,9 @@ class MSUApp {
 
     if (!isLocal) {
       this.showNotification(`🚨 ด่านใหม่: ${newReport.locationName || newReport.title}`, 'alert');
+      if (window.notificationManager) {
+        window.notificationManager.notifyNewCheckpoint(newReport);
+      }
     }
   }
 
@@ -1105,6 +1114,36 @@ class MSUApp {
       }
       if (contentIos) contentIos.style.display = 'none';
       if (contentAndroid) contentAndroid.style.display = 'flex';
+    }
+  }
+
+  initPwaInstaller() {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.deferredPwaPrompt = e;
+      const btn = document.getElementById('pwaDirectInstallBtn');
+      if (btn) {
+        btn.style.display = 'flex';
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      window.deferredPwaPrompt = null;
+      console.log('🎉 MSU Traffic PWA installed successfully!');
+    });
+  }
+
+  async triggerPwaInstall() {
+    if (window.deferredPwaPrompt) {
+      window.deferredPwaPrompt.prompt();
+      const { outcome } = await window.deferredPwaPrompt.userChoice;
+      if (outcome === 'accepted') {
+        this.showNotification('🎉 ติดตั้งแอป MSU Traffic สำเร็จแล้ว!', 'success');
+        this.closeInstallAppModal();
+      }
+      window.deferredPwaPrompt = null;
+    } else {
+      alert('📱 สำหรับ Android / Google Chrome:\n\nกดปุ่มจุด 3 จุด (⋮) ที่มุมบนขวาของเบราว์เซอร์ แล้วเลือก "ติดตั้งแอป" (Install app) หรือ "เพิ่มลงในหน้าจอหลัก" ได้ทันทีครับ');
     }
   }
 
@@ -1603,6 +1642,16 @@ class MSUApp {
     if (window.chatManager) {
       window.chatManager.updateDevClearBtn();
     }
+  }
+
+  openInstallAppModal() {
+    const modal = document.getElementById('installAppModal');
+    if (modal) modal.classList.add('active');
+  }
+
+  closeInstallAppModal() {
+    const modal = document.getElementById('installAppModal');
+    if (modal) modal.classList.remove('active');
   }
 
   openDonateModal() {

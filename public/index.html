@@ -128,6 +128,12 @@
             <span class="dropdown-item-label" id="menuThemeText">โหมดมืด</span>
           </button>
 
+          <!-- 1.1 🔔 เปิด/ปิด การแจ้งเตือนเบราว์เซอร์ -->
+          <button class="nav-dropdown-item" id="menuNotificationBtn" onclick="window.notificationManager?.toggle(); window.app?.closeNavMenu();">
+            <span class="dropdown-item-icon" id="menuNotificationIcon">🔔</span>
+            <span class="dropdown-item-label" id="menuNotificationText">แจ้งเตือนบราวเซอร์</span>
+          </button>
+
           <!-- 2. 📖 ข้อมูลระบบ & พัฒนาโดย -->
           <button class="nav-dropdown-item" onclick="window.app?.switchTab('info'); window.app?.closeNavMenu();">
             <span class="dropdown-item-icon">📖</span>
@@ -140,10 +146,10 @@
             <span class="dropdown-item-label">ตารางอันดับ Hall of Fame</span>
           </button>
 
-          <!-- 4. 📲 คำแนะนำ: ติดตั้งแอปบนมือถือ (หน้าจอโฮม) -->
+          <!-- 4. 📲 คำแนะนำ: ติดตั้งแอป & เปิดแจ้งเตือน -->
           <button class="nav-dropdown-item" onclick="window.app?.openInstallAppModal(); window.app?.closeNavMenu();">
-            <span class="dropdown-item-icon">📲</span>
-            <span class="dropdown-item-label">คำแนะนำ: ติดตั้งแอปบนมือถือ</span>
+            <span class="dropdown-item-icon">💡</span>
+            <span class="dropdown-item-label">คำแนะนำ: ติดตั้งแอป & เปิดแจ้งเตือน</span>
           </button>
 
           <!-- 5. ⚖️ ข้อกำหนด & กฎหมาย -->
@@ -425,6 +431,31 @@
               </div>
             </li>
           </ul>
+        </div>
+
+        <!-- Visitor Stats Card -->
+        <div class="info-card">
+          <div class="info-card-header">
+            <span class="info-card-icon">📈</span>
+            <h2 class="info-card-title">ยอดเข้าชมเว็บไซต์</h2>
+          </div>
+          <div class="info-visitor-stats">
+            <div class="visitor-stat-item">
+              <span class="visitor-stat-icon">☀️</span>
+              <div class="visitor-stat-body">
+                <span class="visitor-stat-label">วันนี้</span>
+                <span class="visitor-stat-value" id="homeStatVisitsToday">0</span>
+              </div>
+            </div>
+            <div class="visitor-stat-divider"></div>
+            <div class="visitor-stat-item">
+              <span class="visitor-stat-icon">🌐</span>
+              <div class="visitor-stat-body">
+                <span class="visitor-stat-label">ยอดรวมทั้งหมด</span>
+                <span class="visitor-stat-value" id="homeStatVisitsTotal">0</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Contact Card -->
@@ -917,8 +948,14 @@
 
         <!-- TAB CONTENT 2: Android -->
         <div id="installContentAndroid" style="display: none; flex-direction: column; gap: 0.75rem;">
+          <!-- ⚡ Direct 1-Click Install Button for Android / Chrome -->
+          <button id="pwaDirectInstallBtn" onclick="window.app?.triggerPwaInstall()" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; border: none; border-radius: 12px; padding: 0.85rem 1rem; font-size: 0.95rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35); font-family: inherit; transition: all 0.2s ease;">
+            <span style="font-size: 1.25rem;">📲</span>
+            <span>กดปุ่มนี้เพื่อติดตั้งแอปทันที (1-Click)</span>
+          </button>
+
           <div style="font-size: 0.75rem; color: #64748B; font-weight: 700;">
-            📍 สำหรับผู้ใช้ Android (Samsung, Xiaomi, OPPO, Vivo ฯลฯ):
+            📍 หรือทำตามขั้นตอนด้วยตนเอง (หากปุ่มด้านบนไม่เด้ง):
           </div>
 
           <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 0.85rem; border-radius: 10px;">
@@ -1147,6 +1184,107 @@
           <button type="button" onclick="window.app.closePinReportModal()" style="flex: 1; padding: 0.6rem; border: 1px solid #E2E8F0; background: #F8FAFC; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer;">ยกเลิก</button>
           <button type="button" onclick="window.app.submitPinReport()" style="flex: 1; padding: 0.6rem; border: none; background: #EF4444; color: #FFFFFF; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">🚩 ส่งรายงาน</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: 📲 คำแนะนำการติดตั้งแอป & การเปิดการแจ้งเตือนบราวเซอร์ (Install & Notification Guide Modal) -->
+  <div class="modal-overlay" id="installAppModal" onclick="if(event.target === this) window.app?.closeInstallAppModal()">
+    <div class="modal-container" style="max-width: 520px; max-height: 88vh; display: flex; flex-direction: column; border-radius: 18px;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #1E3A8A 0%, #1E40AF 100%); color: #FFFFFF; border-bottom: 2px solid #3B82F6;">
+        <div class="modal-title" style="display: flex; align-items: center; gap: 0.55rem;">
+          <span style="font-size: 1.3rem;">💡</span>
+          <div>
+            <div style="font-weight: 800; font-size: 1rem; color: #FFFFFF;">คำแนะนำ: ติดตั้งแอป & เปิดแจ้งเตือน</div>
+            <div style="font-size: 0.68rem; color: #BFDBFE;">วิธีเปิดใช้งานให้พร้อมเตือนด่านและสัญจรปลอดภัยรอบ มมส</div>
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="window.app?.closeInstallAppModal()" style="color: #FFFFFF; background: rgba(255,255,255,0.15); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none;">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.15rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.1rem;">
+        
+        <!-- SECTION 1: 🔔 BROWSER NOTIFICATIONS -->
+        <div style="background: #EFF6FF; border: 1.5px solid #BFDBFE; border-radius: 14px; padding: 1rem 1.15rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.6rem; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 0.45rem;">
+              <span style="font-size: 1.25rem;">🔔</span>
+              <h4 style="font-size: 0.95rem; font-weight: 800; color: #1E40AF; margin: 0;">1. วิธีเปิดการแจ้งเตือนบราวเซอร์</h4>
+            </div>
+            <button type="button" class="btn btn-primary btn-xs" onclick="window.notificationManager?.requestPermission()" style="background: #2563EB; font-weight: 800; border-radius: 6px; padding: 4px 10px;">
+              กดเปิดแจ้งเตือนทันที ➔
+            </button>
+          </div>
+
+          <p style="font-size: 0.78rem; color: #1E293B; margin: 0 0 0.6rem 0; line-height: 1.5;">
+            เมื่อเปิดแจ้งเตือน ระบบจะเด้งเตือนทันทีเมื่อมีผู้รายงาน <strong>ด่านใหม่รอบ มมส</strong> หรือมีข้อความสำคัญ แม้จะพับหน้าจอเว็บอยู่ก็ตาม
+          </p>
+
+          <!-- Instructions steps -->
+          <div style="background: #FFFFFF; border: 1px solid #DBEAFE; border-radius: 10px; padding: 0.75rem; font-size: 0.76rem; color: #334155; display: flex; flex-direction: column; gap: 0.4rem; line-height: 1.45;">
+            <div><strong>✅ วิธีอนุญาต:</strong> เมื่อมีหน้าต่างถาม ให้กด <strong>"อนุญาต (Allow)"</strong></div>
+            <div><strong>⚠️ กรณีเผลอกด "บล็อก (Block)":</strong></div>
+            <ul style="margin: 0; padding-left: 1.2rem; color: #64748B;">
+              <li><strong>Chrome / Android:</strong> กดไอคอน <strong>🔒 / ⚙️</strong> ข้างแถบ URL ➔ <em>การตั้งค่าไซต์ (Site Settings)</em> ➔ <em>การแจ้งเตือน</em> ➔ เลือก <strong>อนุญาต</strong></li>
+              <li><strong>iPhone / iOS (Safari 16.4+):</strong> ต้อง <em>"เพิ่มไปยังหน้าจอโฮม"</em> ก่อน จากนั้นเปิดแอปจากหน้าจอโฮมเพื่อเปิดการแจ้งเตือน</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- SECTION 2: 📲 ADD TO HOME SCREEN / PWA -->
+        <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 14px; padding: 1rem 1.15rem;">
+          <div style="display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.6rem;">
+            <span style="font-size: 1.25rem;">📲</span>
+            <h4 style="font-size: 0.95rem; font-weight: 800; color: #0F172A; margin: 0;">2. วิธีติดตั้งแอปลงบนหน้าจอโฮมมือถือ (ไม่ต้องโหลดจาก Store)</h4>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            
+            <!-- Android Guide -->
+            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; padding: 0.75rem 0.9rem;">
+              <div style="font-weight: 800; font-size: 0.82rem; color: #059669; display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.25rem;">
+                <span>🤖</span> สำหรับ Android (Google Chrome)
+              </div>
+              <ol style="margin: 0; padding-left: 1.25rem; font-size: 0.76rem; color: #475569; line-height: 1.5;">
+                <li>กดปุ่ม <strong>จุด 3 จุด (⋮)</strong> ที่มุมบนขวาของ Chrome</li>
+                <li>เลือกเมนู <strong>"เพิ่มลงในหน้าจอหลัก" (Add to Home screen)</strong> หรือ <strong>"ติดตั้งแอป"</strong></li>
+                <li>กดยืนยัน ไอคอน <strong>MSU Traffic</strong> จะไปอยู่ที่หน้าจอมือถือของคุณทันที</li>
+              </ol>
+            </div>
+
+            <!-- iOS Guide -->
+            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; padding: 0.75rem 0.9rem;">
+              <div style="font-weight: 800; font-size: 0.82rem; color: #0284C7; display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.25rem;">
+                <span>🍎</span> สำหรับ iPhone / iPad (Safari)
+              </div>
+              <ol style="margin: 0; padding-left: 1.25rem; font-size: 0.76rem; color: #475569; line-height: 1.5;">
+                <li>เปิดเว็บนี้ด้วย <strong>Safari</strong></li>
+                <li>กดปุ่ม <strong>แชร์ (Share Icon 📤)</strong> ที่แถบเมนูด้านล่าง</li>
+                <li>เลื่อนลงแล้วกด <strong>"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen ➕)</strong></li>
+                <li>กดปุ่ม <strong>"เพิ่ม" (Add)</strong> ที่มุมขวาบน</li>
+              </ol>
+            </div>
+
+            <!-- PC / Laptop Guide -->
+            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; padding: 0.75rem 0.9rem;">
+              <div style="font-weight: 800; font-size: 0.82rem; color: #7C3AED; display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.25rem;">
+                <span>💻</span> สำหรับคอมพิวเตอร์ (Chrome / Edge)
+              </div>
+              <p style="margin: 0; font-size: 0.76rem; color: #475569; line-height: 1.5;">
+                กดไอคอน <strong>ติดตั้ง (Install 📥)</strong> ที่แถบ URL ด้านขวาบน หรือกดเมนู (⋮) ➔ <strong>"ติดตั้ง MSU Traffic"</strong> เพื่อใช้งานแบบโปรแกรมแยกหน้าต่างได้ทันที
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="padding: 0.75rem 1.1rem; background: #F8FAFC; border-top: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 0.72rem; color: #94A3B8;">MSU Traffic Season 1 • เพื่อนิสิต มมส</span>
+        <button type="button" class="btn btn-primary btn-sm" onclick="window.app?.closeInstallAppModal()" style="font-weight: 700; min-width: 100px;">
+          เข้าใจแล้ว
+        </button>
       </div>
     </div>
   </div>
@@ -2051,6 +2189,21 @@
     </div>
   </div>
 
+  <!-- 🔔 Floating Notification Permission Prompt Banner -->
+  <div id="notifPromptFloatingBanner" class="notif-prompt-banner">
+    <div class="notif-banner-content">
+      <div class="notif-banner-icon">🔔</div>
+      <div class="notif-banner-text">
+        <div class="notif-banner-title">เปิดการแจ้งเตือนด่านตรวจสด</div>
+        <div class="notif-banner-desc">รับการแจ้งเตือนทันทีเมื่อมีรายงานด่านใหม่รอบ มมส แม้พับหน้าจอ</div>
+      </div>
+    </div>
+    <div class="notif-banner-actions">
+      <button type="button" class="btn-notif-allow" onclick="window.notificationManager?.requestPermission()">เปิดใช้งาน</button>
+      <button type="button" class="btn-notif-dismiss" onclick="window.notificationManager?.dismissBanner()" title="ไว้คราวหลัง">✕</button>
+    </div>
+  </div>
+
   <!-- Socket.io Client -->
   <script src="/socket.io/socket.io.js"></script>
 
@@ -2058,12 +2211,13 @@
   <script src="js/rateLimitAlert.js?v=3.1.0"></script>
   <script src="js/powClient.js?v=3.1.0"></script>
   <script src="js/auth.js?v=3.1.0"></script>
+  <script src="js/notificationManager.js?v=3.1.0"></script>
   <script src="js/rankManager.js?v=3.1.0"></script>
   <script src="js/chatManager.js?v=3.1.0"></script>
   <script src="js/map.js?v=3.1.0"></script>
   <script src="js/devManager.js?v=3.1.0"></script>
   <script src="js/securityGatekeeper.js?v=3.1.0"></script>
-  <script src="js/app.js?v=3.1.0"></script>
+  <script src="js/app.js?v=3.2.0"></script>
 
 
   <script>

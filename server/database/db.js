@@ -255,6 +255,12 @@ function getInitialData() {
     message_reports: [],
     warnings: [],
     bans: [],
+    visitors: {
+      total: 0,
+      today: 0,
+      lastDate: new Date().toISOString().split('T')[0],
+      dailyHistory: {}
+    },
     system_config: {
       globalChatEnabled: true,
       allowAllEmails: true
@@ -309,6 +315,10 @@ class Database {
         }
         if (!parsed.rank_tiers || !Array.isArray(parsed.rank_tiers) || parsed.rank_tiers.length === 0) {
           parsed.rank_tiers = JSON.parse(JSON.stringify(RANK_TIERS));
+          this.saveData(parsed);
+        }
+        if (!parsed.deleted_pins || !Array.isArray(parsed.deleted_pins)) {
+          parsed.deleted_pins = [];
           this.saveData(parsed);
         }
         return parsed;
@@ -877,6 +887,15 @@ class Database {
     const targetId = String(pinId).trim();
     const initialCount = this.data.pins.length;
     
+    // 🛡️ บันทึกรายการ ID หมุดที่ถูกลบ (Tombstone) ป้องกันไม่ให้ Google Sheets Auto-Sync ดึงกลับมาคืน
+    if (!this.data.deleted_pins) this.data.deleted_pins = [];
+    if (!this.data.deleted_pins.includes(targetId)) {
+      this.data.deleted_pins.push(targetId);
+      if (this.data.deleted_pins.length > 500) {
+        this.data.deleted_pins.shift();
+      }
+    }
+
     // 1. ลบหมุดออกจากรายการ pins ทั้งหมด
     this.data.pins = this.data.pins.filter(p => String(p.id).trim() !== targetId);
     const deletedCount = initialCount - this.data.pins.length;
@@ -897,7 +916,10 @@ class Database {
     this.saveData();
     this.logAudit('PIN_DELETE', userId, targetId, `ลบหมุดด่าน ${targetId} ถาวรออกจากระบบ`);
 
-    // 6. ส่งสัญญาณเรียลไทม์ให้ทุกหน้าจอถอดหมุดออกทันที
+    // 6. ซิงค์คำสั่งลบไปยัง Google Sheets ทันที
+    googleSheetsService.syncPinDelete(targetId).catch(e => console.warn('Sheets delete sync error:', e));
+
+    // 7. ส่งสัญญาณเรียลไทม์ให้ทุกหน้าจอถอดหมุดออกทันที
     if (this.io) {
       this.io.emit('report_deleted', targetId);
       this.io.emit('stats_update', this.getStatistics());
@@ -912,12 +934,18 @@ class Database {
 
     const oldStatus = pin.status;
     if (status === 'deleted') {
+      if (!this.data.deleted_pins) this.data.deleted_pins = [];
+      if (!this.data.deleted_pins.includes(pinId)) {
+        this.data.deleted_pins.push(pinId);
+      }
       const idx = this.data.pins.findIndex(p => p.id === pinId);
       if (idx !== -1) {
         this.data.pins.splice(idx, 1);
       }
+      googleSheetsService.syncPinDelete(pinId).catch(e => console.warn('Sheets delete sync error:', e));
     } else {
       pin.status = status;
+      googleSheetsService.syncPinUpdate(pin).catch(e => console.warn('Sheets update sync error:', e));
     }
     this.saveData();
     this.logAudit('PIN_STATUS_CHANGE', userId, pinId, `เปลี่ยนสถานะหมุดจาก ${oldStatus} -> ${status}`);
@@ -1575,6 +1603,12 @@ class Database {
     // 3. ล้างหมุด (Pins & Checkpoints Reset -> ลบหมุดและแชทประจำหมุดทั้งหมด)
     if (resetPins) {
       results.affectedPins = this.data.pins.length;
+      if (!this.data.deleted_pins) this.data.deleted_pins = [];
+      this.data.pins.forEach(p => {
+        if (p.id && !this.data.deleted_pins.includes(p.id)) {
+          this.data.deleted_pins.push(p.id);
+        }
+      });
       this.data.pins = [];
       this.data.pin_reports = [];
       this.data.pin_likes = [];
@@ -1583,6 +1617,7 @@ class Database {
         this.data.flagged_reports = [];
       }
       results.resetPins = true;
+      googleSheetsService.syncFullDatabase(this.data).catch(e => console.warn('Sheets sync error:', e));
     }
 
     // 4. ล้างห้องแชท (Chat Messages Reset)
@@ -2044,6 +2079,34 @@ class Database {
     return (this.data.audit_logs || []).slice(-limit).reverse();
   }
 
+  // --------------------------------------------------
+  // 📊 Visitor Counter
+  // --------------------------------------------------
+  recordVisit() {
+    // Use Asia/Bangkok date string (YYYY-MM-DD)
+    const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+
+    if (!this.data.visitors) {
+      this.data.visitors = { total: 0, today: 0, lastDate: todayDate, dailyHistory: {} };
+    }
+
+    const v = this.data.visitors;
+
+    // Reset daily counter if date has changed
+    if (v.lastDate !== todayDate) {
+      // Archive yesterday's count
+      v.dailyHistory = v.dailyHistory || {};
+      v.dailyHistory[v.lastDate] = v.today;
+      v.today = 0;
+      v.lastDate = todayDate;
+    }
+
+    v.today += 1;
+    v.total += 1;
+
+    this.saveData();
+  }
+
   getStatistics() {
     const active = this.data.pins.filter(p => p.status === 'active').length;
     const cleared = this.data.pins.filter(p => p.status === 'cleared').length;
@@ -2056,6 +2119,8 @@ class Database {
     const pendingFlags = (this.data.flagged_reports || []).filter(f => f.status === 'pending').length;
     const bannedUsers = Object.values(this.data.users).filter(u => u.status === 'banned').length;
 
+    const visitors = this.data.visitors || { total: 0, today: 0 };
+
     return {
       active,
       today,
@@ -2064,7 +2129,9 @@ class Database {
       pendingFlags,
       bannedUsers,
       season: this.data.season,
-      weekNumber: this.data.weekNumber
+      weekNumber: this.data.weekNumber,
+      todayVisits: visitors.today,
+      totalVisits: visitors.total
     };
   }
 
@@ -2366,36 +2433,66 @@ class Database {
 
     // 1. หมุดด่าน (Pins Sync & Restore)
     if (Array.isArray(sheetData.pins) && sheetData.pins.length > 0) {
+      if (!this.data.deleted_pins) this.data.deleted_pins = [];
+      const now = Date.now();
+
       sheetData.pins.forEach(sp => {
         if (!sp.id || !sp.lat || !sp.lng) return;
-        const localPin = this.data.pins.find(p => p.id === sp.id);
+        const pinId = String(sp.id).trim();
+
+        // 🚫 ถ้าหมุดนี้เคยถูกลบไปแล้ว หรือสถานะเป็น deleted ห้ามกู้คืนกลับมาเด็ดขาด
+        if (this.data.deleted_pins.includes(pinId)) return;
+        if (sp.status === 'deleted') return;
+
+        const localPin = this.data.pins.find(p => p.id === pinId);
         if (!localPin) {
+          // ตรวจสอบความถูกต้องของ timestamp
+          let parsedCreatedAt = now;
+          if (sp.createdAt) {
+            const parsed = typeof sp.createdAt === 'number' ? sp.createdAt : new Date(sp.createdAt).getTime();
+            if (!isNaN(parsed) && parsed > 0 && parsed < 2500000000000) {
+              parsedCreatedAt = parsed;
+            }
+          }
+
+          let parsedExpiresAt = parsedCreatedAt + (6 * 3600 * 1000);
+          if (sp.expiresAt) {
+            const parsed = typeof sp.expiresAt === 'number' ? sp.expiresAt : new Date(sp.expiresAt).getTime();
+            if (!isNaN(parsed) && parsed > 0 && parsed < 2500000000000) {
+              parsedExpiresAt = parsed;
+            }
+          }
+
+          // ถ้าหมุดหมดอายุไปแล้วและไม่ใช่สถานะ active จะไม่กู้คืนมาแสดงเป็นด่านใหม่
+          const isExpired = now > parsedExpiresAt;
+          const targetStatus = isExpired ? 'cleared' : (sp.status || 'active');
+
           this.data.pins.push({
-            id: sp.id,
+            id: pinId,
             title: sp.title || sp.locationName,
             locationName: sp.locationName,
             campusZone: sp.campusZone || 'มอใหม่ (ขามเรียง)',
-            lat: sp.lat,
-            lng: sp.lng,
+            lat: parseFloat(sp.lat),
+            lng: parseFloat(sp.lng),
             type: sp.type || 'checkpoint',
             direction: sp.direction || '',
             description: sp.description || '',
-            status: sp.status || 'active',
+            status: targetStatus,
             reporter: sp.reporter || { name: 'ผู้ใช้ มมส', badge: 'Member' },
             reporterId: sp.reporter?.email || 'restored_user',
             likes: [],
             views: 1,
             votes: { up: [], down: [] },
             moveCount: 0,
-            createdAt: typeof sp.createdAt === 'string' ? new Date(sp.createdAt).getTime() || Date.now() : Date.now(),
-            expiresAt: Date.now() + (6 * 3600 * 1000)
+            createdAt: parsedCreatedAt,
+            expiresAt: parsedExpiresAt
           });
           hasChanges = true;
-          changes.push(`Restored pin: ${sp.id}`);
+          changes.push(`Restored pin: ${pinId}`);
         } else if (sp.status && localPin.status !== sp.status) {
           localPin.status = sp.status;
           hasChanges = true;
-          changes.push(`Updated pin status ${sp.id} -> ${sp.status}`);
+          changes.push(`Updated pin status ${pinId} -> ${sp.status}`);
         }
       });
     }
@@ -2481,7 +2578,8 @@ class Database {
 
     // 4. ระดับยศ (Rank Tiers from Sheet)
     if (Array.isArray(sheetData.rankTiers) && sheetData.rankTiers.length > 0) {
-      const validTiers = sheetData.rankTiers.filter(t => t.level && t.name);
+      const isCorrupted = (str) => typeof str === 'string' && (str.includes('') || /[\uFFFD]/.test(str));
+      const validTiers = sheetData.rankTiers.filter(t => t.level && t.name && !isCorrupted(t.name) && !isCorrupted(t.title));
       if (validTiers.length >= 3) {
         this.data.rank_tiers = validTiers;
         hasChanges = true;
@@ -2494,7 +2592,8 @@ class Database {
 
     // 5. หมวดหมู่ด่าน (Categories from Sheet)
     if (Array.isArray(sheetData.categories) && sheetData.categories.length > 0) {
-      const validCats = sheetData.categories.filter(c => c.key && c.name);
+      const isCorrupted = (str) => typeof str === 'string' && (str.includes('') || /[\uFFFD]/.test(str));
+      const validCats = sheetData.categories.filter(c => c.key && c.name && !isCorrupted(c.name) && !isCorrupted(c.sub));
       if (validCats.length >= 1) {
         this.data.categories = validCats;
         hasChanges = true;
