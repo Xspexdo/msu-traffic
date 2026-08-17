@@ -2586,20 +2586,23 @@ body.feed-panel-minimized .fb-chat-widget {
     bottom: 68px !important;
     right: 12px !important;
     left: 12px !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
   }
 
   .fb-chat-box {
     width: 100% !important;
+    max-width: 100% !important;
     height: 54vh !important;
     max-height: 60vh;
     border-radius: 18px 18px 12px 12px;
   }
 
   .fb-rooms-bar {
-    width: 120px;
-    min-width: 118px;
-    max-width: 125px;
-    padding: 0.35rem 0.25rem;
+    width: 106px;
+    min-width: 104px;
+    max-width: 110px;
+    padding: 0.35rem 0.3rem 0.35rem 0.45rem;
     gap: 0.2rem;
   }
 
@@ -2608,13 +2611,17 @@ body.feed-panel-minimized .fb-chat-widget {
     border-radius: 8px;
   }
 
+  .chat-room-chip .room-icon {
+    font-size: 0.85rem;
+  }
+
   .chat-room-chip .room-name {
-    font-size: 0.72rem;
-    line-height: 1.2;
+    font-size: 0.68rem;
+    line-height: 1.15;
   }
 
   .room-maintenance-badge {
-    font-size: 0.5rem;
+    font-size: 0.48rem;
     padding: 1px 3px;
   }
 
