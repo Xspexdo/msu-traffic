@@ -24,7 +24,7 @@
       "isDev": true,
       "status": "active",
       "createdAt": 1786777538446,
-      "lastActiveAt": 1786979389031
+      "lastActiveAt": 1786979435246
     },
     "google_108560811899542656924": {
       "id": "google_108560811899542656924",
@@ -129,48 +129,6 @@
       "moveCount": 0,
       "createdAt": 1786978484139,
       "expiresAt": 1787000084139
-    },
-    {
-      "id": "pin-1786978467418-e7ri9",
-      "title": "รายงานด่าน พิกัดที่ระบุบนแผนที่ มมส",
-      "locationName": "พิกัดที่ระบุบนแผนที่ มมส",
-      "customLocation": "",
-      "campusZone": "มอใหม่ (ขามเรียง)",
-      "lat": 16.245774,
-      "lng": 103.249716,
-      "type": "helmet",
-      "direction": "ไม่ระบุฝั่งทาง",
-      "description": "",
-      "imageUrl": null,
-      "severity": "high",
-      "isAnonymous": false,
-      "isAnnouncement": false,
-      "reporterId": "dev_java5263",
-      "reporter": {
-        "id": "dev_java5263",
-        "name": "Java (Dev)",
-        "email": "java5263@gmail.com",
-        "picture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
-        "isDev": true,
-        "isMsuStudent": false,
-        "isAnonymous": false,
-        "isAnnouncement": false,
-        "badge": "👑 DEV",
-        "role": "dev"
-      },
-      "likes": [],
-      "views": 1,
-      "votes": {
-        "up": [
-          "dev_java5263"
-        ],
-        "down": []
-      },
-      "reports": [],
-      "status": "active",
-      "moveCount": 0,
-      "createdAt": 1786978467418,
-      "expiresAt": 1787000067418
     }
   ],
   "pin_reports": [],
