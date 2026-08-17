@@ -507,7 +507,7 @@ class ChatManager {
 
     const avatarUrl = isAnnouncement 
       ? 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=120&auto=format&fit=crop&q=80'
-      : (m.senderPicture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60');
+      : (m.senderPicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.senderName || 'MSU')}&background=2563EB&color=fff`);
 
     return `
       <div class="chat-bubble-wrap ${isMe && !isAnnouncement ? 'bubble-me' : 'bubble-other'} ${isAnnouncement ? 'bubble-announcement' : ''}" id="chat-msg-${m.id}" data-id="${m.id}">

@@ -856,7 +856,7 @@ class MSUApp {
     const trustBar = document.getElementById('profileTrustBar');
     const trustStatus = document.getElementById('profileTrustStatus');
 
-    if (avatarElem) avatarElem.src = user.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80';
+    if (avatarElem) avatarElem.src = user.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'MSU')}&background=2563EB&color=fff`;
     if (nameElem) nameElem.textContent = user.name || 'ผู้ใช้งาน มมส';
     if (emailElem) emailElem.textContent = user.email || '';
 
