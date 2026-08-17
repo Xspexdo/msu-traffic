@@ -212,7 +212,32 @@ class MSUApp {
   // ----------------------------------------------------
   initSocket() {
     try {
-      this.socket = io();
+      let visitorId = '';
+      try {
+        visitorId = localStorage.getItem('msu_vid');
+        if (!visitorId) {
+          visitorId = 'vid_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 10);
+          localStorage.setItem('msu_vid', visitorId);
+        }
+      } catch (e) {
+        visitorId = 'anon_' + Math.random().toString(36).substring(2, 10);
+      }
+
+      let userEmail = '';
+      let isDev = false;
+      try {
+        const storedUser = localStorage.getItem('msu_traffic_user');
+        if (storedUser) {
+          const u = JSON.parse(storedUser);
+          userEmail = (u.email || '').toLowerCase().trim();
+          isDev = u.isDev === true || userEmail === 'java5263@gmail.com';
+        }
+      } catch (e) {}
+
+      this.socket = io({
+        auth: { visitorId, userEmail, isDev },
+        query: { visitorId, userEmail, isDev: isDev ? 'true' : 'false' }
+      });
 
       this.socket.on('connect', () => {
         console.log('⚡ Connected to MSU Traffic WebSocket Server');
@@ -443,11 +468,20 @@ class MSUApp {
     const elVisitsToday = document.getElementById('homeStatVisitsToday');
     const elVisitsTotal = document.getElementById('homeStatVisitsTotal');
 
+    // Navbar Center Stats HUD
+    const elNavOnline = document.getElementById('navStatOnline');
+    const elNavToday = document.getElementById('navStatToday');
+    const elNavMonth = document.getElementById('navStatMonth');
+
     if (elActive) elActive.textContent = stats.active || 0;
     if (elToday) elToday.textContent = stats.today || 0;
     if (elCleared) elCleared.textContent = stats.cleared || 0;
     if (elVisitsToday) elVisitsToday.textContent = (stats.todayVisits || 0).toLocaleString();
     if (elVisitsTotal) elVisitsTotal.textContent = (stats.totalVisits || 0).toLocaleString();
+
+    if (elNavOnline) elNavOnline.textContent = (stats.onlineNow || 1).toLocaleString();
+    if (elNavToday) elNavToday.textContent = (stats.todayVisits || 0).toLocaleString();
+    if (elNavMonth) elNavMonth.textContent = (stats.monthVisits || stats.todayVisits || 0).toLocaleString();
   }
 
   renderZoneOptions() {

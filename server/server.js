@@ -136,13 +136,23 @@ app.get('*', (req, res) => {
 // Socket.io Realtime Events
 io.on('connection', (socket) => {
   const ip = socket.clientIp || '127.0.0.1';
+  const visitorId = socket.handshake.auth?.visitorId || socket.handshake.query?.visitorId || ip;
+  const userEmail = (socket.handshake.auth?.userEmail || socket.handshake.query?.userEmail || '').toLowerCase().trim();
+  const isDev = socket.handshake.auth?.isDev === true || socket.handshake.query?.isDev === 'true' || userEmail === 'java5263@gmail.com';
 
-  // Record this visit and broadcast updated stats to all clients
-  db.recordVisit();
-  io.emit('stats_update', db.getStatistics());
-
-  // Send current stats immediately to this socket
-  socket.emit('stats_update', db.getStatistics());
+  // 👑 Bypass visitor count completely for java5263@gmail.com and Devs!
+  if (userEmail === 'java5263@gmail.com' || isDev) {
+    socket.emit('stats_update', db.getStatistics());
+  } else {
+    // Record this visit for regular visitors (Unique per Device / IP per day)
+    const isNewVisit = db.recordVisit(visitorId, ip, userEmail);
+    if (isNewVisit) {
+      io.emit('stats_update', db.getStatistics());
+    } else {
+      // Just send current stats to this connected socket without increasing numbers
+      socket.emit('stats_update', db.getStatistics());
+    }
+  }
 
   socket.on('disconnect', () => {
     // Decrement active connection counter for IP
@@ -152,6 +162,8 @@ io.on('connection', (socket) => {
     } else {
       activeSocketIps.set(ip, current - 1);
     }
+    // Broadcast updated online count
+    io.emit('stats_update', db.getStatistics());
   });
 });
 

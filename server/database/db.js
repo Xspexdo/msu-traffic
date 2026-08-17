@@ -2138,31 +2138,56 @@ class Database {
   }
 
   // --------------------------------------------------
-  // 📊 Visitor Counter
+  // 📊 Unique Visitor Counter (นับเฉพาะคนจริง ไม่ปั๊มยอดเวลารีเฟรช)
   // --------------------------------------------------
-  recordVisit() {
+  recordVisit(visitorId = '', clientIp = '', userEmail = '') {
+    const cleanEmail = String(userEmail || '').toLowerCase().trim();
+    // 👑 ถ้าเป็น java5263@gmail.com หรือบัญชี Dev -> ไม่นับยอดเข้าชมเด็ดขาด
+    if (cleanEmail === 'java5263@gmail.com') {
+      return false;
+    }
+
     // Use Asia/Bangkok date string (YYYY-MM-DD)
     const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+    const currentMonth = todayDate.substring(0, 7); // YYYY-MM
 
     if (!this.data.visitors) {
-      this.data.visitors = { total: 0, today: 0, lastDate: todayDate, dailyHistory: {} };
+      this.data.visitors = { total: 0, today: 0, lastDate: todayDate, dailyHistory: {}, monthlyHistory: {}, visitedIpsToday: {} };
     }
 
     const v = this.data.visitors;
+    v.dailyHistory = v.dailyHistory || {};
+    v.monthlyHistory = v.monthlyHistory || {};
+    v.visitedIpsToday = v.visitedIpsToday || {};
 
     // Reset daily counter if date has changed
     if (v.lastDate !== todayDate) {
       // Archive yesterday's count
-      v.dailyHistory = v.dailyHistory || {};
       v.dailyHistory[v.lastDate] = v.today;
       v.today = 0;
+      v.visitedIpsToday = {}; // รีเซ็ตรายการของวันใหม่
       v.lastDate = todayDate;
     }
 
-    v.today += 1;
-    v.total += 1;
+    // Normalizing identifiers
+    const cleanVid = String(visitorId || '').trim();
+    const cleanIp = String(clientIp || '').trim().replace(/^::ffff:/, '').replace(/^::1$/, '127.0.0.1');
+
+    // 🔒 ถ้าเครื่องนี้ หรือ IP นี้ เคยถูกบันทึกแล้วในวันนี้ -> ข้ามทันที (ไม่นับซ้ำแน่นอน 100%)
+    if ((cleanVid && v.visitedIpsToday[cleanVid]) || (cleanIp && v.visitedIpsToday[cleanIp])) {
+      return false; // ไม่เพิ่มยอดซ้ำ
+    }
+
+    // บันทึกทั้ง visitorId และ IP
+    if (cleanVid) v.visitedIpsToday[cleanVid] = Date.now();
+    if (cleanIp) v.visitedIpsToday[cleanIp] = Date.now();
+
+    v.today = (v.today || 0) + 1;
+    v.total = (v.total || 0) + 1;
+    v.monthlyHistory[currentMonth] = (v.monthlyHistory[currentMonth] || 0) + 1;
 
     this.saveData();
+    return true;
   }
 
   getStatistics() {
@@ -2177,7 +2202,15 @@ class Database {
     const pendingFlags = (this.data.flagged_reports || []).filter(f => f.status === 'pending').length;
     const bannedUsers = Object.values(this.data.users).filter(u => u.status === 'banned').length;
 
-    const visitors = this.data.visitors || { total: 0, today: 0 };
+    const visitors = this.data.visitors || { total: 0, today: 0, monthlyHistory: {} };
+    const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+    const currentMonth = todayDate.substring(0, 7);
+    const monthVisits = visitors.monthlyHistory ? (visitors.monthlyHistory[currentMonth] || visitors.today || 0) : (visitors.today || 0);
+
+    let onlineNow = 1;
+    if (this.io && this.io.engine) {
+      onlineNow = Math.max(1, this.io.engine.clientsCount || this.io.sockets?.sockets?.size || 1);
+    }
 
     return {
       active,
@@ -2188,8 +2221,10 @@ class Database {
       bannedUsers,
       season: this.data.season,
       weekNumber: this.data.weekNumber,
-      todayVisits: visitors.today,
-      totalVisits: visitors.total
+      todayVisits: visitors.today || 0,
+      monthVisits: monthVisits || visitors.today || 0,
+      totalVisits: visitors.total || 0,
+      onlineNow: onlineNow
     };
   }
 

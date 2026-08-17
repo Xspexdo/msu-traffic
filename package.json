@@ -1,6 +1,6 @@
 {
   "name": "msu-traffic",
-  "version": "1.0.0",
+  "version": "1.4.13",
   "description": "MSU Traffic - ระบบรายงานและแจ้งเตือนด่านรอบ ม.มหาสารคาม",
   "main": "server/server.js",
   "scripts": {

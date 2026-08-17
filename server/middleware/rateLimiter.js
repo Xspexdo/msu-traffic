@@ -171,14 +171,23 @@ setInterval(() => {
  * Check if the server is currently under critical overload
  */
 function isServerOverloaded() {
-  if (currentEventLoopLag > CONFIG.CIRCUIT_BREAKER.MAX_EVENT_LOOP_LAG_MS) {
+  // Allow disabling or tuning load shedding via environment variable
+  if (process.env.DISABLE_LOAD_SHEDDING === 'true') {
+    return { overloaded: false };
+  }
+
+  // Only trigger on severe event loop blockage (> 1000ms)
+  if (currentEventLoopLag > 1000) {
     return { overloaded: true, reason: `Event Loop Lag (${currentEventLoopLag}ms)` };
   }
+
+  // Check actual memory usage in MB instead of dynamic heap ratio
   const memory = process.memoryUsage();
-  const heapUsedPercent = (memory.heapUsed / memory.heapTotal) * 100;
-  if (heapUsedPercent > CONFIG.CIRCUIT_BREAKER.MAX_HEAP_USED_PERCENT) {
-    return { overloaded: true, reason: `High Memory Usage (${heapUsedPercent.toFixed(1)}%)` };
+  const heapUsedMB = memory.heapUsed / 1024 / 1024;
+  if (heapUsedMB > 1024) { // Only shed load if process is consuming > 1GB Heap
+    return { overloaded: true, reason: `Extreme Memory Usage (${heapUsedMB.toFixed(1)}MB)` };
   }
+
   return { overloaded: false };
 }
 

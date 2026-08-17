@@ -47,7 +47,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
   <!-- Main Stylesheet (with cache-busting) -->
-  <link rel="stylesheet" href="css/style.css?v=3.0.1">
+  <link rel="stylesheet" href="css/style.css?v=3.0.2">
 
   <!-- Immediate Theme Check to avoid flash of light mode -->
   <script>
@@ -89,10 +89,40 @@
         <img src="/images/logo.png?v=2" alt="MSU" style="width: 32px; height: 32px; border-radius: 8px; object-fit: cover;">
       </div>
       <div class="brand-title">
-        <span class="brand-name">MSU Traffic</span>
+        <div class="brand-name-row">
+          <span class="brand-name">MSU Traffic</span>
+          <span class="brand-version-badge">v1.4.13</span>
+        </div>
         <span class="brand-subtitle">Season 1 • ม.มหาสารคาม</span>
       </div>
     </a>
+    <!-- 📊 Stats Center HUD (ตอนนี้ • วันนี้ • เดือนนี้) -->
+    <div class="nav-stats-hud" id="navStatsHud">
+      <!-- 🟢 ออนไลน์ตอนนี้ -->
+      <div class="nav-stat-chip stat-online" title="ผู้ใช้งานที่กำลังออนไลน์อยู่ในขณะนี้">
+        <span class="stat-pulse-dot"></span>
+        <span class="nav-stat-label">ตอนนี้</span>
+        <span class="nav-stat-val" id="navStatOnline">1</span>
+      </div>
+
+      <div class="nav-stat-divider"></div>
+
+      <!-- ☀️ การเข้าชมวันนี้ -->
+      <div class="nav-stat-chip stat-today" title="จำนวนการเข้าชมเว็บไซต์ในวันนี้">
+        <span class="nav-stat-icon">☀️</span>
+        <span class="nav-stat-label">วันนี้</span>
+        <span class="nav-stat-val" id="navStatToday">0</span>
+      </div>
+
+      <div class="nav-stat-divider"></div>
+
+      <!-- 📅 การเข้าชมเดือนนี้ -->
+      <div class="nav-stat-chip stat-month" title="จำนวนการเข้าชมเว็บไซต์ในเดือนนี้">
+        <span class="nav-stat-icon">📅</span>
+        <span class="nav-stat-label">เดือนนี้</span>
+        <span class="nav-stat-val" id="navStatMonth">0</span>
+      </div>
+    </div>
 
     <div class="nav-actions">
       <!-- ⭐ โดเนท ค่า Server Button (คงเด่นชัดด้านนอกตามเดิม) -->
@@ -474,7 +504,7 @@
         <!-- Footer Credit -->
         <div class="info-footer-credit">
           <p>พัฒนาโดย <strong>XspexDo</strong></p>
-          <p class="info-version">MSU Traffic v1.0 • Season 1</p>
+          <p class="info-version">MSU Traffic v1.4.13 • Season 1</p>
         </div>
 
       </div>
@@ -2209,7 +2239,7 @@
   <script src="js/map.js?v=3.2.1"></script>
   <script src="js/devManager.js?v=3.1.0"></script>
   <script src="js/securityGatekeeper.js?v=3.1.0"></script>
-  <script src="js/app.js?v=3.3.2"></script>
+  <script src="js/app.js?v=3.3.4"></script>
 
 
   <script>
