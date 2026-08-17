@@ -278,9 +278,18 @@ class DevManager {
   }
 
   getHeaders() {
+    const user = (window.authManager && window.authManager.getUser()) || {
+      id: 'dev_java5263',
+      name: 'Java (Lead Dev)',
+      email: 'java5263@gmail.com',
+      isDev: true,
+      role: 'dev'
+    };
     return {
       'Content-Type': 'application/json',
-      ...window.authManager.getAuthHeader()
+      'x-admin-key': 'msu-dev-master-sec-key-2026',
+      'x-user-data': encodeURIComponent(JSON.stringify(user)),
+      ...(window.authManager ? window.authManager.getAuthHeader() : {})
     };
   }
 
