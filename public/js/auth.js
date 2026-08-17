@@ -141,6 +141,9 @@ class AuthManager {
       user.isDev = true;
       user.role = 'dev';
       user.badge = '👑 Developer / ผู้พัฒนาระบบ';
+    } else if (user.isRider || user.role === 'rider') {
+      user.isRider = true;
+      user.badge = '🛵 RIDER';
     }
     this.currentUser = user;
     localStorage.setItem('msu_traffic_user', JSON.stringify(user));

@@ -38,6 +38,10 @@ class MSUMapManager {
     }
 
     try {
+      // Check current theme
+      const savedTheme = localStorage.getItem('msu_theme') || (document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+      this.currentTheme = savedTheme === 'dark' ? 'dark' : 'light';
+
       // 1. Initialize Map
       this.map = L.map(containerId, {
         center: this.khamriangCoords,
@@ -46,8 +50,8 @@ class MSUMapManager {
         attributionControl: false
       });
 
-      // 2. Add Tile Layer (Default: CARTO Voyager Light)
-      this.tileLayer = L.tileLayer(this.tileUrls[this.currentTheme], {
+      // 2. Add Tile Layer (Carto Dark or Carto Voyager Light)
+      this.tileLayer = L.tileLayer(this.tileUrls[this.currentTheme] || this.tileUrls.light, {
         subdomains: 'abcd',
         maxZoom: 19,
         detectRetina: true
@@ -85,56 +89,22 @@ class MSUMapManager {
   }
 
   // ----------------------------------------------------
-  // 🗺️ ระบบสไลด์แถบรายการลงเมื่อเลื่อนแผนที่ & กู้คืนเมื่อหยุด 5 วิ หรือคลิกหมุด
+  // 🗺️ แถบรายการคงที่อยู่ด้านล่างเสมอ ไม่จมหายไปเมื่อเลื่อนแผนที่
   // ----------------------------------------------------
   initMapDragSlideEffect() {
-    if (!this.map) return;
-
     const feedPanel = document.querySelector('.map-feed-panel');
     const restoreBtn = document.getElementById('mapRestoreFeedPill');
-    if (!feedPanel) return;
-
-    let slideTimer = null;
-
-    const hideFeedPanel = () => {
-      feedPanel.classList.add('panel-slid-down');
-      if (restoreBtn) restoreBtn.classList.add('visible');
-      if (slideTimer) {
-        clearTimeout(slideTimer);
-        slideTimer = null;
-      }
-    };
-
-    const scheduleRestoreFeedPanel = (delay = 5000) => {
-      if (slideTimer) clearTimeout(slideTimer);
-      slideTimer = setTimeout(() => {
-        feedPanel.classList.remove('panel-slid-down');
-        if (restoreBtn) restoreBtn.classList.remove('visible');
-        slideTimer = null;
-      }, delay);
-    };
-
-    // 1. เมื่อเริ่มเลื่อนหรือซูมแผนที่: ให้สไลด์แถบลงไปซ่อน
-    this.map.on('movestart', () => hideFeedPanel());
-    this.map.on('dragstart', () => hideFeedPanel());
-    this.map.on('zoomstart', () => hideFeedPanel());
-
-    // 2. เมื่อหยุดเลื่อนแผนที่: นับถอยหลัง 5 วินาที แล้วสไลด์กลับขึ้นมา
-    this.map.on('moveend', () => scheduleRestoreFeedPanel(5000));
-    this.map.on('dragend', () => scheduleRestoreFeedPanel(5000));
-    this.map.on('zoomend', () => scheduleRestoreFeedPanel(5000));
-
-    // 3. ฟังก์ชันกู้คืนแถบทันที (เมื่อคลิกหมุด หรือกดปุ่มกู้คืน)
-    this.restoreFeedPanel = () => {
-      if (slideTimer) {
-        clearTimeout(slideTimer);
-        slideTimer = null;
-      }
+    if (feedPanel) {
       feedPanel.classList.remove('panel-slid-down');
-      if (restoreBtn) restoreBtn.classList.remove('visible');
-    };
+    }
+    if (restoreBtn) {
+      restoreBtn.classList.remove('visible');
+    }
 
-    this.hideFeedPanel = hideFeedPanel;
+    this.restoreFeedPanel = () => {
+      if (feedPanel) feedPanel.classList.remove('panel-slid-down');
+    };
+    this.hideFeedPanel = () => {};
   }
 
   forceResize() {
@@ -230,34 +200,53 @@ class MSUMapManager {
   }
 
   setReportPin(lat, lng, name = 'จุดที่เลือก') {
+    const latNum = parseFloat(lat);
+    const lngNum = parseFloat(lng);
+    if (isNaN(latNum) || isNaN(lngNum)) return;
+
     const latIn = document.getElementById('reportLat');
     const lngIn = document.getElementById('reportLng');
     if (latIn && lngIn) {
-      latIn.value = lat.toFixed(6);
-      lngIn.value = lng.toFixed(6);
+      latIn.value = latNum.toFixed(6);
+      lngIn.value = lngNum.toFixed(6);
     }
 
     if (this.reportMarker) {
-      this.reportMarker.setLatLng([lat, lng]);
+      this.reportMarker.setLatLng([latNum, lngNum]);
+      this.reportMarker.openPopup();
     } else {
       const pinIcon = L.divIcon({
         className: 'new-pin-picker-wrap',
         html: `
-          <div class="draggable-pin-bubble">
-            <span>✋ แตะลากหมุดนี้ได้</span>
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: auto;">
+            <div style="background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(8px); color: #FFFFFF; font-size: 0.7rem; font-weight: 800; padding: 0.22rem 0.6rem; border-radius: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.3); border: 1.5px solid rgba(255,255,255,0.4); white-space: nowrap; margin-bottom: 2px;">
+              ✋ แตะลากหมุดนี้ได้
+            </div>
+            <div style="font-size: 2rem; line-height: 1; filter: drop-shadow(0 4px 8px rgba(239, 68, 68, 0.6));">📍</div>
           </div>
-          <div class="draggable-pin-icon">📍</div>
-          <div class="draggable-pin-shadow"></div>
         `,
-        iconSize: [120, 50],
-        iconAnchor: [60, 46]
+        iconSize: [130, 55],
+        iconAnchor: [65, 50]
       });
 
-      this.reportMarker = L.marker([lat, lng], {
+      this.reportMarker = L.marker([latNum, lngNum], {
         icon: pinIcon,
         draggable: true,
         autoPan: true
       }).addTo(this.map);
+
+      // Popup บนหมุดสำหรับกด "ปักหมุดที่นี่"
+      const pickerPopupHtml = `
+        <div style="text-align: center; padding: 0.35rem 0.45rem;">
+          <div style="font-weight: 800; font-size: 0.85rem; color: #0F172A; margin-bottom: 0.2rem;">📍 จุดที่เลือก</div>
+          <div style="font-size: 0.72rem; color: #64748B; margin-bottom: 0.5rem;">แตะลากหมุดเพื่อเลื่อน หรือกดยืนยันเพื่อปักหมุด</div>
+          <button class="btn btn-primary btn-sm" onclick="window.app.openReportModal()" style="width: 100%; background: #EF4444; border-color: #EF4444; font-weight: 800; padding: 0.45rem 0.75rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(239,68,68,0.35);">
+            ➕ ปักหมุดรายงานจุดนี้
+          </button>
+        </div>
+      `;
+      this.reportMarker.bindPopup(pickerPopupHtml, { offset: [0, -35] });
+      this.reportMarker.openPopup();
 
       // On Drag: Update Lat/Lng Live
       this.reportMarker.on('drag', (e) => {
@@ -276,15 +265,21 @@ class MSUMapManager {
           lngIn.value = pos.lng.toFixed(6);
         }
 
-        // Haptic feedback
         if (navigator.vibrate) {
           navigator.vibrate(50);
         }
+
+        this.reportMarker.openPopup();
 
         if (window.app) {
           window.app.showNotification(`📍 ย้ายตำแหน่งด่านไปที่ [${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}] เรียบร้อยแล้ว`, 'info');
         }
       });
+    }
+
+    // 🚀 เลื่อนแผนที่ไปยังตำแหน่งที่เลือกอัตโนมัติ 100%
+    if (this.map) {
+      this.map.flyTo([latNum, lngNum], Math.max(16, this.map.getZoom()), { duration: 0.8 });
     }
   }
 
@@ -564,6 +559,14 @@ class MSUMapManager {
       this.map.flyTo(this.downtownCoords, 15, { duration: 1 });
     } else {
       this.map.flyTo(this.khamriangCoords, 15, { duration: 1 });
+    }
+  }
+
+  setTheme(theme) {
+    if (this.currentTheme === theme && this.tileLayer) return;
+    this.currentTheme = theme;
+    if (this.map && this.tileLayer && this.tileUrls[theme]) {
+      this.tileLayer.setUrl(this.tileUrls[theme]);
     }
   }
 

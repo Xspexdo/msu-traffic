@@ -24,11 +24,71 @@ class ChatManager {
   }
 
   async init() {
-    this.initGeolocation();
     await this.loadRooms();
     await this.loadMessages(this.currentRoom);
     this.updateDevClearBtn();
     this.startMidnightResetCountdown();
+  }
+
+  // ----------------------------------------------------
+  // 💬 Facebook Style Chat Popup Controls
+  // ----------------------------------------------------
+  openChatPopup() {
+    const widget = document.getElementById('fbChatWidget');
+    const box = document.getElementById('fbChatBox');
+    if (widget) {
+      widget.classList.add('chat-open');
+    }
+    if (box) {
+      box.classList.remove('is-minimized');
+    }
+    this.scrollToBottom();
+    const input = document.getElementById('chatMessageInput');
+    if (input && !input.disabled) {
+      setTimeout(() => input.focus(), 150);
+    }
+  }
+
+  closeChatPopup() {
+    const widget = document.getElementById('fbChatWidget');
+    const box = document.getElementById('fbChatBox');
+    if (widget) {
+      widget.classList.remove('chat-open');
+    }
+    if (box) {
+      box.classList.remove('is-minimized');
+      box.classList.remove('is-expanded');
+    }
+  }
+
+  toggleChatPopup() {
+    const widget = document.getElementById('fbChatWidget');
+    if (widget && widget.classList.contains('chat-open')) {
+      const box = document.getElementById('fbChatBox');
+      if (box && box.classList.contains('is-minimized')) {
+        box.classList.remove('is-minimized');
+      } else {
+        this.closeChatPopup();
+      }
+    } else {
+      this.openChatPopup();
+    }
+  }
+
+  minimizeChatPopup() {
+    const box = document.getElementById('fbChatBox');
+    if (box) {
+      box.classList.toggle('is-minimized');
+    }
+  }
+
+  toggleExpandChatPopup() {
+    const box = document.getElementById('fbChatBox');
+    if (box) {
+      box.classList.remove('is-minimized');
+      box.classList.toggle('is-expanded');
+      setTimeout(() => this.scrollToBottom(), 100);
+    }
   }
 
   bindSocketEvents(socket) {
@@ -128,27 +188,36 @@ class ChatManager {
     });
   }
 
-  // 1. Initial Geolocation Tracking
-  initGeolocation() {
-    if (!navigator.geolocation) {
-      this.updateGeofenceUI(false, 999, 'เบราว์เซอร์ไม่รองรับ GPS');
-      return;
+  // 1. On-Demand Geolocation Tracking (ขอ GPS เมื่อผู้ใช้เริ่มใช้งานแชท)
+  async ensureLocation() {
+    if (this.userLocation) {
+      await this.checkGeofence();
+      return this.userLocation;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        this.userLocation = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude
-        };
-        this.checkGeofence();
-      },
-      (err) => {
-        console.warn('Geolocation warning:', err.message);
-        this.updateGeofenceUI(false, 999, 'กรุณาอนุญาตเปิด Location เพื่อใช้งานส่งข้อความ');
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+    if (!navigator.geolocation) {
+      this.updateGeofenceUI(false, 999, 'เบราว์เซอร์ไม่รองรับ GPS');
+      return null;
+    }
+
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          this.userLocation = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude
+          };
+          await this.checkGeofence();
+          resolve(this.userLocation);
+        },
+        (err) => {
+          console.warn('Geolocation warning:', err.message);
+          this.updateGeofenceUI(false, 999, 'กรุณาอนุญาตเปิด Location เพื่อส่งข้อความ');
+          resolve(null);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
   }
 
   async checkGeofence() {
@@ -242,6 +311,17 @@ class ChatManager {
         </button>
       `;
     }).join('');
+
+    // รองรับการใช้ Mouse Wheel เลื่อนซ้าย-ขวาบน PC/Mac
+    if (!container.dataset.wheelBound) {
+      container.dataset.wheelBound = 'true';
+      container.addEventListener('wheel', (e) => {
+        if (e.deltaY !== 0) {
+          e.preventDefault();
+          container.scrollLeft += e.deltaY;
+        }
+      }, { passive: false });
+    }
   }
 
   // 3. Switch Room & Load Messages
@@ -252,7 +332,12 @@ class ChatManager {
     const roomObj = this.rooms.find(r => r.id === roomId);
     const titleElem = document.getElementById('chatCurrentRoomTitle');
     const descElem = document.getElementById('chatCurrentRoomDesc');
+    const headerIcon = document.getElementById('fbHeaderIcon');
     
+    if (headerIcon && roomObj) {
+      headerIcon.textContent = roomObj.icon || '💬';
+    }
+
     if (titleElem && roomObj) {
       const isClosed = roomObj.enabled === false;
       titleElem.innerHTML = `${roomObj.icon} ${roomObj.name} ${isClosed ? '<span style="font-size: 0.72rem; color: #DC2626; background: #FEF2F2; padding: 2px 8px; border-radius: 6px; border: 1px solid #FECACA; margin-left: 0.4rem; vertical-align: middle;">🚧 ปิดปรับปรุง เร็วๆนี้</span>' : ''}`;
@@ -412,6 +497,9 @@ class ChatManager {
     } else if (m.senderBadge?.includes('DEV')) {
       badgeClass = 'badge-dev';
       badgeText = '👑 DEVELOPER';
+    } else if (m.senderBadge?.includes('RIDER')) {
+      badgeClass = 'badge-rider';
+      badgeText = '🛵 RIDER';
     } else if (m.senderBadge?.includes('MSU')) {
       badgeClass = 'badge-msu';
       badgeText = '🎓 นิสิต มมส';
@@ -500,6 +588,16 @@ class ChatManager {
     if (!text) return;
 
     const isAnnouncement = announcementCheckbox?.checked || false;
+    const isDev = window.authManager?.isDev();
+
+    // 📍 ขอตำแหน่ง GPS On-Demand เฉพาะตอนจะส่งข้อความ (หากยังไม่มีตำแหน่ง)
+    if (!isDev && !this.userLocation) {
+      const loc = await this.ensureLocation();
+      if (!loc) {
+        alert('📍 กรุณาอนุญาตเปิดตำแหน่ง GPS บนเครื่อง/เบราว์เซอร์ของคุณเพื่อยืนยันพิกัดก่อนส่งข้อความ');
+        return;
+      }
+    }
 
     const payload = {
       roomId: this.currentRoom,

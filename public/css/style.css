@@ -29,7 +29,7 @@
   --border-light: #F1F5F9;
 
   --nav-height: 56px;
-  --bottom-nav-height: 62px;
+  --bottom-nav-height: 0px;
   --radius: 12px;
   --radius-lg: 16px;
   --shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
@@ -43,14 +43,23 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html {
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+}
+
 body {
   font-family: var(--font-primary);
   background-color: var(--bg-main);
   color: var(--text-main);
   line-height: 1.5;
   padding-top: var(--nav-height);
-  padding-bottom: calc(var(--bottom-nav-height) + 12px);
-  min-height: 100vh;
+  padding-bottom: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
   display: flex;
   flex-direction: column;
 }
@@ -157,6 +166,24 @@ body {
   background: var(--border-light);
 }
 
+.theme-toggle-btn {
+  border-radius: 20px;
+  gap: 0.35rem;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+
+@media (max-width: 580px) {
+  .theme-toggle-text {
+    display: none;
+  }
+  .theme-toggle-btn {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.95rem;
+  }
+}
+
 /* Badges */
 .badge-dev {
   background: #FEF3C7;
@@ -186,6 +213,20 @@ body {
   padding: 2px 6px;
   border-radius: 6px;
   border: 1px solid #E2E8F0;
+}
+
+.badge-rider {
+  background: linear-gradient(135deg, #ECFDF5 0%, #FEF3C7 100%);
+  color: #047857;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1.5px solid #10B981;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.15);
 }
 
 /* ==========================================================================
@@ -481,9 +522,12 @@ body {
 #viewMap {
   padding: 0;
   max-width: 100%;
-  height: calc(100vh - var(--nav-height) - var(--bottom-nav-height));
+  height: calc(100vh - var(--nav-height));
+  height: calc(100dvh - var(--nav-height));
   position: relative;
   overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: none;
 }
 
 .map-view-layout {
@@ -491,6 +535,8 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: none;
 }
 
 .map-wrapper {
@@ -500,11 +546,15 @@ body {
   height: 100%;
   background: #E2E8F0;
   z-index: 1;
+  touch-action: none;
+  overscroll-behavior: none;
 }
 
 #msu-map {
   width: 100%;
   height: 100%;
+  touch-action: none;
+  overscroll-behavior: none;
 }
 
 .map-campus-selector {
@@ -745,26 +795,30 @@ body {
 
 .fab-report {
   position: absolute;
-  bottom: 16px;
-  right: 16px;
-  background: #EF4444;
+  bottom: 24px;
+  right: 24px;
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
   color: #FFFFFF;
-  border: none;
-  padding: 0.65rem 1.15rem;
+  border: 2.5px solid #FFFFFF;
+  padding: 0.55rem 1.1rem;
   border-radius: 30px;
+  font-family: var(--font-heading);
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 800;
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
   cursor: pointer;
   z-index: 500;
-  transition: transform 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  letter-spacing: -0.2px;
+  white-space: nowrap;
 }
 
 .fab-report:hover {
-  transform: scale(1.05);
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
 }
 
 /* 📋 ปุ่มลอยกู้คืนแถบรายการ เมื่อแถบถูกสไลด์ซ่อนลงไป */
@@ -808,10 +862,10 @@ body {
   position: absolute;
   bottom: 0;
   left: 50%;
-  transform: translateX(-50%) translateY(0);
+  transform: translateX(-50%);
   width: 100%;
   max-width: 760px;
-  max-height: 48vh;
+  max-height: 42vh;
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(16px);
   border-top-left-radius: 20px;
@@ -819,19 +873,12 @@ body {
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-bottom: none;
   box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.15);
-  padding: 0.45rem 0.85rem 0.85rem 0.85rem;
+  padding: 0.55rem 0.85rem 0.85rem 0.85rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   z-index: 450;
-  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
-  will-change: transform, opacity;
-}
-
-.map-feed-panel.panel-slid-down {
-  transform: translateX(-50%) translateY(105%);
-  opacity: 0;
-  pointer-events: none;
+  transition: all 0.3s ease;
 }
 
 .feed-panel-handle-bar {
@@ -1509,52 +1556,299 @@ body {
 }
 
 /* ==========================================================================
-   7. TAB 4: CHAT VIEW
+   7. 💬 FACEBOOK STYLE FLOATING CHAT POPUP WIDGET
    ========================================================================== */
-.chat-page-container {
+.fb-chat-widget {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1200;
+  pointer-events: none;
+}
+
+/* 🟢 Floating Chat Head Launcher (Stacked neatly above Pin button) */
+.fb-chat-head {
+  pointer-events: auto;
+  position: absolute;
+  bottom: 58px;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  color: #FFFFFF;
+  border: 2.5px solid #FFFFFF;
+  border-radius: 30px;
+  padding: 0.55rem 1.1rem;
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+}
+
+.fb-chat-head:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.5);
+}
+
+.fb-chat-head-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.fb-chat-head-online-dot {
+  width: 9px;
+  height: 9px;
+  background: #10B981;
+  border-radius: 50%;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
+}
+
+.fb-chat-head-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #EF4444;
+  color: #FFFFFF;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 12px;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* 📦 Facebook Chat Popup Box */
+.fb-chat-box {
+  pointer-events: auto;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 380px;
+  height: 550px;
+  max-height: calc(100vh - 100px);
+  background: #FFFFFF;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: 18px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--nav-height) - var(--bottom-nav-height) - 24px);
-  gap: 0.55rem;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(20px) scale(0.95);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1210;
 }
 
-.chat-geo-banner {
-  background: #FEF2F2;
-  border: 1px solid #FECACA;
-  color: #DC2626;
-  padding: 0.5rem 0.75rem;
-  border-radius: 8px;
-  font-size: 0.74rem;
+/* Open State */
+.fb-chat-widget.chat-open .fb-chat-box {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
 }
 
-.chat-rooms-scroll {
+.fb-chat-widget.chat-open .fb-chat-head {
+  display: none;
+}
+
+/* Minimized State */
+.fb-chat-box.is-minimized {
+  height: 52px !important;
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.fb-chat-box.is-minimized .fb-rooms-bar,
+.fb-chat-box.is-minimized .fb-chat-subbanner,
+.fb-chat-box.is-minimized .fb-chat-body,
+.fb-chat-box.is-minimized .fb-chat-footer {
+  display: none !important;
+}
+
+/* Expanded State */
+.fb-chat-box.is-expanded {
+  width: 520px;
+  height: 680px;
+  max-height: calc(100vh - 90px);
+}
+
+/* 1. Messenger Header */
+.fb-chat-header {
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--border-light);
+  padding: 0.65rem 0.85rem;
   display: flex;
-  gap: 0.4rem;
-  overflow-x: auto;
-  padding-bottom: 0.2rem;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
-.chat-rooms-scroll::-webkit-scrollbar { display: none; }
+.dark-theme .fb-chat-header,
+[data-theme="dark"] .fb-chat-header {
+  background: #1E293B;
+  border-bottom-color: #334155;
+}
+
+.fb-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 1;
+  overflow: hidden;
+}
+
+.fb-header-avatar {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.fb-online-badge {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 10px;
+  height: 10px;
+  background: #10B981;
+  border: 2px solid #FFFFFF;
+  border-radius: 50%;
+}
+
+.fb-header-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.fb-header-title {
+  font-family: var(--font-heading);
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fb-header-status {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.fb-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.fb-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fb-action-btn:hover {
+  background: var(--border-light);
+  color: var(--text-main);
+}
+
+.fb-btn-close:hover {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+.fb-btn-dev {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+}
+
+/* 2. Rooms Category Scroll Carousel (Tabs) */
+.fb-rooms-bar {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto !important;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scroll-behavior: smooth;
+  padding: 0.5rem 0.75rem;
+  background: #F8FAFC;
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.dark-theme .fb-rooms-bar,
+[data-theme="dark"] .fb-rooms-bar {
+  background: #0F172A;
+  border-bottom-color: #334155;
+}
+
+.fb-rooms-bar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.fb-rooms-bar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 4px;
+}
 
 .chat-room-chip {
   white-space: nowrap;
   background: #FFFFFF;
   border: 1px solid var(--border);
-  padding: 0.4rem 0.85rem;
+  padding: 0.28rem 0.65rem;
   border-radius: 20px;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--text-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.3rem;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.chat-room-chip:hover {
+  background: #F1F5F9;
+  color: var(--text-main);
 }
 
 .chat-room-chip.active {
-  background: var(--text-main);
+  background: #2563EB;
   color: #FFFFFF;
-  border-color: var(--text-main);
+  border-color: #2563EB;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
 }
 
 .chat-room-chip.chip-maintenance {
@@ -1570,108 +1864,189 @@ body {
 }
 
 .room-maintenance-badge {
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   background: #FEF2F2;
   color: #DC2626;
   border: 1px solid #FECACA;
-  padding: 1px 5px;
+  padding: 1px 4px;
   border-radius: 4px;
-  margin-left: 2px;
 }
 
-.chat-room-chip.chip-maintenance.active .room-maintenance-badge {
-  background: rgba(255, 255, 255, 0.2);
-  color: #FFFFFF;
-  border-color: rgba(255, 255, 255, 0.4);
-}
-
-.chat-room-header {
-  background: #FFFFFF;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.55rem 0.85rem;
+/* 3. Sub-Banner Notice */
+.fb-chat-subbanner {
+  padding: 0.3rem 0.65rem;
+  background: #F8FAFC;
+  border-bottom: 1px solid var(--border-light);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.btn-dev-clear-chat {
-  background: #FEF2F2;
-  color: #DC2626;
-  border: 1px solid #FECACA;
-  padding: 0.28rem 0.6rem;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
+  flex-direction: column;
   gap: 0.25rem;
-  transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
-.btn-dev-clear-chat:hover {
-  background: #FEE2E2;
-  border-color: #F87171;
-  transform: translateY(-1px);
+.dark-theme .fb-chat-subbanner,
+[data-theme="dark"] .fb-chat-subbanner {
+  background: #1E293B;
+  border-bottom-color: #334155;
 }
 
-.chat-reset-notice {
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
-  border-radius: 8px;
-  padding: 0.35rem 0.75rem;
+.fb-reset-notice {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.7rem;
-  color: #64748B;
-}
-
-.chat-reset-countdown {
-  font-weight: 700;
-  color: #2563EB;
-}
-
-.room-active-title {
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-.room-active-desc {
   font-size: 0.68rem;
-  color: var(--text-muted);
 }
 
-.chat-geo-status {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
+.chat-geo-banner {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #DC2626;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
   font-size: 0.7rem;
-  color: var(--text-muted);
 }
 
-.geo-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.dot-online { background: #10B981; }
-.dot-offline { background: #DC2626; }
-.dot-warning { background: #F59E0B; }
-.dot-dev { background: #8B5CF6; }
-
-.chat-messages-area {
+/* 4. Messages Stream Area */
+.fb-chat-body {
   flex: 1;
-  background: #F8FAFC;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1rem;
+  background: #FFFFFF;
+  padding: 0.75rem 0.85rem;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: 0.75rem;
+  scroll-behavior: smooth;
+}
+
+.dark-theme .fb-chat-body,
+[data-theme="dark"] .fb-chat-body {
+  background: #0F172A;
+}
+
+/* 5. Bottom Messenger Input Bar */
+.fb-chat-footer {
+  background: #FFFFFF;
+  border-top: 1px solid var(--border-light);
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.dark-theme .fb-chat-footer,
+[data-theme="dark"] .fb-chat-footer {
+  background: #1E293B;
+  border-top-color: #334155;
+}
+
+.fb-footer-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.fb-anon-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.fb-announcement-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  color: #1D4ED8;
+  font-weight: 700;
+  cursor: pointer;
+  background: #EFF6FF;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid #BFDBFE;
+}
+
+.fb-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.fb-text-input {
+  flex: 1;
+  background: #F1F5F9;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  padding: 0.48rem 0.85rem;
+  font-family: var(--font-primary);
+  font-size: 0.82rem;
+  color: var(--text-main);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.dark-theme .fb-text-input,
+[data-theme="dark"] .fb-text-input {
+  background: #0F172A;
+  color: #F8FAFC;
+  border-color: #334155;
+}
+
+.fb-text-input:focus {
+  background: #FFFFFF;
+  border-color: #2563EB;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.dark-theme .fb-text-input:focus,
+[data-theme="dark"] .fb-text-input:focus {
+  background: #1E293B;
+  border-color: #3B82F6;
+}
+
+.fb-send-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #2563EB;
+  color: #FFFFFF;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.fb-send-btn:hover {
+  background: #1D4ED8;
+  transform: scale(1.05);
+}
+
+/* 📱 Mobile Responsive for Facebook Chat Popup */
+@media (max-width: 640px) {
+  .fb-chat-widget {
+    bottom: 68px;
+    right: 12px;
+    left: 12px;
+  }
+
+  .fb-chat-box {
+    width: 100% !important;
+    height: 75vh !important;
+    max-height: 80vh;
+    border-radius: 18px 18px 12px 12px;
+  }
+
+  .fb-chat-box.is-expanded {
+    height: 85vh !important;
+  }
 }
 
 .chat-bubble-wrap {
@@ -3470,3 +3845,783 @@ textarea.form-control {
   color: var(--text-sub) !important;
   margin-top: 0.2rem;
 }
+
+/* ==========================================================================
+   🌙 COMPREHENSIVE DARK MODE SYSTEM (MSU Traffic Season 1)
+   ========================================================================== */
+
+[data-theme="dark"] {
+  --bg-main: #0B0F19;
+  --bg-card: #151D2A;
+  --bg-card-secondary: #1E293B;
+  --text-main: #F1F5F9;
+  --text-muted: #94A3B8;
+  --text-sub: #64748B;
+
+  --primary: #3B82F6;
+  --primary-hover: #60A5FA;
+  --primary-light: rgba(59, 130, 246, 0.18);
+
+  --danger: #F87171;
+  --danger-light: rgba(239, 68, 68, 0.18);
+  --warning: #FBBF24;
+  --warning-light: rgba(245, 158, 11, 0.18);
+  --success: #34D399;
+  --success-light: rgba(16, 185, 129, 0.18);
+
+  --border: #232F42;
+  --border-light: #182232;
+
+  --shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.65);
+}
+
+/* Base Body & Layout */
+[data-theme="dark"] body,
+body.dark-theme {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+}
+
+/* 1. Navbar & Top Menus (Dark Grey #1E293B) */
+[data-theme="dark"] .navbar {
+  background: rgba(30, 41, 59, 0.94);
+  border-bottom: 1px solid #334155;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+[data-theme="dark"] .brand-name {
+  color: #F8FAFC;
+}
+
+[data-theme="dark"] .brand-subtitle {
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .btn-outline {
+  background: #243044;
+  border-color: #3B4B64;
+  color: #F1F5F9;
+}
+
+[data-theme="dark"] .btn-outline:hover {
+  background: #334155;
+  border-color: #475569;
+  color: #FFFFFF;
+}
+
+/* 2. Bottom Nav Bar (Dark Grey #1E293B) */
+[data-theme="dark"] .bottom-nav-bar {
+  background: rgba(30, 41, 59, 0.96);
+  border-top: 1px solid #334155;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="dark"] .bottom-nav-item {
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .bottom-nav-item:hover {
+  color: #F1F5F9;
+}
+
+[data-theme="dark"] .bottom-nav-item.active {
+  color: var(--primary);
+}
+
+/* 3. Map View & Controls */
+[data-theme="dark"] .map-wrapper {
+  background: #0B0F19;
+}
+
+[data-theme="dark"] .map-campus-selector {
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid #334155;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .campus-btn {
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .campus-btn.active {
+  background: #3B82F6;
+  color: #FFFFFF;
+}
+
+/* Map Rank Mini Overlay */
+[data-theme="dark"] .map-rank-overlay {
+  background: rgba(30, 41, 59, 0.96);
+  border: 1px solid #334155;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="dark"] .map-rank-header {
+  background: #1E293B;
+  border-bottom: 1px solid #334155;
+}
+
+[data-theme="dark"] .map-rank-title {
+  color: #F1F5F9;
+}
+
+[data-theme="dark"] .map-rank-toggle-btn {
+  background: #243044;
+  border-color: #334155;
+  color: #CBD5E1;
+}
+
+[data-theme="dark"] .map-rank-toggle-btn:hover {
+  background: #334155;
+  color: #FFFFFF;
+}
+
+[data-theme="dark"] .map-rank-name {
+  color: #E2E8F0;
+}
+
+[data-theme="dark"] .map-rank-score {
+  color: #60A5FA;
+}
+
+[data-theme="dark"] .map-rank-divider {
+  background: #334155;
+}
+
+[data-theme="dark"] .map-rank-my-row {
+  background: #243044;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .map-rank-my-row .map-rank-my-name {
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .map-rank-all-btn {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #60A5FA;
+}
+
+[data-theme="dark"] .map-rank-all-btn:hover {
+  background: rgba(59, 130, 246, 0.28);
+}
+
+[data-theme="dark"] .map-rank-collapsed-pill {
+  color: #F1F5F9;
+}
+
+[data-theme="dark"] .map-rank-collapsed-pill:hover {
+  background: #243044;
+}
+
+/* Map Feed Panel */
+[data-theme="dark"] .map-feed-panel {
+  background: rgba(30, 41, 59, 0.97);
+  border: 1px solid #334155;
+  box-shadow: 0 -8px 35px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .feed-panel-handle-pill {
+  background: #334155;
+}
+
+[data-theme="dark"] .feed-panel-handle-bar:hover .feed-panel-handle-pill {
+  background: #64748B;
+}
+
+[data-theme="dark"] .search-input {
+  background: #0B0F19;
+  border-color: var(--border);
+  color: #F1F5F9;
+}
+
+[data-theme="dark"] .search-input::placeholder {
+  color: #64748B;
+}
+
+[data-theme="dark"] .filter-chip {
+  background: #151D2A;
+  border-color: var(--border);
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .filter-chip:hover {
+  border-color: #475569;
+  color: #F1F5F9;
+}
+
+[data-theme="dark"] .filter-chip.active {
+  background: #3B82F6;
+  border-color: #3B82F6;
+  color: #FFFFFF;
+}
+
+/* Leaflet Zoom Control in Dark Mode */
+[data-theme="dark"] .leaflet-control-zoom a {
+  background: #151D2A !important;
+  color: #F1F5F9 !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .leaflet-control-zoom a:hover {
+  background: #1E293B !important;
+  color: #FFFFFF !important;
+}
+
+/* Leaflet Custom Popups (MapCN) */
+[data-theme="dark"] .mapcn-custom-popup .leaflet-popup-content-wrapper {
+  background: #151D2A;
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--border);
+  color: #F1F5F9;
+}
+
+[data-theme="dark"] .mapcn-custom-popup .leaflet-popup-tip {
+  background: #151D2A;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .popup-title {
+  color: #F8FAFC;
+}
+
+[data-theme="dark"] .popup-zone {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #60A5FA;
+}
+
+[data-theme="dark"] .popup-time {
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .popup-loc {
+  background: #1E293B;
+  border-color: var(--border);
+  color: #E2E8F0;
+}
+
+[data-theme="dark"] .popup-desc {
+  color: #CBD5E1;
+}
+
+[data-theme="dark"] .popup-footer {
+  border-top-color: var(--border);
+}
+
+[data-theme="dark"] .reporter-name {
+  color: #E2E8F0;
+}
+
+[data-theme="dark"] .popup-chat-cta {
+  background: linear-gradient(135deg, #1E293B 0%, #111827 100%);
+  border: 1px solid var(--border);
+}
+
+[data-theme="dark"] .popup-chat-cta:hover {
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  border-color: #3B82F6;
+}
+
+/* 4. Report Cards & Action Pills */
+[data-theme="dark"] .report-card {
+  background: #151D2A;
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .report-card:hover {
+  border-color: #475569;
+}
+
+[data-theme="dark"] .card-cleared {
+  background: #0E1420;
+  opacity: 0.7;
+}
+
+[data-theme="dark"] .card-post-time {
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .card-location-title {
+  color: #F8FAFC;
+}
+
+[data-theme="dark"] .card-direction {
+  background: #1E293B;
+  color: #E2E8F0;
+}
+
+[data-theme="dark"] .card-desc {
+  color: #CBD5E1;
+}
+
+[data-theme="dark"] .card-footer {
+  border-top-color: var(--border);
+}
+
+/* Action Pills in Cards */
+[data-theme="dark"] .btn-action-pill {
+  background: #1E293B;
+  border-color: var(--border);
+  color: #CBD5E1;
+}
+
+[data-theme="dark"] .btn-action-pill:hover {
+  background: #273549;
+  color: #FFFFFF;
+}
+
+[data-theme="dark"] .pill-chat {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #60A5FA;
+}
+
+[data-theme="dark"] .pill-chat:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: #60A5FA;
+}
+
+[data-theme="dark"] .pill-like {
+  background: rgba(225, 29, 72, 0.15);
+  border-color: rgba(225, 29, 72, 0.3);
+  color: #FB7185;
+}
+
+[data-theme="dark"] .pill-like:hover {
+  background: rgba(225, 29, 72, 0.25);
+  border-color: #FB7185;
+}
+
+[data-theme="dark"] .pill-upvote {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #34D399;
+}
+
+[data-theme="dark"] .pill-upvote:hover {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: #34D399;
+}
+
+[data-theme="dark"] .pill-downvote {
+  background: rgba(124, 58, 237, 0.15);
+  border-color: rgba(124, 58, 237, 0.3);
+  color: #A78BFA;
+}
+
+[data-theme="dark"] .pill-downvote:hover {
+  background: rgba(124, 58, 237, 0.25);
+  border-color: #A78BFA;
+}
+
+[data-theme="dark"] .pill-delete {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #F87171;
+}
+
+[data-theme="dark"] .pill-report {
+  background: rgba(225, 29, 72, 0.15);
+  border-color: rgba(225, 29, 72, 0.3);
+  color: #FB7185;
+}
+
+/* 5. Home View & Stats */
+[data-theme="dark"] .stat-card {
+  background: #151D2A;
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .stat-label {
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .action-card {
+  background: #151D2A;
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .action-card:hover {
+  border-color: #3B82F6;
+  background: #1A2436;
+}
+
+[data-theme="dark"] .action-text strong {
+  color: #F8FAFC;
+}
+
+[data-theme="dark"] .home-section-card {
+  background: #151D2A;
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .section-title {
+  color: #F8FAFC;
+}
+
+/* 6. Leaderboards & Hall of Fame */
+[data-theme="dark"] .rank-tab-switch {
+  background: #101622;
+}
+
+[data-theme="dark"] .rank-tab-btn {
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .rank-tab-btn.active {
+  background: #151D2A;
+  color: #F8FAFC;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .my-rank-card {
+  background: #151D2A;
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .rank-item-card {
+  background: #151D2A;
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .user-rank-row.rank-me {
+  background: #1E293B;
+  border-color: var(--border);
+}
+
+/* 7. Chat System */
+[data-theme="dark"] .chat-rooms-scroll {
+  border-bottom-color: var(--border);
+}
+
+[data-theme="dark"] .chat-room-tab {
+  background: #151D2A;
+  border-color: var(--border);
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .chat-room-tab:hover {
+  background: #1E293B;
+  color: #F1F5F9;
+}
+
+[data-theme="dark"] .chat-room-tab.active {
+  background: #3B82F6;
+  border-color: #3B82F6;
+  color: #FFFFFF;
+}
+
+[data-theme="dark"] .chat-messages-container {
+  background: #0B0F19;
+}
+
+[data-theme="dark"] .box-other {
+  background: #151D2A;
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .box-other .chat-bubble-text {
+  color: #F1F5F9;
+}
+
+[data-theme="dark"] .chat-sender-name {
+  color: #E2E8F0;
+}
+
+[data-theme="dark"] .box-announcement {
+  background: #151D2A !important;
+  border-color: #3B82F6 !important;
+}
+
+[data-theme="dark"] .announcement-ribbon {
+  background: #1E293B !important;
+  color: #60A5FA !important;
+  border-bottom-color: var(--border) !important;
+}
+
+[data-theme="dark"] .box-announcement .chat-bubble-text {
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .chat-input-bar {
+  background: #151D2A;
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .chat-text-input {
+  background: transparent;
+  color: #F8FAFC;
+}
+
+[data-theme="dark"] .chat-action-btn,
+[data-theme="dark"] .chat-report-btn {
+  background: #1E293B;
+  border-color: var(--border);
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .chat-action-btn:hover {
+  background: #273549;
+  color: #F1F5F9;
+}
+
+/* Pin Live Chat Modal */
+[data-theme="dark"] .pin-chat-modal-container .modal-header {
+  background: #151D2A !important;
+  border-bottom-color: var(--border) !important;
+}
+
+[data-theme="dark"] #pinChatTitle {
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .pin-chat-messages-area {
+  background: #0B0F19 !important;
+}
+
+[data-theme="dark"] .pin-msg-bubble-box {
+  background: #151D2A;
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .pin-msg-text {
+  color: #F1F5F9;
+}
+
+[data-theme="dark"] .pin-msg-name {
+  color: #E2E8F0;
+}
+
+[data-theme="dark"] .pin-chat-chips-scroll {
+  background: #151D2A !important;
+  border-top-color: var(--border) !important;
+}
+
+[data-theme="dark"] .pin-quick-chip {
+  background: #1E293B;
+  border-color: var(--border);
+  color: #CBD5E1;
+}
+
+[data-theme="dark"] .pin-quick-chip:hover {
+  background: #273549;
+  color: #FFFFFF;
+}
+
+[data-theme="dark"] .pin-chat-input-bar {
+  background: #151D2A !important;
+  border-top-color: var(--border) !important;
+}
+
+/* 8. Modals, Forms & Inputs */
+[data-theme="dark"] .modal-container {
+  background: #151D2A;
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="dark"] .modal-header {
+  border-bottom-color: var(--border);
+}
+
+[data-theme="dark"] .modal-title {
+  color: #F8FAFC;
+}
+
+[data-theme="dark"] .modal-footer {
+  background: #101622;
+  border-top-color: var(--border);
+}
+
+[data-theme="dark"] .modal-close-btn {
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .modal-close-btn:hover {
+  color: #FFFFFF;
+}
+
+[data-theme="dark"] .form-label {
+  color: #E2E8F0;
+}
+
+[data-theme="dark"] .form-control {
+  background: #0B0F19;
+  border-color: var(--border);
+  color: #F8FAFC;
+}
+
+[data-theme="dark"] .form-control:focus {
+  border-color: #3B82F6;
+  background: #0B0F19;
+}
+
+[data-theme="dark"] select.form-control option {
+  background: #151D2A;
+  color: #F8FAFC;
+}
+
+[data-theme="dark"] .type-option-card {
+  background: #101622;
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .type-option-card:hover {
+  background: #1E293B;
+}
+
+[data-theme="dark"] .type-option-card.selected {
+  border-color: #EF4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+[data-theme="dark"] .type-option-title {
+  color: #F8FAFC;
+}
+
+[data-theme="dark"] .type-option-sub {
+  color: #94A3B8;
+}
+
+/* 9. Profile & Trust Cards */
+[data-theme="dark"] .profile-card {
+  background: #151D2A !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .profile-name {
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .profile-email {
+  color: #94A3B8 !important;
+}
+
+[data-theme="dark"] .profile-trust-card {
+  background: #151D2A;
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .trust-title {
+  color: #F8FAFC;
+}
+
+[data-theme="dark"] .trust-bar-bg {
+  background: #1E293B;
+}
+
+[data-theme="dark"] .profile-menu-item {
+  background: #151D2A !important;
+  border-color: var(--border) !important;
+  color: #F1F5F9 !important;
+}
+
+[data-theme="dark"] .profile-menu-item:hover {
+  background: #1E293B !important;
+  border-color: #475569 !important;
+}
+
+/* 10. Info Page */
+[data-theme="dark"] .info-card {
+  background: #151D2A;
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .info-card-title {
+  color: #F8FAFC;
+}
+
+[data-theme="dark"] .info-feature-list li strong {
+  color: #F8FAFC;
+}
+
+[data-theme="dark"] .info-card-contact {
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.15) 0%, #151D2A 100%);
+  border-color: #3B82F6;
+}
+
+/* 11. Developer Modal & Moderation Panel */
+[data-theme="dark"] .dev-modal-container {
+  background: #151D2A;
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .dev-tab-header {
+  background: #101622;
+  border-bottom-color: var(--border);
+}
+
+[data-theme="dark"] .dev-tab-btn {
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .dev-tab-btn.active {
+  background: #151D2A;
+  color: #60A5FA;
+  border-left-color: var(--border);
+  border-right-color: var(--border);
+}
+
+[data-theme="dark"] .dev-table-wrapper {
+  background: #151D2A;
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .dev-table th {
+  background: #101622;
+  color: #94A3B8;
+  border-bottom-color: var(--border);
+}
+
+[data-theme="dark"] .dev-table td {
+  border-bottom-color: var(--border);
+  color: #F1F5F9;
+}
+
+[data-theme="dark"] .dev-table tr:hover {
+  background: #1E293B;
+}
+
+[data-theme="dark"] .btn-dev-action {
+  background: #1E293B;
+  border-color: var(--border);
+  color: #CBD5E1;
+}
+
+[data-theme="dark"] .btn-dev-action:hover {
+  background: #273549;
+  color: #FFFFFF;
+}
+
+[data-theme="dark"] .dev-ip-item,
+[data-theme="dark"] .dev-audit-item {
+  background: #101622;
+  border-color: var(--border);
+}
+
+/* 12. Gatekeeper Card */
+[data-theme="dark"] .gatekeeper-card {
+  background: #151D2A;
+  border: 1px solid var(--border);
+}
+
+[data-theme="dark"] .gatekeeper-card h3 {
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .gatekeeper-radar {
+  background: #1E293B;
+}
+
+/* 13. Badges */
+[data-theme="dark"] .badge-member {
+  background: #1E293B;
+  color: #94A3B8;
+  border-color: var(--border);
+}
+

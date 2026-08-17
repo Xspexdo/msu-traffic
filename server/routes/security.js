@@ -386,18 +386,67 @@ router.get('/admin/audit-logs', (req, res) => {
   res.json({ success: true, count: logs.length, data: logs });
 });
 
-// 13. POST /api/security/admin/chat-rooms/toggle - เปิด/ปิดห้องแชท
-router.post('/admin/chat-rooms/toggle', (req, res) => {
+// 14. GET /api/security/admin/rider-requests - ดึงรายการคำขอสิทธิ์ RIDER ทั้งหมด
+router.get('/admin/rider-requests', (req, res) => {
   if (!checkDevPermission(req)) {
     return res.status(403).json({ success: false, error: 'DEV_PERMISSION_REQUIRED', message: 'คุณไม่มีสิทธิ์ Developer' });
   }
 
-  const { roomId, enabled } = req.body;
-  if (!roomId || enabled === undefined) {
-    return res.status(400).json({ success: false, error: 'กรุณาระบุ roomId และ enabled (true/false)' });
+  const { status } = req.query;
+  const requests = db.getRiderRequests(status || 'all');
+  res.json({ success: true, count: requests.length, data: requests });
+});
+
+// 15. POST /api/security/admin/rider-approve - อนุมัติสิทธิ์ RIDER
+router.post('/admin/rider-approve', (req, res) => {
+  if (!checkDevPermission(req)) {
+    return res.status(403).json({ success: false, error: 'DEV_PERMISSION_REQUIRED', message: 'คุณไม่มีสิทธิ์ Developer' });
   }
 
-  const result = db.updateChatRoomStatus(roomId, enabled === true, 'dev_admin');
+  const { requestId } = req.body;
+  if (!requestId) {
+    return res.status(400).json({ success: false, error: 'กรุณาระบุ requestId' });
+  }
+
+  const result = db.approveRiderRole(requestId, 'dev_admin');
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+
+  res.json(result);
+});
+
+// 16. POST /api/security/admin/rider-reject - ปฏิเสธคำขอสิทธิ์ RIDER
+router.post('/admin/rider-reject', (req, res) => {
+  if (!checkDevPermission(req)) {
+    return res.status(403).json({ success: false, error: 'DEV_PERMISSION_REQUIRED', message: 'คุณไม่มีสิทธิ์ Developer' });
+  }
+
+  const { requestId, reason } = req.body;
+  if (!requestId) {
+    return res.status(400).json({ success: false, error: 'กรุณาระบุ requestId' });
+  }
+
+  const result = db.rejectRiderRole(requestId, reason || 'ข้อมูลไม่ครบถ้วนหรือไม่ตรงตามเงื่อนไข', 'dev_admin');
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+
+  res.json(result);
+});
+
+// 17. POST /api/security/admin/rider-revoke - เพิกถอนสิทธิ์ RIDER
+router.post('/admin/rider-revoke', (req, res) => {
+  if (!checkDevPermission(req)) {
+    return res.status(403).json({ success: false, error: 'DEV_PERMISSION_REQUIRED', message: 'คุณไม่มีสิทธิ์ Developer' });
+  }
+
+  const { userId } = req.body;
+  if (!userId) {
+    return res.status(400).json({ success: false, error: 'กรุณาระบุ userId' });
+  }
+
+  const result = db.revokeRiderRole(userId, 'dev_admin');
   if (!result.success) {
     return res.status(400).json(result);
   }

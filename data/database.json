@@ -9,8 +9,8 @@
     "dev_java5263": {
       "id": "dev_java5263",
       "email": "java5263@gmail.com",
-      "name": "Java (Lead Dev)",
-      "picture": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80",
+      "name": "Java (Dev)",
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
       "role": "dev",
       "badge": "👑 DEV",
       "trustScore": 100,
@@ -24,7 +24,7 @@
       "isDev": true,
       "status": "active",
       "createdAt": 1786777538446,
-      "lastActiveAt": 1786787396831
+      "lastActiveAt": 1786975971605
     },
     "google_108560811899542656924": {
       "id": "google_108560811899542656924",
@@ -44,16 +44,16 @@
       "isDev": false,
       "status": "active",
       "createdAt": 1786777583917,
-      "lastActiveAt": 1786780803530
+      "lastActiveAt": 1786955875070
     },
-    "user_66010001_msu_ac_th": {
-      "id": "user_66010001_msu_ac_th",
-      "email": "66010001@msu.ac.th",
-      "name": "สมชาย นิสิต มมส",
-      "picture": "https://www.gravatar.com/avatar/136a368cbf3e4efa89c52b1867390808?d=identicon&s=120",
+    "user_audit_test_msu_ac_th": {
+      "id": "user_audit_test_msu_ac_th",
+      "email": "audit_test@msu.ac.th",
+      "name": "Audit Tester",
+      "picture": "https://www.gravatar.com/avatar/a1794b9b0923bc3b97f96c4cfb5e3840?d=identicon&s=120",
       "role": "student",
       "badge": "🎓 MSU",
-      "trustScore": 60,
+      "trustScore": 100,
       "weeklyScore": 0,
       "allTimeScore": 0,
       "pinsCreated": 0,
@@ -63,96 +63,31 @@
       "isMsuStudent": true,
       "isDev": false,
       "status": "active",
-      "createdAt": 1786787386294,
-      "lastActiveAt": 1786787396833
+      "createdAt": 1786956196305,
+      "lastActiveAt": 1786975742678
+    },
+    "google_105594921429605667441": {
+      "id": "google_105594921429605667441",
+      "email": "thanaphonsimsa5@gmail.com",
+      "name": "Tha Na",
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocKCJCzPyCqDsf7SmR3AbX268ExWjO9qYo2Fw9XkIn-k1Hg9GQ=s96-c",
+      "role": "member",
+      "badge": "👤 Member",
+      "trustScore": 100,
+      "weeklyScore": 0,
+      "allTimeScore": 0,
+      "pinsCreated": 0,
+      "pinsVerified": 0,
+      "reportsCount": 0,
+      "accurateReports": 0,
+      "isMsuStudent": false,
+      "isDev": false,
+      "status": "active",
+      "createdAt": 1786974991191,
+      "lastActiveAt": 1786975816679
     }
   },
-  "pins": [
-    {
-      "id": "pin-1786784656974-jksgb",
-      "title": "รายงานด่าน หน้า มมส",
-      "locationName": "หน้า มมส",
-      "customLocation": "",
-      "campusZone": "มอใหม่ (ขามเรียง)",
-      "lat": 16.2468,
-      "lng": 103.252,
-      "type": "helmet",
-      "direction": "ขาเข้า",
-      "description": "ทดสอบ",
-      "imageUrl": null,
-      "severity": "medium",
-      "isAnonymous": false,
-      "isAnnouncement": false,
-      "reporterId": "test_user_1",
-      "reporter": {
-        "id": "test_user_1",
-        "name": "Tester",
-        "email": "test@msu.ac.th",
-        "isDev": false,
-        "isMsuStudent": true,
-        "isAnonymous": false,
-        "isAnnouncement": false,
-        "badge": "🎓 MSU",
-        "role": "student"
-      },
-      "likes": [],
-      "views": 1,
-      "votes": {
-        "up": [
-          "test_user_1"
-        ],
-        "down": []
-      },
-      "reports": [],
-      "status": "deleted",
-      "moveCount": 0,
-      "createdAt": 1786784656974,
-      "expiresAt": 1786806256974
-    },
-    {
-      "id": "pin-1786784113326-v854q",
-      "title": "รายงานด่าน Pin Tester Systems MSU Traffic",
-      "locationName": "Pin Tester Systems MSU Traffic",
-      "customLocation": "Pin Tester Systems MSU Traffic",
-      "campusZone": "มอใหม่ (ขามเรียง)",
-      "lat": 16.24552171001964,
-      "lng": 103.25034588575365,
-      "type": "accident",
-      "direction": "ไม่ระบุฝั่งทาง",
-      "description": "เป็นเพียงหมุด ปัก เพื่อเทส ระบบ MSU Traffic",
-      "imageUrl": null,
-      "severity": "high",
-      "isAnonymous": false,
-      "isAnnouncement": true,
-      "reporterId": "dev_java5263",
-      "reporter": {
-        "id": "dev_java5263",
-        "name": "MSU Traffic",
-        "email": "java5263@gmail.com",
-        "picture": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=120&auto=format&fit=crop&q=80",
-        "isDev": true,
-        "isMsuStudent": false,
-        "isAnonymous": false,
-        "isAnnouncement": true,
-        "badge": "📢 MSU Traffic",
-        "role": "dev",
-        "isOfficial": true
-      },
-      "likes": [],
-      "views": 1,
-      "votes": {
-        "up": [
-          "dev_java5263"
-        ],
-        "down": []
-      },
-      "reports": [],
-      "status": "active",
-      "moveCount": 0,
-      "createdAt": 1786784113326,
-      "expiresAt": 1786805713326
-    }
-  ],
+  "pins": [],
   "pin_reports": [],
   "pin_likes": [],
   "chat_rooms": [
@@ -720,32 +655,483 @@
       "createdAt": 1786785923503
     },
     {
-      "id": "audit-1786787386294-aio",
-      "action": "USER_REGISTER",
-      "userId": "user_66010001_msu_ac_th",
-      "targetId": "users",
-      "details": "ผู้ใช้ลงทะเบียนใหม่ (66010001@msu.ac.th)",
+      "id": "audit-1786955872297-7jf",
+      "action": "TRUST_SCORE_UPDATE",
+      "userId": "google_108560811899542656924",
+      "targetId": "trust",
+      "details": "Trust Score ปรับเปลี่ยน +2 (ปักหมุดรายงานด่าน) - ปัจจุบัน: 100",
       "ip": "127.0.0.1",
-      "createdAt": 1786787386294
+      "createdAt": 1786955872297
     },
     {
-      "id": "audit-1786787396836-occ",
-      "action": "TOGGLE_CHAT_ROOM",
+      "id": "audit-1786955872297-17e",
+      "action": "PIN_CREATE",
+      "userId": "google_108560811899542656924",
+      "targetId": "pin-1786955872296-u511z",
+      "details": "ปักหมุดด่านใหม่: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786955872297
+    },
+    {
+      "id": "audit-1786956127659-06n",
+      "action": "PIN_CREATE",
       "userId": "dev_java5263",
-      "targetId": "marketplace",
-      "details": "Dev ปิดห้องแชต: marketplace",
+      "targetId": "pin-1786956127658-ywbm3",
+      "details": "ปักหมุดด่านใหม่: ????????????",
       "ip": "127.0.0.1",
-      "createdAt": 1786787396836
+      "createdAt": 1786956127659
     },
     {
-      "id": "audit-1786788271573-erf",
-      "action": "CHAT_ROOM_TOGGLE",
-      "userId": "dev_admin",
-      "targetId": "marketplace",
-      "details": "ปรับสถานะห้อง [ซื้อ-ขาย (Market)] เป็น: ปิดปรับปรุง",
+      "id": "audit-1786956127726-hdj",
+      "action": "PIN_DELETE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786956127658-ywbm3",
+      "details": "ลบหมุดด่านถาวร: ????????????",
       "ip": "127.0.0.1",
-      "createdAt": 1786788271573
+      "createdAt": 1786956127726
+    },
+    {
+      "id": "audit-1786956134764-xem",
+      "action": "PIN_DELETE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786955872296-u511z",
+      "details": "ลบหมุดด่านถาวร: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956134764
+    },
+    {
+      "id": "audit-1786956161729-wyw",
+      "action": "PIN_CREATE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786956161728-dhbek",
+      "details": "ปักหมุดด่านใหม่: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956161729
+    },
+    {
+      "id": "audit-1786956196306-7vf",
+      "action": "USER_REGISTER",
+      "userId": "user_audit_test_msu_ac_th",
+      "targetId": "users",
+      "details": "ผู้ใช้ลงทะเบียนใหม่ (audit_test@msu.ac.th)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956196306
+    },
+    {
+      "id": "audit-1786956196309-a4p",
+      "action": "TRUST_SCORE_UPDATE",
+      "userId": "user_audit_test_msu_ac_th",
+      "targetId": "trust",
+      "details": "Trust Score ปรับเปลี่ยน +2 (ปักหมุดรายงานด่าน) - ปัจจุบัน: 62",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956196309
+    },
+    {
+      "id": "audit-1786956196309-zzg",
+      "action": "PIN_CREATE",
+      "userId": "user_audit_test_msu_ac_th",
+      "targetId": "pin-1786956196308-45rs2",
+      "details": "ปักหมุดด่านใหม่: 📍 จุดทดสอบระบบอัตโนมัติ (Automated Audit Pin)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956196309
+    },
+    {
+      "id": "audit-1786956196320-koo",
+      "action": "PIN_DELETE",
+      "userId": "user_audit_test_msu_ac_th",
+      "targetId": "pin-1786956196308-45rs2",
+      "details": "ลบหมุดด่านถาวร: 📍 จุดทดสอบระบบอัตโนมัติ (Automated Audit Pin)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956196320
+    },
+    {
+      "id": "audit-1786956221705-gyf",
+      "action": "PIN_DELETE",
+      "userId": "anonymous",
+      "targetId": "pin-1786956161728-dhbek",
+      "details": "ลบหมุดด่านถาวร: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956221705
+    },
+    {
+      "id": "audit-1786956256990-qv3",
+      "action": "PIN_CREATE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786956256990-tk808",
+      "details": "ปักหมุดด่านใหม่: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956256990
+    },
+    {
+      "id": "audit-1786956265328-rlk",
+      "action": "PIN_MOVE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786956256990-tk808",
+      "details": "ย้ายพิกัดหมุดเป็น [16.245331151563015, 103.2502841949463] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956265328
+    },
+    {
+      "id": "audit-1786956268874-qwj",
+      "action": "PIN_MOVE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786956256990-tk808",
+      "details": "ย้ายพิกัดหมุดเป็น [16.24556806204873, 103.25038075447084] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956268874
+    },
+    {
+      "id": "audit-1786956336051-7mj",
+      "action": "PIN_DELETE",
+      "userId": "dev_admin",
+      "targetId": "pin-1786956256990-tk808",
+      "details": "ลบหมุดด่านถาวร: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956336051
+    },
+    {
+      "id": "audit-1786956355261-bw1",
+      "action": "PIN_CREATE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786956355260-qcsap",
+      "details": "ปักหมุดด่านใหม่: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956355261
+    },
+    {
+      "id": "audit-1786956361847-sl1",
+      "action": "PIN_MOVE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786956355260-qcsap",
+      "details": "ย้ายพิกัดหมุดเป็น [16.251284728517152, 103.23983430862428] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956361847
+    },
+    {
+      "id": "audit-1786956368939-hkj",
+      "action": "PIN_MOVE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786956355260-qcsap",
+      "details": "ย้ายพิกัดหมุดเป็น [16.24582557312248, 103.25054168701173] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956368939
+    },
+    {
+      "id": "audit-1786956430291-nxa",
+      "action": "CHAT_DELETE",
+      "userId": "dev_java5263",
+      "targetId": "msg-1786956428241-t39m",
+      "details": "ยกเลิกข้อความในห้อง [general]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956430291
+    },
+    {
+      "id": "audit-1786956513282-son",
+      "action": "PIN_CREATE",
+      "userId": "test",
+      "targetId": "pin-1786956513281-5od5t",
+      "details": "ปักหมุดด่านใหม่: ???????????",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956513282
+    },
+    {
+      "id": "audit-1786956513309-crs",
+      "action": "PIN_DELETE",
+      "userId": "dev_admin",
+      "targetId": "pin-1786956513281-5od5t",
+      "details": "ลบหมุดด่านถาวร: ???????????",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956513309
+    },
+    {
+      "id": "audit-1786956519586-mgh",
+      "action": "PIN_DELETE",
+      "userId": "dev_admin",
+      "targetId": "pin-1786956355260-qcsap",
+      "details": "ลบหมุดด่านถาวร: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956519587
+    },
+    {
+      "id": "audit-1786956534846-ot0",
+      "action": "PIN_CREATE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786956534845-sc0ks",
+      "details": "ปักหมุดด่านใหม่: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956534846
+    },
+    {
+      "id": "audit-1786956543301-jiy",
+      "action": "PIN_MOVE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786956534845-sc0ks",
+      "details": "ย้ายพิกัดหมุดเป็น [16.24491913264715, 103.25088500976564] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956543301
+    },
+    {
+      "id": "audit-1786956569241-fox",
+      "action": "TRUST_SCORE_UPDATE",
+      "userId": "user_audit_test_msu_ac_th",
+      "targetId": "trust",
+      "details": "Trust Score ปรับเปลี่ยน +2 (ปักหมุดรายงานด่าน) - ปัจจุบัน: 64",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956569241
+    },
+    {
+      "id": "audit-1786956569242-1sm",
+      "action": "PIN_CREATE",
+      "userId": "user_audit_test_msu_ac_th",
+      "targetId": "pin-1786956569240-le5xp",
+      "details": "ปักหมุดด่านใหม่: 📍 จุดทดสอบระบบอัตโนมัติ (Automated Audit Pin)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956569242
+    },
+    {
+      "id": "audit-1786956647141-t1s",
+      "action": "PIN_CREATE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786956647140-41da5",
+      "details": "ปักหมุดด่านใหม่: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956647141
+    },
+    {
+      "id": "audit-1786956653408-1kk",
+      "action": "TRUST_SCORE_UPDATE",
+      "userId": "user_audit_test_msu_ac_th",
+      "targetId": "trust",
+      "details": "Trust Score ปรับเปลี่ยน +2 (ปักหมุดรายงานด่าน) - ปัจจุบัน: 66",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956653408
+    },
+    {
+      "id": "audit-1786956653409-35k",
+      "action": "PIN_CREATE",
+      "userId": "user_audit_test_msu_ac_th",
+      "targetId": "pin-1786956653408-5gaux",
+      "details": "ปักหมุดด่านใหม่: 📍 จุดทดสอบระบบอัตโนมัติ (Automated Audit Pin)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956653409
+    },
+    {
+      "id": "audit-1786956653421-p6k",
+      "action": "PIN_DELETE",
+      "userId": "user_audit_test_msu_ac_th",
+      "targetId": "pin-1786956653408-5gaux",
+      "details": "ลบหมุดด่านถาวร: 📍 จุดทดสอบระบบอัตโนมัติ (Automated Audit Pin)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956653421
+    },
+    {
+      "id": "audit-1786956654589-dxw",
+      "action": "PIN_MOVE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786956647140-41da5",
+      "details": "ย้ายพิกัดหมุดเป็น [16.245331151563015, 103.25079917907715] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956654589
+    },
+    {
+      "id": "audit-1786956657625-ehj",
+      "action": "PIN_MOVE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786956647140-41da5",
+      "details": "ย้ายพิกัดหมุดเป็น [16.2455165597935, 103.25038611888887] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956657625
+    },
+    {
+      "id": "audit-1786956697775-bws",
+      "action": "PIN_DELETE",
+      "userId": "dev_admin",
+      "targetId": "pin-1786956647140-41da5",
+      "details": "ลบหมุดด่านถาวร: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956697775
+    },
+    {
+      "id": "audit-1786956716412-ww9",
+      "action": "PIN_CREATE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786956716411-exwvc",
+      "details": "ปักหมุดด่านใหม่: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786956716412
+    },
+    {
+      "id": "audit-1786974991192-gwo",
+      "action": "USER_REGISTER",
+      "userId": "google_105594921429605667441",
+      "targetId": "users",
+      "details": "ผู้ใช้ลงทะเบียนใหม่ (thanaphonsimsa5@gmail.com)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786974991192
+    },
+    {
+      "id": "audit-1786975024737-4tt",
+      "action": "TRUST_SCORE_UPDATE",
+      "userId": "google_105594921429605667441",
+      "targetId": "trust",
+      "details": "Trust Score ปรับเปลี่ยน +2 (ปักหมุดรายงานด่าน) - ปัจจุบัน: 32",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975024737
+    },
+    {
+      "id": "audit-1786975024738-q30",
+      "action": "PIN_CREATE",
+      "userId": "google_105594921429605667441",
+      "targetId": "pin-1786975024736-ozeg5",
+      "details": "ปักหมุดด่านใหม่: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975024738
+    },
+    {
+      "id": "audit-1786975029733-6l9",
+      "action": "PIN_MOVE",
+      "userId": "google_105594921429605667441",
+      "targetId": "pin-1786975024736-ozeg5",
+      "details": "ย้ายพิกัดหมุดเป็น [16.245413555242596, 103.25079917907715] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975029733
+    },
+    {
+      "id": "audit-1786975032429-j6r",
+      "action": "PIN_MOVE",
+      "userId": "google_105594921429605667441",
+      "targetId": "pin-1786975024736-ozeg5",
+      "details": "ย้ายพิกัดหมุดเป็น [16.2454341561571, 103.25030565261842] (ครั้งที่ 2/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975032429
+    },
+    {
+      "id": "audit-1786975036790-n6o",
+      "action": "PIN_DELETE",
+      "userId": "google_105594921429605667441",
+      "targetId": "pin-1786975024736-ozeg5",
+      "details": "ลบหมุดด่านถาวร: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975036790
+    },
+    {
+      "id": "audit-1786975082993-jnw",
+      "action": "TRUST_SCORE_UPDATE",
+      "userId": "google_105594921429605667441",
+      "targetId": "trust",
+      "details": "Trust Score ปรับเปลี่ยน +2 (ปักหมุดรายงานด่าน) - ปัจจุบัน: 34",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975082993
+    },
+    {
+      "id": "audit-1786975082993-jn1",
+      "action": "PIN_CREATE",
+      "userId": "google_105594921429605667441",
+      "targetId": "pin-1786975082992-ehg3h",
+      "details": "ปักหมุดด่านใหม่: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975082993
+    },
+    {
+      "id": "audit-1786975121382-e19",
+      "action": "PIN_MOVE",
+      "userId": "google_105594921429605667441",
+      "targetId": "pin-1786975082992-ehg3h",
+      "details": "ย้ายพิกัดหมุดเป็น [16.24574316961558, 103.25032711029054] (ครั้งที่ 1/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975121382
+    },
+    {
+      "id": "audit-1786975124696-jpe",
+      "action": "PIN_MOVE",
+      "userId": "google_105594921429605667441",
+      "targetId": "pin-1786975082992-ehg3h",
+      "details": "ย้ายพิกัดหมุดเป็น [16.24547793309324, 103.25038611888887] (ครั้งที่ 2/3)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975124696
+    },
+    {
+      "id": "audit-1786975265936-eas",
+      "action": "TRUST_SCORE_UPDATE",
+      "userId": "user_audit_test_msu_ac_th",
+      "targetId": "trust",
+      "details": "Trust Score ปรับเปลี่ยน +2 (ปักหมุดรายงานด่าน) - ปัจจุบัน: 68",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975265936
+    },
+    {
+      "id": "audit-1786975265937-bwr",
+      "action": "PIN_CREATE",
+      "userId": "user_audit_test_msu_ac_th",
+      "targetId": "pin-1786975265936-iu1ds",
+      "details": "ปักหมุดด่านใหม่: 📍 จุดทดสอบระบบอัตโนมัติ (Automated Audit Pin)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975265937
+    },
+    {
+      "id": "audit-1786975265945-94u",
+      "action": "PIN_DELETE",
+      "userId": "user_audit_test_msu_ac_th",
+      "targetId": "pin-1786975265936-iu1ds",
+      "details": "ลบหมุดด่านถาวร: 📍 จุดทดสอบระบบอัตโนมัติ (Automated Audit Pin)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975265945
+    },
+    {
+      "id": "audit-1786975348630-9ek",
+      "action": "PIN_DELETE",
+      "userId": "google_105594921429605667441",
+      "targetId": "pin-1786975082992-ehg3h",
+      "details": "ลบหมุดด่านถาวร: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975348630
+    },
+    {
+      "id": "audit-1786975742674-j8f",
+      "action": "TRUST_SCORE_UPDATE",
+      "userId": "user_audit_test_msu_ac_th",
+      "targetId": "trust",
+      "details": "Trust Score ปรับเปลี่ยน +2 (ปักหมุดรายงานด่าน) - ปัจจุบัน: 70",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975742674
+    },
+    {
+      "id": "audit-1786975742674-8bb",
+      "action": "PIN_CREATE",
+      "userId": "user_audit_test_msu_ac_th",
+      "targetId": "pin-1786975742673-br3xq",
+      "details": "ปักหมุดด่านใหม่: 📍 จุดทดสอบระบบอัตโนมัติ (Automated Audit Pin)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975742674
+    },
+    {
+      "id": "audit-1786975742683-xcn",
+      "action": "PIN_DELETE",
+      "userId": "user_audit_test_msu_ac_th",
+      "targetId": "pin-1786975742673-br3xq",
+      "details": "ลบหมุดด่านถาวร: 📍 จุดทดสอบระบบอัตโนมัติ (Automated Audit Pin)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975742683
+    },
+    {
+      "id": "audit-1786975861145-36z",
+      "action": "PIN_CREATE",
+      "userId": "dev_java5263",
+      "targetId": "pin-1786975861144-hl38l",
+      "details": "ปักหมุดด่านใหม่: พิกัดที่ระบุบนแผนที่ มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975861145
+    },
+    {
+      "id": "audit-1786975908485-pq5",
+      "action": "ADMIN_SYSTEM_RESET",
+      "userId": "dev_admin",
+      "targetId": "system",
+      "details": "ล้างข้อมูลระบบ: [🎖️ ยศ, 🏆 แต้ม/คะแนน]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786975908485
     }
   ],
-  "pin_chat_messages": []
+  "pin_chat_messages": [],
+  "rider_requests": []
 }

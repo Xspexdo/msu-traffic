@@ -73,7 +73,7 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
   res.setHeader('Permissions-Policy', 'geolocation=(self), camera=(), microphone=()');
   next();
 });
@@ -104,11 +104,20 @@ app.use('/api/rank', rankRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/sheets', sheetsRouter);
 
-// Serve static frontend files
-app.use(express.static(path.join(__dirname, '../public')));
+// Serve static frontend files (Prevent aggressive browser caching)
+app.use(express.static(path.join(__dirname, '../public'), {
+  etag: false,
+  maxAge: 0,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
 
 // Fallback for SPA
 app.get('*', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 

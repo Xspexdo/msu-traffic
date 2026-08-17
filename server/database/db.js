@@ -244,6 +244,7 @@ function getInitialData() {
       }
     ],
 
+    rider_requests: [],
     message_reports: [],
     warnings: [],
     bans: [],
@@ -341,17 +342,21 @@ class Database {
   // ----------------------------------------------------
   // 🏆 Daily Rank Reset Engine (รีเซ็ตทุก 1 วัน / 24 ชั่วโมง)
   // ----------------------------------------------------
-  checkWeeklyReset() {
+  checkDailyReset() {
     const now = Date.now();
     const cycleEnd = this.data.dayEnd || this.data.weekEnd || 0;
-    if (now >= cycleEnd) {
+    if (!cycleEnd || now >= cycleEnd) {
       this.data.dayNumber = (this.data.dayNumber || 1) + 1;
-      this.data.weekNumber = (this.data.weekNumber || 1) + 1;
+      this.data.weekNumber = this.data.dayNumber;
       this.data.dayStart = now;
-      this.data.dayEnd = now + (24 * 60 * 60 * 1000); // 1 วัน
-      this.data.weekEnd = this.data.dayEnd;
+      
+      // Calculate end of day (24 hours or next midnight)
+      const nextMidnight = new Date();
+      nextMidnight.setHours(24, 0, 0, 0);
+      this.data.dayEnd = nextMidnight.getTime() > now ? nextMidnight.getTime() : (now + 24 * 60 * 60 * 1000);
+      this.data.weekEnd = this.data.dayEnd; // Sync for legacy clients
 
-      // Reset users active scores
+      // Reset users active daily scores
       Object.values(this.data.users).forEach(user => {
         user.weeklyScore = 0;
       });
@@ -362,6 +367,10 @@ class Database {
         this.io.emit('leaderboard_update', this.getWeeklyLeaderboard(10));
       }
     }
+  }
+
+  checkWeeklyReset() {
+    return this.checkDailyReset();
   }
 
   // ----------------------------------------------------
@@ -551,11 +560,11 @@ class Database {
 
     this.data.pins.unshift(newPin);
 
-    // Update user stats and score
+    // Update user stats and score (ปักหมุดรายงานได้ +5 EXP)
     if (pinData.reporterId && this.data.users[pinData.reporterId]) {
       const user = this.data.users[pinData.reporterId];
       user.pinsCreated = (user.pinsCreated || 0) + 1;
-      this.addScore(pinData.reporterId, 15, 'สร้างรายงานด่านคุณภาพ');
+      this.addScore(pinData.reporterId, 5, 'สร้างรายงานด่าน');
       this.updateTrustScore(pinData.reporterId, 2, 'ปักหมุดรายงานด่าน');
     }
 
@@ -600,14 +609,64 @@ class Database {
     };
   }
 
-  deletePin(pinId, userId) {
-    const idx = this.data.pins.findIndex(p => p.id === pinId);
-    if (idx === -1) return false;
-    this.data.pins.splice(idx, 1);
+  deletePin(pinId, userId = 'dev_admin') {
+    const targetId = String(pinId).trim();
+    const initialCount = this.data.pins.length;
+    
+    // 1. ลบหมุดออกจากรายการ pins ทั้งหมด
+    this.data.pins = this.data.pins.filter(p => String(p.id).trim() !== targetId);
+    const deletedCount = initialCount - this.data.pins.length;
+
+    // 2. ล้างข้อความแชตสดประจำหมุดนี้ทั้งหมด
+    this.data.pin_chat_messages = (this.data.pin_chat_messages || []).filter(m => String(m.pinId).trim() !== targetId);
+
+    // 3. ล้างประวัติการรีพอร์ตหมุดนี้ทั้งหมด
+    this.data.pin_reports = (this.data.pin_reports || []).filter(r => String(r.pinId).trim() !== targetId);
+
+    // 4. ล้างไลก์และแฟล็กของหมุดนี้
+    this.data.pin_likes = (this.data.pin_likes || []).filter(l => String(l.pinId).trim() !== targetId);
+    if (this.data.flagged_reports) {
+      this.data.flagged_reports = this.data.flagged_reports.filter(f => String(f.pinId).trim() !== targetId);
+    }
+
+    // 5. บันทึกลงไฟล์ database.json ทันที
     this.saveData();
-    this.logAudit('PIN_DELETE', userId, pinId, `ลบหมุดด่าน ${pinId}`);
-    googleSheetsService.syncPinDelete(pinId).catch(e => console.warn('Sheets sync error:', e));
+    this.logAudit('PIN_DELETE', userId, targetId, `ลบหมุดด่าน ${targetId} ถาวรออกจากระบบ`);
+
+    // 6. ส่งสัญญาณเรียลไทม์ให้ทุกหน้าจอถอดหมุดออกทันที
+    if (this.io) {
+      this.io.emit('report_deleted', targetId);
+      this.io.emit('stats_update', this.getStatistics());
+    }
+
     return true;
+  }
+
+  updatePinStatus(pinId, status, userId = 'dev_admin') {
+    const pin = this.getPinById(pinId);
+    if (!pin) return { success: false, error: 'NOT_FOUND', message: 'ไม่พบหมุดนี้' };
+
+    const oldStatus = pin.status;
+    if (status === 'deleted') {
+      const idx = this.data.pins.findIndex(p => p.id === pinId);
+      if (idx !== -1) {
+        this.data.pins.splice(idx, 1);
+      }
+    } else {
+      pin.status = status;
+    }
+    this.saveData();
+    this.logAudit('PIN_STATUS_CHANGE', userId, pinId, `เปลี่ยนสถานะหมุดจาก ${oldStatus} -> ${status}`);
+
+    if (this.io) {
+      if (status === 'deleted' || status === 'hidden') {
+        this.io.emit('report_deleted', pinId);
+      } else {
+        this.io.emit('report_updated', pin);
+      }
+      this.io.emit('stats_update', this.getStatistics());
+    }
+    return { success: true, pin, oldStatus, newStatus: status };
   }
 
   votePin(pinId, userId, voteType) {
@@ -763,6 +822,10 @@ class Database {
     const isDev = sender.isDev === true || cleanEmail === 'java5263@gmail.com';
     const isMsu = cleanEmail.endsWith('@msu.ac.th');
 
+    // ตรวจสอบว่าผู้ใช้มีสิทธิ์ RIDER หรือไม่
+    const dbUser = this.getUserById(sender.id) || this.getUserByEmail(cleanEmail);
+    const isRider = sender.isRider === true || (dbUser && dbUser.isRider === true);
+
     // 🔒 ตรวจสอบว่าห้องเปิดใช้งานอยู่หรือไม่ (ถ้าปิดปรับปรุงอยู่ Dev ส่งได้ แต่ผู้ใช้ทั่วไปจะส่งไม่ได้)
     const targetRoom = (this.data.chat_rooms || []).find(r => r.id === roomId);
     if (targetRoom && targetRoom.enabled === false && !isDev) {
@@ -773,10 +836,13 @@ class Database {
       };
     }
 
-    // 🔒 2-Layer Geofence & MSU Domain Verification
+    // 🔒 2-Layer Geofence & Verification (@msu.ac.th หรือ RIDER ที่ได้รับการอนุมัติ)
     if (!isDev) {
-      if (!isMsu) {
-        return { success: false, error: 'เฉพาะนิสิตและบุคลากรที่มีอีเมล @msu.ac.th เท่านั้นที่ส่งข้อความได้' };
+      if (!isMsu && !isRider) {
+        return { 
+          success: false, 
+          error: 'เฉพาะนิสิต มมส (@msu.ac.th) หรือผู้ใช้ที่ได้รับสิทธิ์ป้าย 🛵 RIDER เท่านั้นที่สามารถส่งข้อความได้' 
+        };
       }
       const geoCheck = isInsideMSUGeofence(lat, lng);
       if (!geoCheck.inZone) {
@@ -790,7 +856,7 @@ class Database {
 
     const isOfficialAnnouncement = isAnnouncement === true && isDev;
     let senderName = isAnonymous ? 'นิสิตนิรนาม' : sender.name;
-    let senderBadge = isDev ? '👑 DEV' : (isMsu ? '🎓 MSU' : '👤 Member');
+    let senderBadge = isDev ? '👑 DEV' : (isRider ? '🛵 RIDER' : (isMsu ? '🎓 MSU' : '👤 Member'));
     let senderPicture = isAnonymous ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60' : sender.picture;
     let senderEmail = isAnonymous ? '' : sender.email;
 
@@ -1089,12 +1155,12 @@ class Database {
   }
 
   // ----------------------------------------------------
-  // 🏆 Leaderboard Operations (Daily / Weekly & All-Time)
+  // 🏆 Leaderboard Operations (Daily / All-Time)
   // ----------------------------------------------------
   getWeeklyLeaderboard(limit = 10) {
-    // ❗ เฉพาะผู้ใช้ที่มีคะแนนมากกว่า 0 EXP เท่านั้นที่จะขึ้นแสดงบนอันดับ
+    // ❗ เฉพาะผู้ใช้จริงที่มีคะแนนมากกว่า 0 EXP เท่านั้นที่จะขึ้นแสดงบนอันดับ
     const list = Object.values(this.data.users)
-      .filter(u => (u.weeklyScore || 0) > 0)
+      .filter(u => (u.weeklyScore || 0) > 0 && !u.email?.includes('audit_test') && !u.id?.startsWith('test_') && !u.id?.startsWith('user_demo_'))
       .map(u => ({
         id: u.id,
         name: u.name,
@@ -1113,17 +1179,18 @@ class Database {
     return {
       season: this.data.season,
       seasonName: this.data.seasonName,
-      weekNumber: this.data.weekNumber || 1,
       dayNumber: this.data.dayNumber || 1,
+      weekNumber: this.data.dayNumber || 1,
+      dayEnd: this.data.dayEnd || (Date.now() + (24 * 60 * 60 * 1000)),
       weekEnd: this.data.dayEnd || this.data.weekEnd || (Date.now() + (24 * 60 * 60 * 1000)),
       rankings: list
     };
   }
 
   getAllTimeLeaderboard(limit = 10) {
-    // ❗ เฉพาะผู้ใช้ที่มีคะแนนมากกว่า 0 EXP เท่านั้น
+    // ❗ เฉพาะผู้ใช้จริงที่มีคะแนนมากกว่า 0 EXP เท่านั้น
     const list = Object.values(this.data.users)
-      .filter(u => (u.allTimeScore || 0) > 0)
+      .filter(u => (u.allTimeScore || 0) > 0 && !u.email?.includes('audit_test') && !u.id?.startsWith('test_') && !u.id?.startsWith('user_demo_'))
       .map(u => ({
         id: u.id,
         name: u.name,
@@ -1557,6 +1624,179 @@ class Database {
       bannedUsers,
       season: this.data.season,
       weekNumber: this.data.weekNumber
+    };
+  }
+
+  // ----------------------------------------------------
+  // 🛵 RIDER Role & Chat Permission Management
+  // ----------------------------------------------------
+  requestRiderRole({ userId, userName, userEmail, userPicture, platform = 'general', phone = '', note = '' }) {
+    if (!this.data.rider_requests) {
+      this.data.rider_requests = [];
+    }
+
+    const cleanEmail = (userEmail || '').toLowerCase().trim();
+    
+    // ตรวจสอบว่าผู้ใช้มีสิทธิ์ RIDER อยู่แล้วหรือไม่
+    const user = this.getUserById(userId) || this.getUserByEmail(cleanEmail);
+    if (user && user.isRider) {
+      return { success: false, error: 'คุณได้รับสิทธิ์ป้าย 🛵 RIDER อยู่แล้ว' };
+    }
+
+    // ตรวจสอบว่ามีคำขอที่รออนุมัติอยู่แล้วหรือไม่
+    const existing = this.data.rider_requests.find(r => (r.userId === userId || r.userEmail === cleanEmail) && r.status === 'pending');
+    if (existing) {
+      return { 
+        success: false, 
+        error: 'คุณได้ส่งคำขอสิทธิ์ RIDER ไปแล้ว อยู่ระหว่างรอแอดมิน/Dev ตรวจสอบ',
+        request: existing
+      };
+    }
+
+    const newRequest = {
+      id: `rider-req-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      userId,
+      userName: userName || cleanEmail.split('@')[0] || 'ผู้ขอสิทธิ์ไรเดอร์',
+      userEmail: cleanEmail,
+      userPicture: userPicture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+      platform: platform || 'Grab / Lineman / อื่นๆ',
+      phone: phone || '',
+      note: note || '',
+      status: 'pending', // 'pending', 'approved', 'rejected'
+      createdAt: Date.now(),
+      reviewedAt: null,
+      reviewedBy: null,
+      rejectReason: null
+    };
+
+    this.data.rider_requests.unshift(newRequest);
+    this.saveData();
+    this.logAudit('RIDER_ROLE_REQUESTED', userId, newRequest.id, `ผู้ใช้ ${userName} (${cleanEmail}) ยื่นขอสิทธิ์ RIDER (แพลตฟอร์ม: ${platform})`);
+
+    return {
+      success: true,
+      message: 'ยื่นคำขอสิทธิ์ป้าย 🛵 RIDER เรียบร้อยแล้ว กรุณารอแอดมินหรือผู้พัฒนาระบบตรวจสอบและอนุมัติ',
+      request: newRequest
+    };
+  }
+
+  getRiderRequests(statusFilter = 'all') {
+    if (!this.data.rider_requests) {
+      this.data.rider_requests = [];
+    }
+
+    let list = this.data.rider_requests;
+    if (statusFilter && statusFilter !== 'all') {
+      list = list.filter(r => r.status === statusFilter);
+    }
+    return list;
+  }
+
+  getUserRiderStatus(userId, email = '') {
+    const cleanEmail = (email || '').toLowerCase().trim();
+    const user = this.getUserById(userId) || this.getUserByEmail(cleanEmail);
+    if (user && user.isRider) {
+      return { status: 'approved', isRider: true, user };
+    }
+
+    if (!this.data.rider_requests) {
+      this.data.rider_requests = [];
+    }
+
+    const pending = this.data.rider_requests.find(r => (r.userId === userId || r.userEmail === cleanEmail) && r.status === 'pending');
+    if (pending) {
+      return { status: 'pending', isRider: false, request: pending };
+    }
+
+    const lastReq = this.data.rider_requests.find(r => (r.userId === userId || r.userEmail === cleanEmail));
+    if (lastReq) {
+      return { status: lastReq.status, isRider: false, request: lastReq };
+    }
+
+    return { status: 'none', isRider: false };
+  }
+
+  approveRiderRole(requestId, adminId = 'dev_admin') {
+    if (!this.data.rider_requests) return { success: false, error: 'ไม่พบรายการคำขอ' };
+    const req = this.data.rider_requests.find(r => r.id === requestId);
+    if (!req) return { success: false, error: 'ไม่พบคำขอสิทธิ์ RIDER นี้' };
+
+    req.status = 'approved';
+    req.reviewedAt = Date.now();
+    req.reviewedBy = adminId;
+
+    // อัปเดตข้อมูลผู้ใช้ในระบบ
+    let user = this.getUserById(req.userId) || this.getUserByEmail(req.userEmail);
+    if (user) {
+      user.isRider = true;
+      user.role = 'rider';
+      user.badge = '🛵 RIDER';
+      user.riderPlatform = req.platform;
+      user.riderApprovedAt = Date.now();
+    } else {
+      // สร้างผู้ใช้ในระบบหากยังไม่มี
+      user = this.getOrCreateUser({
+        id: req.userId,
+        name: req.userName,
+        email: req.userEmail,
+        picture: req.userPicture,
+        isRider: true,
+        role: 'rider',
+        badge: '🛵 RIDER'
+      });
+      user.isRider = true;
+      user.badge = '🛵 RIDER';
+      user.riderPlatform = req.platform;
+    }
+
+    this.saveData();
+    this.logAudit('RIDER_ROLE_APPROVED', adminId, req.userId, `อนุมัติสิทธิ์ RIDER ให้แก่ ${req.userName} (${req.userEmail})`);
+
+    return {
+      success: true,
+      message: `อนุมัติสิทธิ์ 🛵 RIDER ให้คุณ ${req.userName} เรียบร้อยแล้ว`,
+      request: req,
+      user
+    };
+  }
+
+  rejectRiderRole(requestId, reason = 'ข้อมูลไม่ครบถ้วนหรือไม่ตรงตามเงื่อนไข', adminId = 'dev_admin') {
+    if (!this.data.rider_requests) return { success: false, error: 'ไม่พบรายการคำขอ' };
+    const req = this.data.rider_requests.find(r => r.id === requestId);
+    if (!req) return { success: false, error: 'ไม่พบคำขอสิทธิ์ RIDER นี้' };
+
+    req.status = 'rejected';
+    req.reviewedAt = Date.now();
+    req.reviewedBy = adminId;
+    req.rejectReason = reason;
+
+    this.saveData();
+    this.logAudit('RIDER_ROLE_REJECTED', adminId, req.userId, `ปฏิเสธคำขอ RIDER ของ ${req.userName} เหตุผล: ${reason}`);
+
+    return {
+      success: true,
+      message: `ปฏิเสธคำขอสิทธิ์ RIDER ของคุณ ${req.userName} เรียบร้อยแล้ว`,
+      request: req
+    };
+  }
+
+  revokeRiderRole(userId, adminId = 'dev_admin') {
+    const user = this.getUserById(userId);
+    if (!user) return { success: false, error: 'ไม่พบผู้ใช้งานนี้' };
+
+    user.isRider = false;
+    const isDev = user.isDev === true || user.email === 'java5263@gmail.com';
+    const isMsu = (user.email || '').endsWith('@msu.ac.th');
+    user.role = isDev ? 'dev' : (isMsu ? 'student' : 'member');
+    user.badge = isDev ? '👑 DEV' : (isMsu ? '🎓 MSU' : '👤 Member');
+
+    this.saveData();
+    this.logAudit('RIDER_ROLE_REVOKED', adminId, userId, `เพิกถอนสิทธิ์ RIDER ของ ${user.name} (${user.email})`);
+
+    return {
+      success: true,
+      message: `เพิกถอนสิทธิ์ RIDER ของ ${user.name} เรียบร้อยแล้ว`,
+      user
     };
   }
 

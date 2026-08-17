@@ -16,15 +16,27 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
   <!-- Main Stylesheet (with cache-busting) -->
-  <link rel="stylesheet" href="css/style.css?v=2.7.0">
+  <link rel="stylesheet" href="css/style.css?v=2.8.0">
+
+  <!-- Immediate Theme Check to avoid flash of light mode -->
+  <script>
+    (function() {
+      try {
+        const savedTheme = localStorage.getItem('msu_theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        if (savedTheme === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      } catch (e) {}
+    })();
+  </script>
 
   <!-- Google Identity Services (GIS) -->
   <script src="https://accounts.google.com/gsi/client" async defer onload="if(window.onGoogleLibraryLoad) window.onGoogleLibraryLoad()"></script>
 </head>
 <body>
 
-  <!-- 🛡️ MANDATORY GPS & ANTI-VPN SECURITY GATEKEEPER OVERLAY -->
-  <div id="securityGatekeeperOverlay" class="security-gatekeeper-overlay" style="display: flex;">
+  <!-- 🛡️ MANDATORY GPS & ANTI-VPN SECURITY GATEKEEPER OVERLAY (เฉพาะตอนจะคุยแชทหรือปักหมุด) -->
+  <div id="securityGatekeeperOverlay" class="security-gatekeeper-overlay" style="display: none;">
     <div class="gatekeeper-card">
       <div class="gatekeeper-radar">
         <div class="radar-pulse"></div>
@@ -52,6 +64,17 @@
     </a>
 
     <div class="nav-actions">
+      <!-- 🌙 Dark / Light Mode Toggle Button -->
+      <button class="btn btn-outline btn-sm theme-toggle-btn" id="navThemeToggleBtn" onclick="window.app?.toggleTheme()" title="เปลี่ยนโหมดมืด/สว่าง">
+        <span class="theme-toggle-icon">🌙</span>
+        <span class="theme-toggle-text">โหมดมืด</span>
+      </button>
+
+      <!-- 📖 ข้อมูลระบบ Button -->
+      <button class="btn btn-outline btn-sm" id="navInfoBtn" onclick="window.app?.switchTab('info')" title="ข้อมูลเกี่ยวกับโปรเจค MSU Traffic">
+        <span>📖 ข้อมูล</span>
+      </button>
+
       <!-- ⭐ โดเนท ค่า Server Button -->
       <button class="btn btn-donate" id="navDonateBtn" onclick="window.openDonateModal ? window.openDonateModal() : window.app?.openDonateModal()" title="ร่วมสนับสนุนค่า Server & พัฒนาระบบ">
         <span class="donate-emoji-icon">⭐</span>
@@ -146,73 +169,98 @@
       </div>
     </section>
 
-    <!-- ==================== TAB 3: CHAT ==================== -->
-    <section class="tab-view" id="viewChat">
-      <div class="chat-page-container">
+  <!-- =========================================================
+       💬 FACEBOOK STYLE FLOATING CHAT POPUP WIDGET
+       ========================================================= -->
+  <div class="fb-chat-widget" id="fbChatWidget">
+    <!-- Floating Chat Head Launcher (Bottom Right) -->
+    <button class="fb-chat-head" id="fbChatHeadBtn" onclick="window.chatManager?.toggleChatPopup()" title="เปิดห้องแชต มมส (Facebook Style)">
+      <div class="fb-chat-head-icon">💬</div>
+      <span class="fb-chat-head-label">แชต มมส</span>
+      <span class="fb-chat-head-online-dot"></span>
+      <span class="fb-chat-head-badge" id="fbChatHeadBadge" style="display: none;">0</span>
+    </button>
 
-        <!-- Geofence & MSU Domain Warning Banner -->
-        <div class="chat-geo-banner" id="chatGeofenceBanner" style="display: none;"></div>
-
-        <!-- 5 Category Rooms Selector -->
-        <div class="chat-rooms-scroll" id="chatRoomsContainer">
-          <!-- Rendered by chatManager.js -->
-        </div>
-
-        <!-- Current Room Info Bar & Dev Tools -->
-        <div class="chat-room-header">
-          <div style="flex: 1;">
-            <div class="room-active-title" id="chatCurrentRoomTitle">💬 ทั่วไป (General)</div>
-            <div class="room-active-desc" id="chatCurrentRoomDesc">พูดคุยแลกเปลี่ยนข่าวสารทั่วไปรอบ มมส</div>
+    <!-- Facebook Chat Popup Box -->
+    <div class="fb-chat-box" id="fbChatBox">
+      <!-- 1. Messenger Header -->
+      <div class="fb-chat-header">
+        <div class="fb-header-left">
+          <div class="fb-header-avatar">
+            <span id="fbHeaderIcon">💬</span>
+            <span class="fb-online-badge"></span>
           </div>
-          <div style="display: flex; align-items: center; gap: 0.4rem;">
-            <!-- 👑 Dev Clear Chat Button (2-Step Confirm) -->
-            <button class="btn-dev-clear-chat" id="chatDevClearBtn" onclick="window.chatManager.confirmDevClearChat()" title="สิทธิ์ Dev: ล้างประวัติแชต (ต้องยืนยัน 2 ครั้ง)" style="display: none;">
-              🧹 ล้างแชต (DEV)
-            </button>
-            <div class="chat-geo-status">
-              <span class="geo-dot dot-online" id="chatGeoStatusDot"></span>
-              <span id="chatGeoStatusText">กำลังตรวจสอบพิกัด...</span>
+          <div class="fb-header-info">
+            <div class="fb-header-title">
+              <span id="chatCurrentRoomTitle">💬 ทั่วไป (General)</span>
+            </div>
+            <div class="fb-header-status" id="fbHeaderStatus">
+              <span class="geo-dot dot-online" id="chatGeoStatusDot" style="width: 7px; height: 7px; display: inline-block;"></span>
+              <span id="chatGeoStatusText">พร้อมคุยรอบ มมส</span>
             </div>
           </div>
         </div>
 
-        <!-- 🧹 Daily Midnight Idle Reset Info Banner -->
-        <div class="chat-reset-notice" id="chatResetNoticeBanner">
-          <div style="display: flex; align-items: center; gap: 0.35rem;">
-            <span>🧹</span>
-            <span><strong>รีเซ็ตแชตอัตโนมัติ:</strong> ทุกเที่ยงคืน (เมื่อไม่มีการสนทนาเกิน 15 นาที)</span>
-          </div>
-          <span id="chatResetCountdown" class="chat-reset-countdown">⏳ อีก --:-- ชม.</span>
+        <div class="fb-header-actions">
+          <!-- 👑 Dev Clear Chat Button -->
+          <button class="fb-action-btn fb-btn-dev" id="chatDevClearBtn" onclick="window.chatManager?.confirmDevClearChat()" title="สิทธิ์ Dev: ล้างประวัติแชต" style="display: none;">
+            🧹
+          </button>
+          <!-- Minimize -->
+          <button class="fb-action-btn" onclick="window.chatManager?.minimizeChatPopup()" title="ย่อหน้าต่าง">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <!-- Expand / Fullscreen -->
+          <button class="fb-action-btn" onclick="window.chatManager?.toggleExpandChatPopup()" title="ขยายเต็มจอ/ย่อขนาด">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+          </button>
+          <!-- Close -->
+          <button class="fb-action-btn fb-btn-close" onclick="window.chatManager?.closeChatPopup()" title="ปิดหน้าต่าง">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
         </div>
-
-        <!-- Scrollable Messages Container -->
-        <div class="chat-messages-area" id="chatMessagesContainer">
-          <!-- Chat bubbles rendered dynamically -->
-        </div>
-
-        <!-- Chat Input Form -->
-        <form class="chat-input-bar" id="chatForm" onsubmit="window.chatManager.sendMessage(event)">
-          <div class="chat-anon-check" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-            <label for="chatAnonToggle" style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.72rem; color: #475569; cursor: pointer;">
-              <input type="checkbox" id="chatAnonToggle">
-              <span>ซ่อนชื่อ (นิรนาม)</span>
-            </label>
-            <!-- 📢 Announcement Toggle (สำหรับ Dev) -->
-            <label id="chatAnnouncementLabel" style="display: none; align-items: center; gap: 0.3rem; font-size: 0.72rem; color: #1D4ED8; font-weight: 700; cursor: pointer; background: #EFF6FF; padding: 2px 7px; border-radius: 6px; border: 1px solid #BFDBFE;">
-              <input type="checkbox" id="chatAnnouncementToggle" style="accent-color: #2563EB;">
-              <span>📢 ประกาศ (MSU Traffic)</span>
-            </label>
-          </div>
-          <div class="chat-input-row">
-            <input type="text" id="chatMessageInput" class="chat-text-input" placeholder="พิมพ์ข้อความ... (เฉพาะ @msu.ac.th ในเขต มมส)" autocomplete="off">
-            <button type="submit" class="chat-send-btn" id="chatSendBtn">
-              <span>ส่ง ➔</span>
-            </button>
-          </div>
-        </form>
-
       </div>
-    </section>
+
+      <!-- 2. Rooms Category Scroll Carousel (Tabs) -->
+      <div class="fb-rooms-bar" id="chatRoomsContainer">
+        <!-- Rendered dynamically by chatManager.js -->
+      </div>
+
+      <!-- 3. Sub-Banner Notice -->
+      <div class="fb-chat-subbanner">
+        <div class="chat-geo-banner" id="chatGeofenceBanner" style="display: none;"></div>
+        <div class="fb-reset-notice" id="chatResetNoticeBanner">
+          <span style="font-size: 0.68rem; color: var(--text-muted);">🧹 รีเซ็ตเที่ยงคืนเมื่อไม่มีคนคุย 15 นาที</span>
+          <span id="chatResetCountdown" class="chat-reset-countdown" style="font-size: 0.68rem;">⏳ อีก --:-- ชม.</span>
+        </div>
+      </div>
+
+      <!-- 4. Messages Stream Area -->
+      <div class="fb-chat-body" id="chatMessagesContainer">
+        <!-- Chat bubbles rendered dynamically -->
+      </div>
+
+      <!-- 5. Bottom Messenger Input Bar -->
+      <form class="fb-chat-footer" id="chatForm" onsubmit="window.chatManager?.sendMessage(event)">
+        <div class="fb-footer-top">
+          <label for="chatAnonToggle" class="fb-anon-label">
+            <input type="checkbox" id="chatAnonToggle">
+            <span>ซ่อนชื่อ (นิรนาม)</span>
+          </label>
+          <label id="chatAnnouncementLabel" class="fb-announcement-label" style="display: none;">
+            <input type="checkbox" id="chatAnnouncementToggle" style="accent-color: #2563EB;">
+            <span>📢 ประกาศ (MSU Traffic)</span>
+          </label>
+        </div>
+        <div class="fb-input-row">
+          <input type="text" id="chatMessageInput" class="fb-text-input" placeholder="พิมพ์ข้อความ... (กด Enter เพื่อส่ง)" autocomplete="off">
+          <button type="submit" class="fb-send-btn" id="chatSendBtn" title="ส่งข้อความ">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
     <!-- ==================== TAB 4: INFO ==================== -->
     <section class="tab-view" id="viewInfo">
@@ -301,27 +349,7 @@
 
   </main>
 
-  <!-- =========================================================
-       BOTTOM NAVIGATION BAR (Main Tabs + Center Pin FAB)
-       ========================================================= -->
-  <nav class="bottom-nav-bar">
-    <button class="bottom-nav-item active" data-tab="map" onclick="window.app.switchTab('map')">
-      <span class="nav-icon">🗺️</span>
-      <span>แผนที่</span>
-    </button>
-    <button class="bottom-nav-item nav-fab-btn" onclick="window.app.openReportModal()">
-      <span class="nav-icon fab-plus">➕</span>
-      <span class="fab-label">ปักหมุด</span>
-    </button>
-    <button class="bottom-nav-item" data-tab="chat" onclick="window.app.switchTab('chat')">
-      <span class="nav-icon">💬</span>
-      <span>แชต มมส</span>
-    </button>
-    <button class="bottom-nav-item" data-tab="info" onclick="window.app.switchTab('info')">
-      <span class="nav-icon">ℹ️</span>
-      <span>ข้อมูล</span>
-    </button>
-  </nav>
+
 
   <!-- =========================================================
        MODALS
@@ -373,9 +401,23 @@
             <span>🛠️ ศูนย์ควบคุม Developer (Dev Panel)</span>
             <span>➔</span>
           </button>
+          <button id="profileRiderRequestBtn" class="profile-menu-item" onclick="window.app.openRiderRequestModal();" style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border: 1.5px solid #10B981; border-radius: 10px; background: #ECFDF5; color: #047857; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease;">
+            <span style="display: flex; align-items: center; gap: 0.4rem;">
+              <span>🛵</span>
+              <span>ขอสิทธิ์และป้าย RIDER (คุยในแชท)</span>
+            </span>
+            <span>➔</span>
+          </button>
           <button class="profile-menu-item" onclick="window.app.closeProfileModal(); window.app.openReportModal();" style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border: 1px solid #E2E8F0; border-radius: 10px; background: #FFFFFF; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.15s ease;">
             <span>➕ ปักหมุดรายงานด่านใหม่</span>
             <span>➔</span>
+          </button>
+          <button class="profile-menu-item" onclick="window.app.toggleTheme();" style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-card); font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.15s ease;">
+            <span style="display: flex; align-items: center; gap: 0.45rem;">
+              <span id="profileThemeIcon">🌙</span>
+              <span id="profileThemeLabel">เปลี่ยนโหมดมืด / สว่าง</span>
+            </span>
+            <span id="profileThemeValue" style="font-size: 0.74rem; font-weight: 700; color: var(--primary);">สลับธีม</span>
           </button>
           <button class="profile-menu-item" onclick="window.app.closeProfileModal(); window.app.openLegalModal();" style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border: 1px solid #E2E8F0; border-radius: 10px; background: #FFFFFF; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.15s ease;">
             <span>⚖️ ข้อกำหนด พ.ร.บ. คอมพิวเตอร์</span>
@@ -388,6 +430,72 @@
         </div>
 
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ยื่นขอสิทธิ์และป้าย RIDER (Rider Request Modal) -->
+  <div class="modal-overlay" id="riderRequestModal">
+    <div class="modal-container" style="max-width: 440px;">
+      <div class="modal-header">
+        <div class="modal-title" style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 1.25rem;">🛵</span>
+          <span style="font-weight: 800;">ยื่นขอสิทธิ์และป้าย RIDER</span>
+        </div>
+        <button class="modal-close-btn" onclick="window.app.closeRiderRequestModal()">✕</button>
+      </div>
+
+      <form id="riderRequestForm" onsubmit="window.app.handleRiderRequestSubmit(event)">
+        <div class="modal-body" style="padding: 1.1rem; display: flex; flex-direction: column; gap: 0.85rem;">
+          
+          <div style="background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 10px; padding: 0.8rem; font-size: 0.76rem; color: #065F46; line-height: 1.4;">
+            <strong>🛵 สิทธิประโยชน์ป้าย RIDER:</strong>
+            <ul style="margin: 0.3rem 0 0 1.1rem; padding: 0;">
+              <li>ได้รับสิทธิ์ส่งข้อความในห้องแชท มมส แม้ใช้อีเมลทั่วไป (@gmail.com)</li>
+              <li>แสดงป้าย Badge <strong>🛵 RIDER</strong> สีเขียว-ส้มเด่นชัดในห้องแชท</li>
+              <li>ช่วยเตือนเพื่อนๆ นิสิตเรื่องเส้นทางและด่านตรวจได้อย่างรวดเร็ว</li>
+            </ul>
+          </div>
+
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-size: 0.78rem; font-weight: 700; color: #1E293B; margin-bottom: 0.35rem; display: block;">
+              1. เลือกสังกัด / แพลตฟอร์มที่ขับขี่ *
+            </label>
+            <select id="riderReqPlatform" class="form-control" style="padding: 0.55rem; font-size: 0.82rem; border-radius: 8px; border: 1px solid #CBD5E1; width: 100%;">
+              <option value="Grab Food / Grab Drive">🛵 Grab (GrabFood / GrabCar / Win)</option>
+              <option value="LINE MAN Delivery">🛵 LINE MAN Rider</option>
+              <option value="ShopeeFood">🛵 ShopeeFood</option>
+              <option value="7-Eleven Delivery">🛵 7-Delivery (เซเว่น)</option>
+              <option value="วิน มมส / มอเตอร์ไซค์รับจ้าง">🛵 วิน มมส / รับส่งรอบ ม.</option>
+              <option value="ไรเดอร์ส่งของ / ส่งพัสดุอิสระ">🛵 ไรเดอร์อิสระ / รับหิ้ว มมส</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-size: 0.78rem; font-weight: 700; color: #1E293B; margin-bottom: 0.35rem; display: block;">
+              2. เบอร์โทรศัพท์ติดต่อ (ไม่บังคับ)
+            </label>
+            <input type="tel" id="riderReqPhone" class="form-control" placeholder="เช่น 081-234-5678" style="padding: 0.55rem; font-size: 0.82rem; border-radius: 8px; border: 1px solid #CBD5E1; width: 100%;">
+          </div>
+
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-size: 0.78rem; font-weight: 700; color: #1E293B; margin-bottom: 0.35rem; display: block;">
+              3. ข้อมูลเพิ่มเติม / ทะเบียนรถหรือโซนที่วิ่งประจำ
+            </label>
+            <textarea id="riderReqNote" class="form-control" rows="2" placeholder="เช่น วิ่งโซน มอใหม่ ขามเรียง - ท่าขอนยาง ประจำ..." style="padding: 0.55rem; font-size: 0.82rem; border-radius: 8px; border: 1px solid #CBD5E1; width: 100%; resize: none;"></textarea>
+          </div>
+
+          <div style="font-size: 0.68rem; color: #94A3B8; text-align: center;">
+            * เมื่อส่งคำขอแล้ว แอดมินหรือผู้พัฒนา (Dev) จะตรวจสอบและอนุมัติให้โดยเร็ว
+          </div>
+        </div>
+
+        <div class="modal-footer" style="padding: 0.75rem 1.1rem; background: #F8FAFC; border-top: 1px solid #E2E8F0; display: flex; justify-content: flex-end; gap: 0.5rem;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="window.app.closeRiderRequestModal()">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary btn-sm" style="background: #10B981; border-color: #10B981; font-weight: 800;">
+            🚀 ส่งคำขอสิทธิ์ RIDER
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -707,12 +815,12 @@
       </div>
       <div class="modal-body" style="padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.85rem;">
         
-        <!-- Season 1 Header & 7-Day Countdown -->
+        <!-- Season 1 Header & Daily Countdown -->
         <div class="season-banner">
-          <div class="season-badge">SEASON 1</div>
-          <h3 class="season-title">ปฐมบทชาว มมส</h3>
+          <div class="season-badge">DAILY RANK</div>
+          <h3 class="season-title">อันดับประจำวัน มมส</h3>
           <div class="season-countdown" id="rankResetCountdown">
-            ⏳ กำลังคำนวณเวลารีเซ็ตสัปดาห์...
+            ⏳ กำลังคำนวณเวลารีเซ็ตประจำวัน...
           </div>
         </div>
 
@@ -721,10 +829,10 @@
           <!-- Rendered by rankManager.js -->
         </div>
 
-        <!-- Rank Mode Switcher (Weekly vs All-Time) -->
+        <!-- Rank Mode Switcher (Daily vs All-Time) -->
         <div class="rank-tab-switch">
           <button class="rank-tab-btn active" data-tab="weekly" onclick="window.rankManager.switchRankTab('weekly')">
-            <span>⚡ สัปดาห์นี้ (Weekly)</span>
+            <span>⚡ วันนี้ (Daily)</span>
           </button>
           <button class="rank-tab-btn" data-tab="all-time" onclick="window.rankManager.switchRankTab('all-time')">
             <span>👑 ตลอดกาล (All-Time)</span>
@@ -903,6 +1011,9 @@
         <button class="dev-tab-btn" data-tab="profanity" onclick="window.devManager.switchTab('profanity')">
           <span>🤬 ทดสอบ Filter คำหยาบ & Logs</span>
         </button>
+        <button class="dev-tab-btn" data-tab="rider" onclick="window.devManager.switchTab('rider')" style="color: #059669;">
+          <span>🛵 จัดการสิทธิ์ RIDER</span>
+        </button>
         <button class="dev-tab-btn" data-tab="sheets" onclick="window.devManager.switchTab('sheets')">
           <span>📊 Google Sheets & Cloud Sync</span>
         </button>
@@ -1041,6 +1152,42 @@
           <button class="btn btn-outline btn-xs" onclick="window.devManager.loadAuditLogs()">🔄 รีเฟรช Logs</button>
         </div>
         <div id="devAuditLogsContainer"></div>
+      </div>
+
+      <!-- TAB: RIDER ROLE MODERATION -->
+      <div class="dev-tab-content" id="devTab-rider">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <h4 style="font-size: 0.95rem; font-weight: 800; color: #047857; margin: 0; display: flex; align-items: center; gap: 0.4rem;">
+              <span>🛵</span>
+              <span>คำขอสิทธิ์และป้าย RIDER (คุยในห้องแชท มมส)</span>
+            </h4>
+            <p style="font-size: 0.74rem; color: #64748B; margin: 0.2rem 0 0 0;">
+              อนุมัติให้ผู้ขับขี่ไรเดอร์ (Grab / Lineman / 7-Delivery ฯลฯ) ส่งข้อความในห้องแชตได้ แม้ใช้อีเมลทั่วไป
+            </p>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="window.devManager.loadRiderRequests()">
+            <span>🔄 รีเฟรชคำขอ</span>
+          </button>
+        </div>
+
+        <div class="dev-table-wrapper" style="margin-bottom: 1.2rem;">
+          <table class="dev-table">
+            <thead>
+              <tr>
+                <th>Request ID</th>
+                <th>ผู้ขอสิทธิ์ (User)</th>
+                <th>แพลตฟอร์ม / ข้อมูล</th>
+                <th>วันที่ส่งคำขอ</th>
+                <th>สถานะ</th>
+                <th>การจัดการ (Action)</th>
+              </tr>
+            </thead>
+            <tbody id="devRiderRequestsTableBody">
+              <!-- Rendered by devManager.js -->
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- TAB 4: GOOGLE SHEETS & CLOUD SYNC -->
@@ -1331,14 +1478,14 @@
   <script src="/socket.io/socket.io.js"></script>
 
   <!-- Application Scripts (with cache-busting) -->
-  <script src="js/rateLimitAlert.js?v=2.6.8"></script>
-  <script src="js/auth.js?v=2.6.8"></script>
-  <script src="js/rankManager.js?v=2.6.8"></script>
-  <script src="js/chatManager.js?v=2.6.8"></script>
-  <script src="js/map.js?v=2.6.8"></script>
-  <script src="js/devManager.js?v=2.6.8"></script>
-  <script src="js/securityGatekeeper.js?v=2.6.8"></script>
-  <script src="js/app.js?v=2.6.8"></script>
+  <script src="js/rateLimitAlert.js?v=2.9.0"></script>
+  <script src="js/auth.js?v=2.9.0"></script>
+  <script src="js/rankManager.js?v=2.9.0"></script>
+  <script src="js/chatManager.js?v=2.9.0"></script>
+  <script src="js/map.js?v=2.9.0"></script>
+  <script src="js/devManager.js?v=2.9.0"></script>
+  <script src="js/securityGatekeeper.js?v=2.9.0"></script>
+  <script src="js/app.js?v=2.9.0"></script>
 
 
   <script>

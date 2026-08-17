@@ -19,17 +19,55 @@ class SecurityGatekeeper {
   }
 
   async init() {
-    console.log('🛡️ Initializing Security Gatekeeper (Mandatory GPS & Anti-VPN Shield)...');
+    console.log('🛡️ Security Gatekeeper initialized (On-demand GPS & Security Check)...');
+    // ซ่อน Overlay ตั้งแต่เริ่มต้น
+    this.hideGatekeeper();
+  }
 
-    // 1. Perform Anti-VPN / Proxy Check First (Strictly Enforced)
-    const isCleanNetwork = await this.checkVpnStatus();
-    if (!isCleanNetwork) {
-      this.showVpnBlockScreen(this.vpnReason);
-      return;
+  /**
+   * 📍 ขอพิกัด GPS แบบ On-Demand (เรียกใช้เมื่อผู้ใช้กดปักหมุด หรือเข้าใช้งานแชท)
+   */
+  async ensureGpsLocation(promptMessage = 'กรุณาอนุญาตตำแหน่ง GPS เพื่อยืนยันพิกัดก่อนดำเนินการ') {
+    if (this.gpsVerified && this.userLocation) {
+      return this.userLocation;
     }
 
-    // 2. Mandatory GPS Check (Required for Everyone without exception)
-    await this.requestGpsLocation();
+    if (!navigator.geolocation) {
+      alert('อุปกรณ์หรือเบราว์เซอร์ของคุณไม่รองรับระบบระบุตำแหน่ง GPS');
+      return null;
+    }
+
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const accuracy = position.coords.accuracy;
+
+          this.gpsVerified = true;
+          this.userLocation = { lat, lng, accuracy };
+          window.userLocation = this.userLocation;
+
+          if (window.mapManager) {
+            window.mapManager.updateUserLocationMarker(lat, lng, accuracy);
+          }
+
+          resolve(this.userLocation);
+        },
+        (error) => {
+          console.warn('Geolocation denied/unavailable:', error.message);
+          let errorMsg = 'กรุณาอนุญาตเปิดสิทธิ์ Location/GPS ในการตั้งค่าเบราว์เซอร์เพื่อใช้งานระบบนี้';
+          if (error.code === error.PERMISSION_DENIED) {
+            errorMsg = 'คุณได้ปฏิเสธการเข้าถึงตำแหน่ง GPS กรุณาเปิดสิทธิ์ Location เพื่อใช้งาน';
+          }
+          if (window.app) {
+            window.app.showNotification(`📍 ${errorMsg}`, 'warning');
+          }
+          resolve(null);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
   }
 
   /**

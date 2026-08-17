@@ -279,5 +279,45 @@ module.exports = function(io) {
     }
   });
 
+  // 10. POST /api/chat/rider/request - ยื่นขอสิทธิ์และป้าย RIDER
+  router.post('/rider/request', requireAuth, (req, res) => {
+    try {
+      const { platform, phone, note } = req.body;
+      const result = db.requestRiderRole({
+        userId: req.user.id,
+        userName: req.user.name,
+        userEmail: req.user.email,
+        userPicture: req.user.picture,
+        platform: platform || 'Grab / Lineman / Rider',
+        phone: phone || '',
+        note: note || ''
+      });
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      if (io) {
+        io.emit('rider_request_created', {
+          request: result.request
+        });
+      }
+
+      res.status(201).json(result);
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 11. GET /api/chat/rider/status - ตรวจสอบสถานะการขอสิทธิ์ RIDER ของผู้ใช้ปัจจุบัน
+  router.get('/rider/status', requireAuth, (req, res) => {
+    try {
+      const statusInfo = db.getUserRiderStatus(req.user.id, req.user.email);
+      res.json({ success: true, data: statusInfo });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   return router;
 };

@@ -78,6 +78,8 @@ class DevManager {
       this.loadSecurityTelemetry();
     } else if (tabName === 'profanity') {
       this.loadAuditLogs();
+    } else if (tabName === 'rider') {
+      this.loadRiderRequests();
     } else if (tabName === 'sheets') {
       this.loadSheetsConfig();
     } else if (tabName === 'reset') {
@@ -1199,6 +1201,176 @@ class DevManager {
         `;
       }
       alert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
+    }
+  }
+
+  // ============================================================================
+  // 🛵 TAB: RIDER ROLE MODERATION & APPROVAL
+  // ============================================================================
+  async loadRiderRequests() {
+    const tbody = document.getElementById('devRiderRequestsTableBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align: center; padding: 1.5rem; color: #94A3B8;">
+          ⏳ กำลังโหลดรายการคำขอสิทธิ์ RIDER...
+        </td>
+      </tr>
+    `;
+
+    try {
+      const res = await fetch('/api/security/admin/rider-requests', {
+        headers: this.getHeaders()
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        this.riderRequests = data.data || [];
+        this.renderRiderRequestsTable();
+      } else {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #EF4444; padding: 1rem;">${data.error || 'โหลดไม่สำเร็จ'}</td></tr>`;
+      }
+    } catch (err) {
+      console.error('Error loading rider requests:', err);
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #EF4444; padding: 1rem;">เกิดข้อผิดพลาดในการเชื่อมต่อ</td></tr>`;
+    }
+  }
+
+  renderRiderRequestsTable() {
+    const tbody = document.getElementById('devRiderRequestsTableBody');
+    if (!tbody) return;
+
+    if (!this.riderRequests || this.riderRequests.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align: center; padding: 2rem; color: #64748B;">
+            <div style="font-size: 1.8rem; margin-bottom: 0.3rem;">🛵</div>
+            <div style="font-weight: 700; color: #1E293B;">ยังไม่มีรายการคำขอสิทธิ์ RIDER</div>
+            <div style="font-size: 0.72rem; color: #94A3B8;">เมื่อมีผู้ใช้หรือไรเดอร์ส่งคำขอ จะปรากฏขึ้นที่นี่เพื่อให้ตรวจสอบ</div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = this.riderRequests.map(req => {
+      const dateStr = new Date(req.createdAt).toLocaleString('th-TH');
+      let statusBadge = '<span class="badge-pill badge-warning" style="background:#FEF3C7;color:#D97706;border:1px solid #FCD34D;">⏳ รอตรวจสอบ</span>';
+      if (req.status === 'approved') {
+        statusBadge = '<span class="badge-pill" style="background:#ECFDF5;color:#059669;border:1px solid #A7F3D0;">✅ อนุมัติแล้ว</span>';
+      } else if (req.status === 'rejected') {
+        statusBadge = '<span class="badge-pill" style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;">❌ ปฏิเสธ</span>';
+      }
+
+      return `
+        <tr>
+          <td style="font-family: monospace; font-size: 0.72rem; color: #64748B;">${req.id}</td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.45rem;">
+              <img src="${req.userPicture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
+              <div>
+                <div style="font-weight: 700; color: #1E293B; font-size: 0.8rem;">${this.escapeHtml(req.userName)}</div>
+                <div style="font-size: 0.7rem; color: #94A3B8;">${this.escapeHtml(req.userEmail)}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div style="font-weight: 700; font-size: 0.78rem; color: #047857;">🛵 ${this.escapeHtml(req.platform || 'ไม่ระบุ')}</div>
+            ${req.phone ? `<div style="font-size: 0.7rem; color: #64748B;">📞 ${this.escapeHtml(req.phone)}</div>` : ''}
+            ${req.note ? `<div style="font-size: 0.68rem; color: #475569; margin-top: 2px;">💬 ${this.escapeHtml(req.note)}</div>` : ''}
+          </td>
+          <td style="font-size: 0.72rem; color: #64748B;">${dateStr}</td>
+          <td>${statusBadge}</td>
+          <td>
+            <div style="display: flex; gap: 0.35rem;">
+              ${req.status === 'pending' ? `
+                <button class="btn btn-primary btn-xs" style="background: #10B981; border-color: #10B981; font-weight: 700;" onclick="window.devManager.approveRider('${req.id}', '${this.escapeHtml(req.userName)}')">
+                  ✅ อนุมัติ
+                </button>
+                <button class="btn btn-outline btn-xs" style="color: #DC2626; border-color: #FECACA;" onclick="window.devManager.rejectRider('${req.id}', '${this.escapeHtml(req.userName)}')">
+                  ❌ ปฏิเสธ
+                </button>
+              ` : req.status === 'approved' ? `
+                <button class="btn btn-outline btn-xs" style="color: #DC2626; border-color: #FECACA;" onclick="window.devManager.revokeRider('${req.userId}', '${this.escapeHtml(req.userName)}')">
+                  🚫 เพิกถอนสิทธิ์
+                </button>
+              ` : `
+                <button class="btn btn-outline btn-xs" style="color: #059669; border-color: #A7F3D0;" onclick="window.devManager.approveRider('${req.id}', '${this.escapeHtml(req.userName)}')">
+                  🔄 เปลี่ยนเป็นอนุมัติ
+                </button>
+              `}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  async approveRider(requestId, userName) {
+    if (!confirm(`ยืนยันการอนุมัติสิทธิ์ป้าย 🛵 RIDER ให้แก่ "${userName}" ใช่หรือไม่?`)) return;
+
+    try {
+      const res = await fetch('/api/security/admin/rider-approve', {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ requestId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.app?.showNotification(`✅ อนุมัติสิทธิ์ RIDER ให้ ${userName} เรียบร้อยแล้ว`, 'success');
+        this.loadRiderRequests();
+      } else {
+        alert(data.error || 'ไม่สามารถอนุมัติได้');
+      }
+    } catch (err) {
+      console.error('Error approving rider:', err);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    }
+  }
+
+  async rejectRider(requestId, userName) {
+    const reason = prompt(`ระบุเหตุผลในการปฏิเสธคำขอของ "${userName}":`, 'ข้อมูลไม่ตรงตามเงื่อนไข');
+    if (reason === null) return;
+
+    try {
+      const res = await fetch('/api/security/admin/rider-reject', {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ requestId, reason: reason.trim() })
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.app?.showNotification(`ปฏิเสธคำขอของ ${userName} เรียบร้อย`, 'info');
+        this.loadRiderRequests();
+      } else {
+        alert(data.error || 'ไม่สามารถปฏิเสธได้');
+      }
+    } catch (err) {
+      console.error('Error rejecting rider:', err);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    }
+  }
+
+  async revokeRider(userId, userName) {
+    if (!confirm(`คุณต้องการเพิกถอนสิทธิ์ RIDER ของ "${userName}" ใช่หรือไม่?`)) return;
+
+    try {
+      const res = await fetch('/api/security/admin/rider-revoke', {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ userId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.app?.showNotification(`เพิกถอนสิทธิ์ RIDER ของ ${userName} แล้ว`, 'warning');
+        this.loadRiderRequests();
+      } else {
+        alert(data.error || 'ไม่สามารถเพิกถอนสิทธิ์ได้');
+      }
+    } catch (err) {
+      console.error('Error revoking rider:', err);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
     }
   }
 

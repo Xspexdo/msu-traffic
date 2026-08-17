@@ -131,15 +131,15 @@ class RankManager {
           <div class="map-rank-my-row">
             <img src="${this.myStats.picture}" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover;">
             <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-              <span style="font-weight: 700; font-size: 0.72rem; color: #1E293B; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">อันดับของคุณ (${this.myStats.name})</span>
-              <span style="font-size: 0.64rem; color: #059669; font-weight: 700;">+${this.myStats.weeklyScore || 0} EXP (วันนี้)</span>
+              <span class="map-rank-my-name" style="font-weight: 700; font-size: 0.72rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">อันดับของคุณ (${this.myStats.name})</span>
+              <span style="font-size: 0.64rem; color: #10B981; font-weight: 700;">+${this.myStats.weeklyScore || 0} EXP (วันนี้)</span>
             </div>
-            <span style="font-weight: 800; font-size: 0.75rem; color: #2563EB;">${this.myStats.allTimeScore || 0} EXP</span>
+            <span style="font-weight: 800; font-size: 0.75rem; color: #3B82F6;">${this.myStats.allTimeScore || 0} EXP</span>
           </div>
         `;
       } else {
         myStatusContainer.innerHTML = `
-          <div style="font-size: 0.68rem; color: #64748B; text-align: center; cursor: pointer;" onclick="window.authManager.openLoginModal()">
+          <div style="font-size: 0.68rem; color: var(--text-muted); text-align: center; cursor: pointer;" onclick="window.authManager.openLoginModal()">
             🔑 <u>เข้าสู่ระบบเพื่อดูอันดับของคุณ</u>
           </div>
         `;
@@ -250,7 +250,7 @@ class RankManager {
         </div>
         <div style="text-align: right;">
           <div style="font-size: 1.15rem; font-weight: 800; color: #2563EB;">${this.myStats.allTimeScore || 0} <span style="font-size: 0.72rem; color: #64748B;">EXP</span></div>
-          <div style="font-size: 0.7rem; color: #059669; font-weight: 700;">สัปดาห์นี้: +${this.myStats.weeklyScore || 0}</div>
+          <div style="font-size: 0.7rem; color: #059669; font-weight: 700;">วันนี้: +${this.myStats.weeklyScore || 0} EXP</div>
         </div>
       </div>
       <!-- Progress Bar -->
@@ -306,7 +306,7 @@ class RankManager {
 
     const list = (this.weeklyData?.rankings || []).slice(0, 3);
     if (list.length === 0) {
-      container.innerHTML = '<div style="font-size: 0.74rem; color: #94A3B8; text-align: center; padding: 0.5rem;">ยังไม่มีผู้ทำคะแนนสัปดาห์นี้</div>';
+      container.innerHTML = '<div style="font-size: 0.74rem; color: #94A3B8; text-align: center; padding: 0.5rem;">ยังไม่มีผู้ทำคะแนนวันนี้</div>';
       return;
     }
 
@@ -333,7 +333,7 @@ class RankManager {
       const minutes = Math.floor((diff / (1000 * 60)) % 60);
       const seconds = Math.floor((diff / 1000) % 60);
 
-      timerElem.textContent = `รีเซ็ตประจำวันในอีก ${hours} ชม. ${minutes} นาที ${seconds} วิ`;
+      timerElem.textContent = `รีเซ็ตอันดับประจำวันในอีก ${hours} ชม. ${minutes} นาที ${seconds} วิ`;
     }, 1000);
   }
 

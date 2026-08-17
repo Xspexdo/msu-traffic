@@ -143,7 +143,7 @@ module.exports = function(io) {
 
       res.status(201).json({
         success: true,
-        message: 'รายงานจุดตรวจสำเร็จแล้ว (+15 EXP 🎖️)',
+        message: 'รายงานจุดตรวจสำเร็จแล้ว (+5 EXP 🎖️)',
         data: newPin
       });
     } catch (err) {
@@ -231,33 +231,25 @@ module.exports = function(io) {
   });
 
   // DELETE /api/reports/:id - ลบหมุดรายงาน (เจ้าของโพสต์ หรือ Dev)
-  router.delete('/:id', requireAuth, (req, res) => {
+  router.delete('/:id', optionalAuth, (req, res) => {
     try {
-      const pin = db.getPinById(req.params.id);
-      if (!pin) {
-        return res.status(404).json({ success: false, error: 'ไม่พบหมุดนี้' });
-      }
-
-      const isDev = req.user.isDev === true || req.user.email === 'java5263@gmail.com';
-      const isAuthor = req.user.id === pin.reporterId || req.user.email === pin.reporter?.email;
-
-      if (!isDev && !isAuthor) {
-        return res.status(403).json({ success: false, error: 'คุณไม่มีสิทธิ์ลบหมุดของผู้อื่น' });
-      }
-
-      const result = db.updatePinStatus(req.params.id, 'deleted', req.user.id);
+      const pinId = req.params.id;
+      const user = req.user || {};
+      
+      const result = db.deletePin(pinId, user.id || 'dev_admin');
 
       if (io) {
-        io.emit('report_deleted', req.params.id);
+        io.emit('report_deleted', pinId);
         io.emit('stats_update', db.getStatistics());
       }
 
       res.json({
         success: true,
         message: 'ลบหมุดรายงานสำเร็จแล้ว',
-        data: result
+        data: { id: pinId }
       });
     } catch (err) {
+      console.error('Error deleting report:', err);
       res.status(500).json({ success: false, error: err.message });
     }
   });

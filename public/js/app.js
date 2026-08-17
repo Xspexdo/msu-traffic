@@ -16,6 +16,9 @@ class MSUApp {
   async init() {
     console.log('🚀 Initializing MSU Traffic & Campus Life (Season 1)...');
 
+    // 0. Initialize Dark / Light Theme
+    this.initTheme();
+
     // 1. Initialize Socket.io
     this.initSocket();
 
@@ -41,11 +44,80 @@ class MSUApp {
   }
 
   // ----------------------------------------------------
+  // 🌙 Dark / Light Mode System
+  // ----------------------------------------------------
+  initTheme() {
+    const savedTheme = localStorage.getItem('msu_theme') || (document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    this.setTheme(savedTheme, false);
+
+    // Auto-listen to system preference if user hasn't explicitly chosen
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        if (!localStorage.getItem('msu_theme')) {
+          this.setTheme(e.matches ? 'dark' : 'light', false);
+        }
+      });
+    }
+  }
+
+  toggleTheme() {
+    const current = (document.documentElement.getAttribute('data-theme') === 'dark' || document.body.classList.contains('dark-theme')) ? 'dark' : 'light';
+    const nextTheme = current === 'dark' ? 'light' : 'dark';
+    this.setTheme(nextTheme, true);
+    if (this.showNotification) {
+      this.showNotification(nextTheme === 'dark' ? '🌙 เปิดใช้งานโหมดมืด (Dark Mode)' : '☀️ เปิดใช้งานโหมดสว่าง (Light Mode)', 'info');
+    }
+  }
+
+  setTheme(theme, save = true) {
+    const isDark = theme === 'dark';
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.body.classList.add('dark-theme');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.body.classList.remove('dark-theme');
+    }
+
+    if (save) {
+      localStorage.setItem('msu_theme', theme);
+    }
+
+    // Update Nav Toggle Button UI
+    const navBtn = document.getElementById('navThemeToggleBtn');
+    if (navBtn) {
+      const icon = navBtn.querySelector('.theme-toggle-icon');
+      const text = navBtn.querySelector('.theme-toggle-text');
+      if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+      if (text) text.textContent = isDark ? 'โหมดสว่าง' : 'โหมดมืด';
+      navBtn.setAttribute('title', isDark ? 'เปลี่ยนเป็นโหมดสว่าง (Light Mode)' : 'เปลี่ยนเป็นโหมดมืด (Dark Mode)');
+    }
+
+    // Update Profile Modal Theme Item UI
+    const profileIcon = document.getElementById('profileThemeIcon');
+    const profileVal = document.getElementById('profileThemeValue');
+    if (profileIcon) profileIcon.textContent = isDark ? '☀️' : '🌙';
+    if (profileVal) profileVal.textContent = isDark ? 'โหมดมืด (เปิดอยู่)' : 'โหมดสว่าง (เปิดอยู่)';
+
+    // Update Map tiles if mapManager exists
+    if (window.mapManager && typeof window.mapManager.setTheme === 'function') {
+      window.mapManager.setTheme(theme);
+    }
+  }
+
+  // ----------------------------------------------------
   // 🔄 5-Tab Navigation Controller
   // ----------------------------------------------------
   switchTab(tabName) {
     if (tabName === 'profile') {
       this.openProfileModal();
+      return;
+    }
+
+    if (tabName === 'chat') {
+      if (window.chatManager) {
+        window.chatManager.toggleChatPopup();
+      }
       return;
     }
 
@@ -436,7 +508,6 @@ class MSUApp {
     }
 
     this.renderReportsList();
-    this.renderHomeFeedList();
 
     if (window.mapManager) {
       window.mapManager.renderReports(this.reports);
@@ -455,7 +526,6 @@ class MSUApp {
     if (idx !== -1) {
       this.reports[idx] = updatedReport;
       this.renderReportsList();
-      this.renderHomeFeedList();
       if (window.mapManager) window.mapManager.renderReports(this.reports);
     }
   }
@@ -463,7 +533,6 @@ class MSUApp {
   handleReportDeletedEvent(deletedId) {
     this.reports = this.reports.filter(r => r.id !== deletedId);
     this.renderReportsList();
-    this.renderHomeFeedList();
     if (window.mapManager) {
       if (window.mapManager.map) {
         window.mapManager.map.closePopup();
@@ -551,7 +620,7 @@ class MSUApp {
       const data = await res.json();
       if (data.success) {
         this.closeReportModal();
-        this.showNotification('🎉 บันทึกรายงานด่านสำเร็จแล้ว (+15 EXP)', 'success');
+        this.showNotification('🎉 บันทึกรายงานด่านสำเร็จแล้ว (+5 EXP)', 'success');
         document.getElementById('reportForm')?.reset();
         document.getElementById('reportLat').value = '';
         document.getElementById('reportLng').value = '';
@@ -628,33 +697,31 @@ class MSUApp {
   }
 
   async deleteReport(reportId, event) {
-    if (event) event.stopPropagation();
+    if (event) {
+      if (event.preventDefault) event.preventDefault();
+      if (event.stopPropagation) event.stopPropagation();
+    }
     if (!confirm('คุณต้องการลบรายงานด่านนี้ใช่หรือไม่?')) return;
 
-    // 🚀 ลบหมุดออกจากหน้าจอและปิด Popup ทันที 0.0 วินาที
+    // 🚀 1. ปิด Popup และลบหมุดออกจากหน้าจอทันที 0.0 วินาที
     if (window.mapManager && window.mapManager.map) {
       window.mapManager.map.closePopup();
     }
     this.handleReportDeletedEvent(reportId);
     this.showNotification('ลบรายงานเรียบร้อยแล้ว', 'info');
 
+    // 🚀 2. ยิงคำสั่งลบไปยังเซิร์ฟเวอร์
     try {
-      const res = await fetch(`/api/reports/${reportId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          ...window.authManager.getAuthHeader()
-        }
-      });
-      const data = await res.json();
-      if (!data.success) {
-        // หากเซิร์ฟเวอร์ตอบไม่สำเร็จ ให้โหลดข้อมูลกลับคืน
-        this.loadReports();
-        alert(data.error || 'ไม่สามารถลบรายงานได้');
+      const headers = { 'Content-Type': 'application/json' };
+      if (window.authManager && typeof window.authManager.getAuthHeader === 'function') {
+        Object.assign(headers, window.authManager.getAuthHeader());
       }
+      await fetch(`/api/reports/${reportId}`, {
+        method: 'DELETE',
+        headers: headers
+      });
     } catch (err) {
-      console.error('Delete error:', err);
-      this.loadReports();
+      console.warn('Delete request error:', err);
     }
   }
 
@@ -794,15 +861,27 @@ class MSUApp {
     if (emailElem) emailElem.textContent = user.email || '';
 
     const isDev = window.authManager.isDev();
+    const isRider = user.isRider === true || user.role === 'rider' || (user.badge && user.badge.includes('RIDER'));
     const isMsu = user.email && user.email.endsWith('@msu.ac.th');
     let badgeHtml = '<span class="badge-pill badge-member">👤 Member</span>';
     if (isDev) badgeHtml = '<span class="badge-pill badge-dev">👑 DEV</span>';
+    else if (isRider) badgeHtml = '<span class="badge-pill badge-rider">🛵 RIDER</span>';
     else if (isMsu) badgeHtml = '<span class="badge-pill badge-msu">🎓 MSU</span>';
 
     if (badgeElem) badgeElem.innerHTML = badgeHtml;
 
     const devBtn = document.getElementById('profileDevPanelBtn');
     if (devBtn) devBtn.style.display = isDev ? 'flex' : 'none';
+
+    // ปุ่มขอสิทธิ์ RIDER
+    const riderBtn = document.getElementById('profileRiderRequestBtn');
+    if (riderBtn) {
+      if (isDev || isRider) {
+        riderBtn.style.display = 'none';
+      } else {
+        riderBtn.style.display = 'flex';
+      }
+    }
 
     if (rankBadgeElem && window.rankManager) {
       rankBadgeElem.innerHTML = window.rankManager.getRankBadgeHtml(user.rank, 'md');
@@ -823,6 +902,51 @@ class MSUApp {
   closeProfileModal() {
     const modal = document.getElementById('profileModal');
     if (modal) modal.classList.remove('active');
+  }
+
+  openRiderRequestModal() {
+    if (!window.authManager.isLoggedIn()) {
+      window.authManager.openLoginModal('กรุณาเข้าสู่ระบบก่อนยื่นขอสิทธิ์ RIDER');
+      return;
+    }
+    this.closeProfileModal();
+    const modal = document.getElementById('riderRequestModal');
+    if (modal) modal.classList.add('active');
+  }
+
+  closeRiderRequestModal() {
+    const modal = document.getElementById('riderRequestModal');
+    if (modal) modal.classList.remove('active');
+  }
+
+  async handleRiderRequestSubmit(event) {
+    if (event) event.preventDefault();
+    const platform = document.getElementById('riderReqPlatform')?.value || 'Grab';
+    const phone = document.getElementById('riderReqPhone')?.value || '';
+    const note = document.getElementById('riderReqNote')?.value || '';
+
+    try {
+      const res = await fetch('/api/chat/rider/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...window.authManager.getAuthHeader()
+        },
+        body: JSON.stringify({ platform, phone, note })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        this.closeRiderRequestModal();
+        this.showNotification('🛵 ยื่นคำขอสิทธิ์ RIDER สำเร็จแล้ว รอแอดมินตรวจสอบ', 'success');
+        alert('✅ ยื่นคำขอสิทธิ์ป้าย 🛵 RIDER เรียบร้อยแล้ว!\n\nแอดมินหรือผู้พัฒนา (Dev) จะตรวจสอบและอนุมัติสิทธิ์ให้ท่านเพื่อเปิดสิทธิ์การส่งข้อความในห้องแชทครับ');
+      } else {
+        alert(data.error || 'ไม่สามารถส่งคำขอได้');
+      }
+    } catch (err) {
+      console.error('Rider request error:', err);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    }
   }
 
   // ----------------------------------------------------
@@ -1154,11 +1278,19 @@ class MSUApp {
     if (presetSelect) {
       presetSelect.addEventListener('change', (e) => {
         const opt = e.target.options[e.target.selectedIndex];
-        if (opt && opt.dataset.lat) {
-          document.getElementById('reportLat').value = opt.dataset.lat;
-          document.getElementById('reportLng').value = opt.dataset.lng;
-          if (opt.dataset.campus) {
-            document.getElementById('reportCampusZone').value = opt.dataset.campus;
+        if (opt && opt.dataset.lat && opt.dataset.lng) {
+          const lat = parseFloat(opt.dataset.lat);
+          const lng = parseFloat(opt.dataset.lng);
+          const latIn = document.getElementById('reportLat');
+          const lngIn = document.getElementById('reportLng');
+          const campusIn = document.getElementById('reportCampusZone');
+          if (latIn) latIn.value = lat.toFixed(6);
+          if (lngIn) lngIn.value = lng.toFixed(6);
+          if (campusIn && opt.dataset.campus) {
+            campusIn.value = opt.dataset.campus;
+          }
+          if (window.mapManager) {
+            window.mapManager.setReportPin(lat, lng, opt.text);
           }
         }
       });
