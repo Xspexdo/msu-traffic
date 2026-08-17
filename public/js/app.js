@@ -1217,9 +1217,9 @@ class MSUApp {
               <span>🛠️ Dev Panel</span>
             </button>
           ` : ''}
-          <div style="display: flex; align-items: center; gap: 0.45rem; cursor: pointer; padding: 0.22rem 0.55rem; border-radius: 20px; background: #F8FAFC; border: 1px solid #E2E8F0; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.03);" onclick="window.app.openProfileModal()" title="คลิกเพื่อเปิดดูโปรไฟล์ของคุณ">
+          <div class="nav-user-pill" onclick="window.app.openProfileModal()" title="คลิกเพื่อเปิดดูโปรไฟล์ของคุณ">
             <img src="${user.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60'}" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 1.5px solid #2563EB;">
-            <span style="font-size: 0.78rem; font-weight: 700; color: #1E293B; max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${this.escapeHtml(user.name || 'โปรไฟล์')}</span>
+            <span class="nav-user-name" style="font-size: 0.78rem; font-weight: 700; max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${this.escapeHtml(user.name || 'โปรไฟล์')}</span>
             ${badgeHtml}
           </div>
         </div>

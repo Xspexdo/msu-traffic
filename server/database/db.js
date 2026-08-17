@@ -414,10 +414,16 @@ class Database {
       this.saveData();
       this.logAudit('USER_REGISTER', userData.id, 'users', `ผู้ใช้ลงทะเบียนใหม่ (${cleanEmail})`);
     } else {
-      // Update last active
+      // Update last active, name & high-res Google profile photo
       this.data.users[userData.id].lastActiveAt = now;
       if (userData.name) this.data.users[userData.id].name = userData.name;
-      if (userData.picture) this.data.users[userData.id].picture = userData.picture;
+      if (userData.picture) {
+        let pic = userData.picture;
+        if (pic.includes('googleusercontent.com') && /=s\d+(-c)?$/.test(pic)) {
+          pic = pic.replace(/=s\d+(-c)?$/, '=s256-c');
+        }
+        this.data.users[userData.id].picture = pic;
+      }
       this.saveData();
     }
 

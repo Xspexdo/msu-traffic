@@ -33,6 +33,20 @@ function getAvatarForEmail(email, name) {
   return `https://www.gravatar.com/avatar/${hash}?d=identicon&s=120`;
 }
 
+// Helper to get 100% High-Resolution Google Profile Picture
+function getHighResGooglePicture(url) {
+  if (!url) return url;
+  if (url.includes('googleusercontent.com')) {
+    // If URL contains =sXX parameter, replace with =s256-c for 100% crystal-clear HD avatar
+    if (/=s\d+(-c)?$/.test(url)) {
+      return url.replace(/=s\d+(-c)?$/, '=s256-c');
+    }
+    // If no size suffix, append =s256-c
+    return url.includes('?') ? `${url}&sz=256` : `${url}=s256-c`;
+  }
+  return url;
+}
+
 // 1. POST /api/auth/google - ตรวจสอบการ Login ด้วย Google ID Token จาก Google Identity Services
 router.post('/google', (req, res) => {
   try {
@@ -51,11 +65,14 @@ router.post('/google', (req, res) => {
     const isMsu = email.endsWith('@msu.ac.th');
 
     const userId = isDev ? 'dev_java5263' : `google_${payload.sub || Date.now()}`;
+    const rawPicture = payload.picture || getAvatarForEmail(email, payload.name);
+    const highResPicture = getHighResGooglePicture(rawPicture);
+
     const initialUser = {
       id: userId,
       name: isDev ? 'Java (Dev)' : (payload.name || email.split('@')[0]),
       email: email,
-      picture: payload.picture || getAvatarForEmail(email, payload.name),
+      picture: highResPicture,
       role: isDev ? 'dev' : (isMsu ? 'student' : 'member'),
       isDev: isDev,
       isMsuStudent: isMsu,
@@ -97,11 +114,16 @@ const handleEmailLogin = (req, res) => {
     const sessionToken = `msu-auth-${isDev ? 'dev' : 'user'}-${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
     const userId = isDev ? 'dev_java5263' : `user_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
+    // ดึงรูป Google Profile ที่มีอยู่ในฐานข้อมูลถ้าเคยล็อกอินไว้ หรือสร้าง Gravatar
+    const existingUser = db.getUserByEmail(cleanEmail);
+    const rawPicture = existingUser?.picture || getAvatarForEmail(cleanEmail, displayName);
+    const picture = getHighResGooglePicture(rawPicture);
+
     const initialUser = {
       id: userId,
       name: displayName,
       email: cleanEmail,
-      picture: getAvatarForEmail(cleanEmail, displayName),
+      picture: picture,
       role: isDev ? 'dev' : (isMsu ? 'student' : 'member'),
       isDev: isDev,
       isMsuStudent: isMsu,

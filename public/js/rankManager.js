@@ -87,8 +87,21 @@ class RankManager {
   // =========================================================================
   initMapOverlay() {
     const overlay = document.getElementById('mapRankOverlay');
-    if (overlay && this.isMapOverlayCollapsed) {
-      overlay.classList.add('collapsed');
+    const isMobile = window.innerWidth <= 768;
+    const storedState = localStorage.getItem('msu_map_rank_collapsed');
+
+    if (storedState !== null) {
+      this.isMapOverlayCollapsed = storedState === 'true';
+    } else {
+      this.isMapOverlayCollapsed = isMobile; // Default collapsed on mobile/iPad!
+    }
+
+    if (overlay) {
+      if (this.isMapOverlayCollapsed) {
+        overlay.classList.add('collapsed');
+      } else {
+        overlay.classList.remove('collapsed');
+      }
     }
     this.updateMapRankOverlay();
   }

@@ -174,6 +174,39 @@ body {
   user-select: none;
 }
 
+.nav-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  padding: 0.22rem 0.6rem 0.22rem 0.35rem;
+  border-radius: 20px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.nav-user-pill:hover {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+}
+
+[data-theme="dark"] .nav-user-pill {
+  background: #243044;
+  border-color: #334155;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}
+
+[data-theme="dark"] .nav-user-pill:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .nav-user-name {
+  color: #F8FAFC !important;
+}
+
 @media (max-width: 580px) {
   .theme-toggle-text {
     display: none;
@@ -4623,5 +4656,157 @@ body.dark-theme {
   background: #1E293B;
   color: #94A3B8;
   border-color: var(--border);
+}
+
+/* ==========================================================================
+   📱 14. MOBILE & TABLET RESPONSIVE SYSTEM (จอ 100% ไม่ล้น ไม่ซ้อนทับ)
+   ========================================================================== */
+@media (max-width: 768px) {
+  :root {
+    --nav-height: 50px;
+  }
+
+  /* 1. Navbar Compact */
+  .navbar {
+    padding: 0 0.5rem;
+    height: 50px;
+  }
+
+  .nav-brand {
+    gap: 0.35rem;
+  }
+
+  .brand-badge {
+    padding: 0.15rem 0.35rem;
+    font-size: 0.72rem;
+  }
+
+  .brand-name {
+    font-size: 0.92rem;
+  }
+
+  .brand-subtitle {
+    display: none;
+  }
+
+  .nav-actions {
+    gap: 0.25rem;
+  }
+
+  .nav-actions .btn {
+    padding: 0.32rem 0.45rem;
+    font-size: 0.7rem;
+    gap: 0.2rem;
+  }
+
+  .theme-toggle-text {
+    display: none;
+  }
+
+  .btn-donate {
+    padding: 0.32rem 0.5rem !important;
+    font-size: 0.7rem !important;
+  }
+
+  /* 2. Top-Right Leaderboard HUD Auto-Collapse */
+  .map-rank-overlay {
+    top: 8px;
+    right: 8px;
+    z-index: 500;
+  }
+
+  .map-rank-overlay.collapsed {
+    width: auto !important;
+    border-radius: 30px;
+  }
+
+  .map-rank-overlay.collapsed .map-rank-header,
+  .map-rank-overlay.collapsed .map-rank-content {
+    display: none;
+  }
+
+  .map-rank-overlay.collapsed .map-rank-collapsed-pill {
+    display: flex;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.7rem;
+  }
+
+  /* 3. Campus Selector Compact */
+  .map-campus-selector {
+    top: 8px;
+    left: 8px;
+    padding: 0.15rem;
+    gap: 0.2rem;
+  }
+
+  .campus-btn {
+    padding: 0.25rem 0.55rem;
+    font-size: 0.68rem;
+  }
+
+  /* 4. Bottom Feed Sheet Responsive */
+  .map-feed-panel {
+    max-height: 38vh;
+    padding: 0.35rem 0.6rem 0.6rem 0.6rem;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+  }
+
+  .feed-search-input {
+    font-size: 0.76rem;
+    padding: 0.38rem 0.6rem 0.38rem 2rem;
+  }
+
+  .feed-filter-chip {
+    font-size: 0.68rem;
+    padding: 0.25rem 0.55rem;
+  }
+
+  .feed-item-card {
+    padding: 0.55rem 0.65rem;
+  }
+
+  .feed-item-title {
+    font-size: 0.8rem;
+  }
+
+  /* 5. Floating Action Buttons (Above Feed Sheet) */
+  .fab-report {
+    bottom: calc(38vh + 10px);
+    right: 12px;
+    padding: 0.42rem 0.85rem;
+    font-size: 0.75rem;
+    z-index: 460;
+  }
+
+  .fb-chat-widget {
+    bottom: calc(38vh + 10px);
+    right: 12px;
+    z-index: 1200;
+  }
+
+  .fb-chat-head {
+    bottom: 44px;
+    right: 0;
+    padding: 0.42rem 0.85rem;
+    font-size: 0.75rem;
+  }
+
+  /* 6. Facebook Chat Box Bottom-Sheet on Mobile */
+  .fb-chat-box {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 75vh !important;
+    max-height: 80vh !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    border-radius: 20px 20px 0 0 !important;
+  }
+}
+
+@media (max-width: 400px) {
+  #navLegalBtn {
+    display: none;
+  }
 }
 
