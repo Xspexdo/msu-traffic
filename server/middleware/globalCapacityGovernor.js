@@ -11,7 +11,8 @@
 
 const { isVerifiedAdminOrDev } = require('./rateLimiter');
 
-const MAX_GLOBAL_RPS = 100; // สูงสุด 100 คำขอต่อ 1 วินาที
+// 🚀 Scale to 1,000+ concurrent users / 1,000 requests per second
+const MAX_GLOBAL_RPS = process.env.MAX_GLOBAL_RPS ? parseInt(process.env.MAX_GLOBAL_RPS) : 1000;
 const WINDOW_MS = 1000;     // 1 วินาที sliding window
 
 // Rolling window timestamp array

@@ -24,27 +24,27 @@ const crypto = require('crypto');
 const ADMIN_MASTER_KEY = process.env.ADMIN_SECURITY_KEY || 'msu-dev-master-sec-key-2026';
 const DEV_EMAIL = 'java5263@gmail.com';
 
-// Configuration Defaults
+// Configuration Defaults scaled for 1,000+ Concurrent Users
 const CONFIG = {
   // Tier 1: General Read API (Browsing, Map tiles, Polling)
   TIER_READ: {
     WINDOW_MS: 60 * 1000,      // 1 Minute window
-    MAX_REQUESTS: 90,           // Max 90 requests/min (~1.5 req/sec avg)
-    BURST_LIMIT: 25,            // Burst allowance: max 25 reqs in 3 seconds
+    MAX_REQUESTS: 300,          // Scaled to 300 requests/min
+    BURST_LIMIT: 50,            // Burst allowance: max 50 reqs in 3 seconds
     BURST_WINDOW_MS: 3000
   },
 
   // Tier 2: Heavy Mutation / Write API (POST Reports, Votes, Auth)
   TIER_WRITE: {
     WINDOW_MS: 60 * 1000,      // 1 Minute window
-    MAX_REQUESTS: 15,           // Max 15 write requests/min
-    BURST_LIMIT: 4,             // Max 4 write reqs in 5 seconds
+    MAX_REQUESTS: 30,           // Max 30 write requests/min
+    BURST_LIMIT: 8,             // Max 8 write reqs in 5 seconds
     BURST_WINDOW_MS: 5000
   },
 
-  // Tier 3: Anti-Flood / Rapid Burst Spike Detection
+  // Tier 3: Anti-Flood / Rapid Burst Spike Detection (Tuned for campus NAT networks)
   ANTI_FLOOD: {
-    SPIKE_THRESHOLD: 10,        // > 10 requests in 1 second = Malicious flood attempt -> Ban immediately
+    SPIKE_THRESHOLD: 35,        // > 35 requests in 1 second = Malicious flood attempt -> Ban
     SPIKE_WINDOW_MS: 1000
   },
 
@@ -58,7 +58,7 @@ const CONFIG = {
 
   // State Store Limits (Anti Memory Exhaustion)
   STORE: {
-    MAX_TRACKED_IPS: 10000,     // Max number of IPs tracked in memory at once
+    MAX_TRACKED_IPS: 50000,     // Max number of IPs tracked in memory at once (Scaled for 1,000+ users)
     GC_INTERVAL_MS: 60 * 1000,  // Run garbage collection every 60 seconds
     RECORD_TTL_MS: 10 * 60 * 1000 // Inactive IP records deleted after 10 minutes
   },
@@ -209,49 +209,32 @@ function isValidIp(ip) {
   return /^[0-9a-fA-F:.]+$/.test(ip);
 }
 
+const { verifyToken } = require('../services/jwtService');
+
 /**
  * Cryptographically verify if request has authentic Developer / Admin credentials
  * Eliminates naive, spoofable header vulnerabilities.
  */
 function isVerifiedAdminOrDev(req) {
-  // 1. Direct Admin Master Key in header or body or query
-  const adminKey = req.headers['x-admin-key'] || req.headers['x-api-key'] || req.body?.adminKey || req.query?.admin_key;
+  // 1. Direct Admin Master Key in header
+  const adminKey = req.headers['x-admin-key'] || req.headers['x-api-key'];
   if (adminKey && adminKey === ADMIN_MASTER_KEY) {
     return true;
   }
 
-  // 2. User Data Header check
-  const userHeader = req.headers['x-user-data'];
-  if (userHeader) {
-    try {
-      let user = null;
-      try {
-        user = JSON.parse(decodeURIComponent(userHeader));
-      } catch (err) {
-        user = JSON.parse(userHeader);
-      }
-      if (user && (user.email === DEV_EMAIL || user.isDev === true || user.role === 'dev')) {
-        return true;
-      }
-    } catch (e) {}
-  }
-
-  // 3. Authorization Header check
+  // 2. Verified Authorization Bearer token check
   const authHeader = req.headers['authorization'];
-  if (authHeader && typeof authHeader === 'string') {
-    if (authHeader === `Bearer ${ADMIN_MASTER_KEY}` || authHeader.includes('token-dev-') || authHeader.includes('msu-auth-dev-')) {
+  if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7).trim();
+    if (token === ADMIN_MASTER_KEY) {
       return true;
     }
-    // Parse simulated JWT
-    try {
-      const parts = authHeader.replace('Bearer ', '').split('.');
-      if (parts.length === 3) {
-        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
-        if (payload.email === DEV_EMAIL) {
-          return true;
-        }
-      }
-    } catch (e) {}
+    
+    // ตรวจสอบลายเซ็นของ Token ผ่าน jwtService
+    const payload = verifyToken(token);
+    if (payload && (payload.isDev === true || (payload.email && payload.email.toLowerCase().trim() === DEV_EMAIL))) {
+      return true;
+    }
   }
 
   return false;

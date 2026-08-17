@@ -27,9 +27,9 @@ const io = new Server(server, {
   maxHttpBufferSize: 1e6 // 1 MB max packet size
 });
 
-// Socket connection tracker per IP (Prevent socket starvation)
+// Socket connection tracker per IP (Prevent socket starvation while allowing campus NAT)
 const activeSocketIps = new Map();
-const MAX_CONCURRENT_SOCKETS_PER_IP = 15;
+const MAX_CONCURRENT_SOCKETS_PER_IP = 100;
 
 io.use((socket, next) => {
   const req = socket.request;
