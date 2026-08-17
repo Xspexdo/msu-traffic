@@ -17,9 +17,9 @@ class GoogleSheetsService {
     this.timer = null;
   }
 
-  startAutoSyncTimer(db, intervalMs = 180000) {
+  startAutoSyncTimer(db, intervalMs = 30000) {
     if (this.timer) clearInterval(this.timer);
-    // รันทุกๆ 3 นาทีในเบื้องหลังอัตโนมัติ
+    // รันทุกๆ 30 วินาทีในเบื้องหลังอัตโนมัติ (ดึงและดันข้อมูลกับ Google Sheets สม่ำเสมอ)
     this.timer = setInterval(() => {
       if (this.config.enabled && this.config.webhookUrl && !this.isSyncing) {
         this.syncFullDatabase(db.data).catch(err => {
@@ -27,7 +27,7 @@ class GoogleSheetsService {
         });
       }
     }, intervalMs);
-    console.log('🔄 Google Sheets Auto-Sync background timer started (Every 3 mins)');
+    console.log(`🔄 Google Sheets Auto-Sync background timer started (Every ${intervalMs / 1000}s)`);
   }
 
   loadConfig() {
@@ -164,7 +164,7 @@ class GoogleSheetsService {
     });
   }
 
-  // 1. ซิงค์เมื่อมีหมุดด่านใหม่
+  // 1. ซิงค์เมื่อมีหมุดด่านใหม่ (Real-time Instant Push 0.0s)
   async syncNewPin(pin) {
     if (!this.config.enabled || !this.config.autoSyncNewPins) return;
     return this.sendPayload('NEW_PIN', {
@@ -187,7 +187,7 @@ class GoogleSheetsService {
     });
   }
 
-  // 2. ซิงค์เมื่อหมุดถูกอัปเดต / โหวต / ปิด
+  // 2. ซิงค์เมื่อหมุดถูกอัปเดต / โหวต / ปรับสถานะ / ย้ายจุด (Real-time Instant Push 0.0s)
   async syncPinUpdate(pin) {
     if (!this.config.enabled) return;
     return this.sendPayload('UPDATE_PIN', {
@@ -228,7 +228,7 @@ class GoogleSheetsService {
     });
   }
 
-  // 5. Full Sync: ส่งข้อมูลทั้งหมดขึ้น Google Sheets (สร้างหรืออัปเดตตารางทั้งหมด)
+  // 5. Full Sync: ส่งข้อมูลทั้งหมดขึ้น Google Sheets
   async syncFullDatabase(dbData) {
     if (this.isSyncing) return { success: false, error: 'กำลังดำเนินการซิงค์อยู่' };
     this.isSyncing = true;
@@ -296,16 +296,104 @@ class GoogleSheetsService {
     }
   }
 
-  // 6. ทดสอบการเชื่อมต่อ
+  // 6. ดึงข้อมูลหมุดทั้งหมดจาก Google Sheets กลับมา (Two-Way Pull & Auto Restore)
+  async fetchPinsFromSheets() {
+    if (!this.config.enabled || !this.config.webhookUrl) return null;
+    return new Promise((resolve) => {
+      try {
+        const urlObj = new URL(this.config.webhookUrl);
+        const isHttps = urlObj.protocol === 'https:';
+        const client = isHttps ? https : http;
+
+        const req = client.get(this.config.webhookUrl, (res) => {
+          if ((res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 303) && res.headers.location) {
+            https.get(res.headers.location, (res2) => {
+              let body2 = '';
+              res2.on('data', chunk => body2 += chunk);
+              res2.on('end', () => {
+                try {
+                  const json = JSON.parse(body2);
+                  resolve(json);
+                } catch (e) {
+                  resolve(null);
+                }
+              });
+            }).on('error', () => resolve(null));
+            return;
+          }
+
+          let body = '';
+          res.on('data', chunk => body += chunk);
+          res.on('end', () => {
+            try {
+              const json = JSON.parse(body);
+              resolve(json);
+            } catch (e) {
+              resolve(null);
+            }
+          });
+        });
+
+        req.on('error', () => resolve(null));
+        req.setTimeout(8000, () => { req.destroy(); resolve(null); });
+      } catch (err) {
+        resolve(null);
+      }
+    });
+  }
+
+  // 7. ฟังก์ชันกู้คืนหมุดอัตโนมัติเมื่อเซิร์ฟเวอร์เปิดขึ้นมาใหม่ (Startup Restore)
+  async restorePinsFromSheets(db) {
+    if (!this.config.enabled || !this.config.webhookUrl) return;
+    console.log('🔄 [SHEETS RESTORE] Checking & Restoring pins from Google Sheets on boot...');
+    try {
+      const result = await this.fetchPinsFromSheets();
+      if (result && Array.isArray(result.pins) && result.pins.length > 0) {
+        let restoredCount = 0;
+        result.pins.forEach(sheetPin => {
+          if (!sheetPin.id) return;
+          const exists = db.data.pins.find(p => p.id === sheetPin.id);
+          if (!exists && sheetPin.lat && sheetPin.lng) {
+            db.data.pins.push({
+              id: sheetPin.id,
+              title: sheetPin.title || sheetPin.locationName,
+              locationName: sheetPin.locationName,
+              campusZone: sheetPin.campusZone || 'มอใหม่ (ขามเรียง)',
+              lat: sheetPin.lat,
+              lng: sheetPin.lng,
+              type: sheetPin.type || 'checkpoint',
+              direction: sheetPin.direction || '',
+              description: sheetPin.description || '',
+              status: sheetPin.status || 'active',
+              reporter: sheetPin.reporter || { name: 'ผู้ใช้ มมส', badge: 'Member' },
+              reporterId: sheetPin.reporter?.email || 'restored_user',
+              likes: [],
+              views: 1,
+              votes: { up: [], down: [] },
+              moveCount: 0,
+              createdAt: typeof sheetPin.createdAt === 'string' ? new Date(sheetPin.createdAt).getTime() || Date.now() : Date.now(),
+              expiresAt: Date.now() + (6 * 3600 * 1000)
+            });
+            restoredCount++;
+          }
+        });
+        if (restoredCount > 0) {
+          db.saveData();
+          console.log(`✅ [SHEETS RESTORE] Successfully restored ${restoredCount} pins from Google Sheets!`);
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ [SHEETS RESTORE] Could not restore from sheets:', e.message);
+    }
+  }
+
+  // 8. ทดสอบการเชื่อมต่อ
   async testConnection() {
     return this.sendPayload('PING', {
       message: 'ทดสอบการเชื่อมต่อระบบ MSU Traffic กับ Google Sheets สำเร็จ! 🚀'
     });
   }
 
-  /**
-   * สคริปต์ Google Apps Script สำเร็จรูปที่ผู้ใช้สามารถนำไปวางใน Google Sheets ได้ทันที
-   */
   getGoogleAppsScriptTemplate() {
     return `/**
  * ========================================================
@@ -316,7 +404,6 @@ class GoogleSheetsService {
  * ========================================================
  */
 
-// 🆔 (ทางเลือก) หากต้องการระบุไฟล์เจาะจง ให้วาง Spreadsheet URL หรือ ID ในเครื่องหมายคำพูดด้านล่าง
 var SPREADSHEET_ID = ""; 
 
 function getSpreadsheet() {
@@ -330,6 +417,39 @@ function getSpreadsheet() {
   var active = SpreadsheetApp.getActiveSpreadsheet();
   if (active) return active;
   throw new Error("ไม่พบ Active Spreadsheet กรุณาระบุ SPREADSHEET_ID ในบรรทัดที่ 2 ของโค้ด");
+}
+
+function doGet(e) {
+  try {
+    var ss = getSpreadsheet();
+    var pinSheet = ss.getSheetByName("📌 รายงานด่าน (Pins)");
+    var pins = [];
+    if (pinSheet && pinSheet.getLastRow() > 1) {
+      var data = pinSheet.getRange(2, 1, pinSheet.getLastRow() - 1, pinSheet.getLastColumn()).getValues();
+      pins = data.map(function(row) {
+        return {
+          id: row[0],
+          title: row[1],
+          type: row[2],
+          locationName: row[3],
+          campusZone: row[4],
+          lat: parseFloat(row[5]),
+          lng: parseFloat(row[6]),
+          direction: row[7],
+          description: row[8],
+          reporter: { name: row[9], email: row[10], badge: row[11] },
+          status: row[12],
+          createdAt: row[13],
+          expiresAt: row[14]
+        };
+      });
+    }
+    return ContentService.createTextOutput(JSON.stringify({ status: "OK", pins: pins }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "ERROR", error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 function doPost(e) {
@@ -355,7 +475,6 @@ function doPost(e) {
     }
 
     if (action === "FULL_SYNC") {
-      // 1. Sync Pins
       var pinSheet = getOrCreateSheet(ss, "📌 รายงานด่าน (Pins)", [
         "รหัสหมุด", "หัวข้อ", "ประเภท", "สถานที่", "โซน", "ละติจูด", "ลองจิจูด", "ทิศทาง", "รายละเอียด", "ผู้รายงาน", "อีเมล", "ป้าย", "สถานะ", "เวลาโพสต์", "เวลาหมดอายุ"
       ]);
@@ -367,7 +486,6 @@ function doPost(e) {
         pinSheet.getRange(2, 1, pinRows.length, pinRows[0].length).setValues(pinRows);
       }
 
-      // 2. Sync Users
       var userSheet = getOrCreateSheet(ss, "🏆 ผู้ใช้งาน & คะแนน (Users)", [
         "User ID", "ชื่อ", "อีเมล", "คะแนนรวม (EXP)", "คะแนนสัปดาห์นี้", "Trust Score", "บทบาท", "จำนวนหมุดที่สร้าง", "ใช้งานล่าสุด"
       ]);
@@ -379,7 +497,6 @@ function doPost(e) {
         userSheet.getRange(2, 1, userRows.length, userRows[0].length).setValues(userRows);
       }
 
-      // 3. Sync Reports
       var reportSheet = getOrCreateSheet(ss, "🛡️ รายงานแจ้งลบ (Reports)", [
         "Report ID", "รหัสหมุด", "เหตุผล", "รายละเอียด", "น้ำหนัก (Trust Weight)", "อีเมลผู้แจ้ง", "วันที่แจ้ง"
       ]);
@@ -414,7 +531,6 @@ function getOrCreateSheet(ss, sheetName, headers) {
   var sheet = ss.getSheetByName(sheetName);
   if (!sheet) {
     var allSheets = ss.getSheets();
-    // ถ้ามีแผ่นงานแรกที่ยังว่างอยู่ ให้เปลี่ยนชื่อแผ่นงานแรกเป็นแท็บนี้ทันที
     if (allSheets.length === 1 && (allSheets[0].getName().indexOf("แผ่น") !== -1 || allSheets[0].getName().indexOf("Sheet") !== -1) && allSheets[0].getLastRow() <= 1) {
       sheet = allSheets[0];
       sheet.setName(sheetName);

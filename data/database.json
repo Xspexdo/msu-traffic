@@ -2,9 +2,9 @@
   "season": 1,
   "seasonName": "Season 1: ปฐมบทชาว มมส",
   "seasonStart": 1786777538446,
-  "weekNumber": 1,
+  "weekNumber": 2,
   "weekStart": 1786777538446,
-  "weekEnd": 1787382338446,
+  "weekEnd": 1786986000000,
   "users": {
     "dev_java5263": {
       "id": "dev_java5263",
@@ -1238,17 +1238,56 @@
       "details": "ปักหมุดด่านใหม่: หน้าป้าย มมส",
       "ip": "127.0.0.1",
       "createdAt": 1786978174900
+    },
+    {
+      "id": "audit-1786978174935-9kd",
+      "action": "CHAT_MSG",
+      "userId": "dev_java5263",
+      "targetId": "general",
+      "details": "ส่งข้อความในห้อง [general] (🌐 Global)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786978174935
     }
   ],
   "pin_chat_messages": [],
   "rider_requests": [],
   "leaderboard_snapshot": {
-    "calculatedAt": 1786978174898,
+    "calculatedAt": 1786978234903,
     "nextCalculationAt": 1786986000000,
-    "rankings": []
+    "rankings": [
+      {
+        "id": "dev_java5263",
+        "name": "Java (Dev)",
+        "email": "java5263@gmail.com",
+        "picture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
+        "badge": "👑 DEV",
+        "isDev": true,
+        "trustScore": 100,
+        "score": 6,
+        "todayScore": 6,
+        "allTimeScore": 6,
+        "pinsCreated": 1,
+        "rank": {
+          "level": 99,
+          "key": "dev",
+          "name": "Developer / ผู้พัฒนาระบบ",
+          "title": "System Creator",
+          "icon": "👑",
+          "color": "#F59E0B",
+          "badgeClass": "rank-dev",
+          "exp": 6,
+          "nextRank": null,
+          "pointsToNext": 0,
+          "progressPercent": 100
+        }
+      }
+    ]
   },
   "system_config": {
     "globalChatEnabled": true,
     "allowAllEmails": true
-  }
+  },
+  "lastLeaderboardCalcDate": "2026-08-17",
+  "dayNumber": 2,
+  "dayEnd": 1786986000000
 }

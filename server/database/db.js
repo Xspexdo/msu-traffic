@@ -273,6 +273,10 @@ class Database {
     this.checkPinDecay();
     this.checkMidnightChatReset();
     
+    // 🔄 Two-Way Google Sheets Auto-Restore & Periodic Sync (ทุก 30 วินาที)
+    googleSheetsService.restorePinsFromSheets(this);
+    googleSheetsService.startAutoSyncTimer(this, 30000);
+
     // Background interval to decay pins, check weekly reset and midnight chat reset
     setInterval(() => {
       this.checkPinDecay();
@@ -606,6 +610,9 @@ class Database {
         isAnnouncement: true
       };
     } else if (isAnon) {
+      reporterObj.name = 'นิสิตนิรนาม';
+      reporterObj.badge = '🎓 นิสิตนิรนาม';
+      reporterObj.picture = 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff';
       reporterObj.realName = realReporterObj.name;
       reporterObj.realEmail = realReporterObj.email;
       reporterObj.realId = realReporterObj.id;
