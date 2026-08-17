@@ -1016,9 +1016,7 @@ class MSUApp {
           quotaBadge.style.background = '#FEE2E2';
           quotaBadge.style.borderColor = '#EF4444';
           quotaBadge.style.color = '#DC2626';
-          quotaBadge.textContent = q.reason === 'PIN_COOLDOWN_1HOUR' 
-            ? `รออีก ${q.remainingMinutes} นาที` 
-            : 'ครบ 3/3 หมุดแล้ว';
+          quotaBadge.textContent = `ครบ 3/3 หมุด (รออีก ${q.remainingMinutes || 60} นาที)`;
         } else {
           quotaBanner.style.background = '#F0FDF4';
           quotaBanner.style.borderColor = '#BBF7D0';
@@ -1026,7 +1024,7 @@ class MSUApp {
           quotaBadge.style.background = '#DCFCE7';
           quotaBadge.style.borderColor = '#86EFAC';
           quotaBadge.style.color = '#15803D';
-          quotaBadge.textContent = `เหลือ ${q.remainingToday}/3 หมุดวันนี้`;
+          quotaBadge.textContent = `เหลือ ${q.remainingLastHour !== undefined ? q.remainingLastHour : (q.remainingToday !== undefined ? q.remainingToday : 3)}/3 หมุด (ชม.นี้)`;
         }
       }
     } catch (e) {

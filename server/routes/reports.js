@@ -174,28 +174,33 @@ module.exports = function(io) {
       const isAnon = isAnonymous === true;
       const isMsu = userEmail.endsWith('@msu.ac.th');
 
+      let cleanTitle = req.body.title || '';
+      let cleanLocationName = locationName || customLocation || 'จุดตรวจรอบ มมส';
       let cleanCustomLocation = customLocation || '';
       let cleanDescription = description || '';
       let cleanDirection = direction || 'ไม่ระบุฝั่งทาง';
 
       // 🧠 3-Layer Profanity Check สำหรับข้อความปักหมุด
-      const textToCheck = `${cleanCustomLocation} ${cleanDescription} ${cleanDirection}`.trim();
+      const textToCheck = `${cleanTitle} ${cleanLocationName} ${cleanCustomLocation} ${cleanDescription} ${cleanDirection}`.trim();
       if (textToCheck) {
         const toxCheck = profanityFilter.analyzeToxicity(textToCheck);
         if (toxCheck.isToxic) {
           if (isDev) {
             // 👑 Dev: เซนเซอร์เป็น ****** อัตโนมัติ
+            cleanTitle = profanityFilter.censorProfanity(cleanTitle);
+            cleanLocationName = profanityFilter.censorProfanity(cleanLocationName);
             cleanCustomLocation = profanityFilter.censorProfanity(cleanCustomLocation);
             cleanDescription = profanityFilter.censorProfanity(cleanDescription);
             cleanDirection = profanityFilter.censorProfanity(cleanDirection);
-            db.logAudit('DEV_PIN_PROFANITY_CENSORED', req.user.id, 'pin_submit', `Dev ปักหมุดที่มีคำหยาบ (เซนเซอร์เป็น: ${cleanDescription})`);
+            db.logAudit('DEV_PIN_PROFANITY_CENSORED', req.user.id, 'pin_submit', `Dev ปักหมุดที่มีคำหยาบ (เซนเซอร์ข้อความเรียบร้อย)`);
           } else {
             // 👤 สมาชิกทั่วไป: บล็อกและลดคะแนน Trust
             db.updateTrustScore(req.user.id, -10, `ตรวจพบคำหยาบในการรายงานด่าน: ${toxCheck.reason}`);
             db.logAudit('PIN_PROFANITY_BLOCKED', req.user.id, 'pin_submit', `บล็อกโพสต์ด่าน: ${textToCheck} (${toxCheck.reason})`);
             return res.status(400).json({
               success: false,
-              error: `🚫 ไม่สามารถโพสต์ได้เนื่องจาก: ${toxCheck.reason}`
+              error: 'PROFANITY_DETECTED',
+              message: `🚫 ไม่สามารถปักหมุดได้: ตรวจพบคำไม่สุภาพหรือคำหยาบ (${toxCheck.reason}) กรุณาใช้ถ้อยคำที่สุภาพและสร้างสรรค์`
             });
           }
         }
@@ -206,15 +211,15 @@ module.exports = function(io) {
       else if (isMsu) userBadge = '🎓 MSU';
 
       const newPin = db.addPin({
-        title: req.body.title || null,
-        locationName: locationName || customLocation || 'จุดตรวจรอบ มมส',
-        customLocation: customLocation || '',
+        title: cleanTitle || null,
+        locationName: cleanLocationName,
+        customLocation: cleanCustomLocation,
         campusZone: campusZone || 'มอใหม่ (ขามเรียง)',
         lat: parseFloat(lat),
         lng: parseFloat(lng),
         type,
-        direction: direction || 'ไม่ระบุฝั่งทาง',
-        description: description || '',
+        direction: cleanDirection,
+        description: cleanDescription,
         severity: isDev ? 'high' : (severity || 'medium'),
         lifespanHours: req.body.lifespanHours || null,
         imageUrl: imageUrl || null,
