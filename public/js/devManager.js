@@ -653,7 +653,10 @@ class DevManager {
             </label>
           </td>
           <td>
-            <div style="display: flex; gap: 0.35rem; align-items: center;">
+            <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+              <button class="btn btn-outline btn-xs" onclick="window.devManager.quickRenameUser('${u.id}', '${this.escapeHtml(u.name)}')" title="เปลี่ยนชื่อผู้ใช้" style="font-weight: 700; color: #0284C7; border-color: #BAE6FD; background: #F0F9FF;">
+                ✏️ เปลี่ยนชื่อ
+              </button>
               <button class="btn btn-outline btn-xs" onclick="window.devManager.openRoleEditModal('${u.id}')" style="font-weight: 700; color: #2563EB; border-color: #BFDBFE; background: #EFF6FF;">
                 🎖️ ปรับยศ/สิทธิ์
               </button>
@@ -672,6 +675,34 @@ class DevManager {
         </tr>
       `;
     }).join('');
+  }
+
+  async quickRenameUser(userId, currentName) {
+    const newName = prompt(`✏️ [สิทธิ์ DEV] ระบุชื่อใหม่สำหรับผู้ใช้:\n(เดิม: ${currentName})`, currentName);
+    if (newName === null) return;
+    if (!newName.trim()) {
+      alert('ชื่อไม่สามารถเว้นว่างได้');
+      return;
+    }
+    if (newName.trim() === currentName) return;
+
+    try {
+      const res = await fetch('/api/security/admin/rename-user', {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ userId, name: newName.trim() })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (window.app) window.app.showNotification(`✅ เปลี่ยนชื่อเป็น "${newName.trim()}" เรียบร้อยแล้ว`, 'success');
+        this.loadAllUsers();
+      } else {
+        alert(data.error || 'ไม่สามารถเปลี่ยนชื่อได้');
+      }
+    } catch (e) {
+      console.error('Error renaming user:', e);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    }
   }
 
   async toggleUserGlobalChat(userId, canChatGlobal) {
@@ -710,6 +741,9 @@ class DevManager {
 
     document.getElementById('editRoleUserId').value = user.id;
     document.getElementById('editRoleUserNameDisplay').textContent = `${user.name} (${user.email || 'ไม่ระบุอีเมล'})`;
+    const nameInput = document.getElementById('editRoleNameInput');
+    if (nameInput) nameInput.value = user.name || '';
+
     document.getElementById('editRoleSelect').value = user.role || 'member';
     document.getElementById('editRoleBadgeInput').value = user.badge || '👤 Member';
     document.getElementById('editRoleGlobalChatToggle').checked = user.canChatGlobal === true || user.role === 'global' || user.isDev === true;
@@ -747,6 +781,7 @@ class DevManager {
   async handleSaveUserRole(e) {
     e.preventDefault();
     const userId = document.getElementById('editRoleUserId')?.value;
+    const name = document.getElementById('editRoleNameInput')?.value.trim();
     const role = document.getElementById('editRoleSelect')?.value;
     const badge = document.getElementById('editRoleBadgeInput')?.value.trim();
     const canChatGlobal = document.getElementById('editRoleGlobalChatToggle')?.checked;
@@ -760,6 +795,7 @@ class DevManager {
         headers: this.getHeaders(),
         body: JSON.stringify({
           userId,
+          name,
           role,
           badge,
           canChatGlobal,

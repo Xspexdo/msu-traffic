@@ -1528,6 +1528,23 @@ class Database {
       return { success: false, error: 'NOT_FOUND', message: 'ไม่พบผู้ใช้งานนี้ในระบบ' };
     }
 
+    const oldName = user.name;
+    if (updateData.name !== undefined && updateData.name.trim()) {
+      user.name = updateData.name.trim();
+      // อัปเดตชื่อในหมุดและข้อความแชทย้อนหลัง
+      (this.data.pins || []).forEach(p => {
+        if (p.reporterId === userId || p.reporter?.id === userId) {
+          if (!p.reporter) p.reporter = {};
+          p.reporter.name = user.name;
+        }
+      });
+      (this.data.chat_messages || []).forEach(m => {
+        if (m.senderId === userId) {
+          m.senderName = user.name;
+        }
+      });
+    }
+
     if (updateData.role !== undefined) user.role = updateData.role;
     if (updateData.badge !== undefined) user.badge = updateData.badge;
     if (updateData.canChatGlobal !== undefined) user.canChatGlobal = updateData.canChatGlobal === true;
@@ -1554,7 +1571,7 @@ class Database {
     }
 
     this.saveData();
-    this.logAudit('USER_ROLE_UPDATED', adminId, userId, `ปรับยศ/สิทธิ์ผู้ใช้ ${user.name} (${user.email}): ยศ=${user.role}, ป้าย=${user.badge}, แชททั่วโลก=${user.canChatGlobal}`);
+    this.logAudit('USER_ROLE_UPDATED', adminId, userId, `ปรับยศ/ชื่อ/สิทธิ์ผู้ใช้ ${oldName} -> ${user.name} (${user.email}): ยศ=${user.role}, ป้าย=${user.badge}, แชททั่วโลก=${user.canChatGlobal}`);
 
     if (this.io) {
       this.io.emit('user_role_changed', {
@@ -1576,8 +1593,15 @@ class Database {
     return {
       success: true,
       user,
-      message: `ปรับยศและสิทธิ์ [${user.name}] เป็น "${user.badge || user.role}" (แชททั่วโลก: ${user.canChatGlobal ? '✅ อนุญาต' : '❌ ตามพื้นที่'}) เรียบร้อยแล้ว`
+      message: `บันทึกข้อมูล [${user.name}] เป็น "${user.badge || user.role}" สำเร็จแล้ว`
     };
+  }
+
+  adminRenameUser(userId, newName, adminId = 'dev_admin') {
+    if (!newName || !newName.trim()) {
+      return { success: false, error: 'กรุณาระบุชื่อใหม่' };
+    }
+    return this.updateUserRole(userId, { name: newName.trim() }, adminId);
   }
 
   // ----------------------------------------------------

@@ -464,18 +464,19 @@ router.get('/admin/all-users', (req, res) => {
   res.json({ success: true, count: users.length, data: users });
 });
 
-// 19. POST /api/security/admin/update-role - ให้ยศ / ปรับเปลี่ยนยศ / มอบสิทธิ์แชททั่วโลก
+// 19. POST /api/security/admin/update-role - ให้ยศ / เปลี่ยนชื่อ / ปรับเปลี่ยนยศ / มอบสิทธิ์แชททั่วโลก
 router.post('/admin/update-role', (req, res) => {
   if (!checkDevPermission(req)) {
     return res.status(403).json({ success: false, error: 'DEV_PERMISSION_REQUIRED', message: 'คุณไม่มีสิทธิ์ Developer' });
   }
 
-  const { userId, role, badge, canChatGlobal, isRider, trustScore } = req.body;
+  const { userId, name, role, badge, canChatGlobal, isRider, trustScore } = req.body;
   if (!userId) {
     return res.status(400).json({ success: false, error: 'กรุณาระบุ userId' });
   }
 
   const result = db.updateUserRole(userId, {
+    name,
     role,
     badge,
     canChatGlobal,
@@ -483,6 +484,25 @@ router.post('/admin/update-role', (req, res) => {
     trustScore
   }, req.user?.id || 'dev_admin');
 
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+
+  res.json(result);
+});
+
+// 19.1 POST /api/security/admin/rename-user - เปลี่ยนชื่อผู้ใช้โดยตรง (Dev Rename)
+router.post('/admin/rename-user', (req, res) => {
+  if (!checkDevPermission(req)) {
+    return res.status(403).json({ success: false, error: 'DEV_PERMISSION_REQUIRED', message: 'คุณไม่มีสิทธิ์ Developer' });
+  }
+
+  const { userId, name } = req.body;
+  if (!userId || !name || !name.trim()) {
+    return res.status(400).json({ success: false, error: 'กรุณาระบุ userId และชื่อใหม่ (name)' });
+  }
+
+  const result = db.adminRenameUser(userId, name.trim(), req.user?.id || 'dev_admin');
   if (!result.success) {
     return res.status(400).json(result);
   }
