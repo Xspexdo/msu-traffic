@@ -935,6 +935,9 @@ class MSUApp {
     const modal = document.getElementById('reportModal');
     if (modal) modal.classList.add('active');
 
+    // 🏷️ Ensure latest categories are rendered dynamically
+    this.renderReportTypeOptions();
+
     // Default lat/lng to MSU center if empty
     const latInput = document.getElementById('reportLat');
     const lngInput = document.getElementById('reportLng');

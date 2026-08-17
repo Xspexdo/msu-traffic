@@ -88,6 +88,14 @@ app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
+// 🛡️ 4.1 Catch Malformed JSON Syntax Errors safely
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && (err.status === 400 || err.statusCode === 400) && 'body' in err) {
+    return res.status(400).json({ success: false, error: 'INVALID_JSON_BODY', message: 'รูปแบบ JSON ไม่ถูกต้อง' });
+  }
+  next(err);
+});
+
 // 🛡️ 5. Apply Enterprise WAF & Multi-Tier Rate Limiter Middleware to all /api routes
 app.use('/api', rateLimiter);
 
@@ -143,6 +151,18 @@ io.on('connection', (socket) => {
   });
 });
 
+// 🛡️ Global Express Error Handler
+app.use((err, req, res, next) => {
+  console.error('⚠️ [EXPRESS HANDLED ERROR]:', err.message);
+  if (!res.headersSent) {
+    res.status(err.status || 500).json({
+      success: false,
+      error: err.code || 'SERVER_ERROR',
+      message: err.message || 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์'
+    });
+  }
+});
+
 // Start Server
 server.on('error', (err) => {
   console.error('⚠️ [SERVER ERROR]:', err);
@@ -160,7 +180,4 @@ server.listen(PORT, () => {
 📍 MSU Campus Map & Real-time Checkpoint Alert
 =====================================================
   `);
-
-  // 📊 เริ่มต้นระบบ Auto-Sync ส่งข้อมูลขึ้น Google Sheets ในเบื้องหลังอัตโนมัติ (ทุก 3 นาที)
-  googleSheetsService.startAutoSyncTimer(db, 180000);
 });

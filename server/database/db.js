@@ -45,7 +45,7 @@ function isInsideMSUGeofence(lat, lng) {
   };
 }
 
-// 🎖️ Season 1 Rank Tiers
+// 🎖️ Season 1 Rank Tiers (Default)
 const RANK_TIERS = [
   { level: 1, key: 'novice', name: 'ผู้สัญจรมือใหม่', minExp: 0, maxExp: 99, icon: '🥉', color: '#B45309', badgeClass: 'rank-bronze', title: 'Novice Scout' },
   { level: 2, key: 'scout', name: 'สายสืบ มมส', minExp: 100, maxExp: 299, icon: '🥈', color: '#475569', badgeClass: 'rank-silver', title: 'Campus Scout' },
@@ -54,7 +54,7 @@ const RANK_TIERS = [
   { level: 5, key: 'legend', name: 'ตำนานมีด่านบอกด้วย', minExp: 1500, maxExp: Infinity, icon: '👑', color: '#7C3AED', badgeClass: 'rank-legend', title: 'MSU Legend' }
 ];
 
-function calculateRank(exp = 0, isDev = false) {
+function calculateRank(exp = 0, isDev = false, customTiers = null) {
   if (isDev) {
     return {
       level: 99,
@@ -71,28 +71,34 @@ function calculateRank(exp = 0, isDev = false) {
     };
   }
 
-  for (let i = 0; i < RANK_TIERS.length; i++) {
-    const tier = RANK_TIERS[i];
-    if (exp >= tier.minExp && (tier.maxExp === Infinity || exp <= tier.maxExp)) {
-      const nextTier = RANK_TIERS[i + 1] || null;
+  const tiers = (Array.isArray(customTiers) && customTiers.length > 0) ? customTiers : RANK_TIERS;
+
+  for (let i = 0; i < tiers.length; i++) {
+    const tier = tiers[i];
+    const maxExpVal = (tier.maxExp === Infinity || tier.maxExp === 'ไม่จำกัด' || tier.maxExp === null) ? Infinity : Number(tier.maxExp);
+    const minExpVal = Number(tier.minExp) || 0;
+
+    if (exp >= minExpVal && (maxExpVal === Infinity || exp <= maxExpVal)) {
+      const nextTier = tiers[i + 1] || null;
       let pointsToNext = 0;
       let progressPercent = 100;
 
       if (nextTier) {
-        const range = nextTier.minExp - tier.minExp;
-        const currentProgress = exp - tier.minExp;
-        pointsToNext = nextTier.minExp - exp;
-        progressPercent = Math.min(100, Math.max(0, Math.round((currentProgress / range) * 100)));
+        const nextMinExp = Number(nextTier.minExp) || (minExpVal + 100);
+        const range = nextMinExp - minExpVal;
+        const currentProgress = exp - minExpVal;
+        pointsToNext = Math.max(0, nextMinExp - exp);
+        progressPercent = Math.min(100, Math.max(0, Math.round((currentProgress / Math.max(1, range)) * 100)));
       }
 
       return {
         level: tier.level,
         key: tier.key,
         name: tier.name,
-        title: tier.title,
-        icon: tier.icon,
-        color: tier.color,
-        badgeClass: tier.badgeClass,
+        title: tier.title || tier.name,
+        icon: tier.icon || '🎖️',
+        color: tier.color || '#2563EB',
+        badgeClass: tier.badgeClass || 'rank-bronze',
         exp: exp,
         nextRank: nextTier ? nextTier.name : null,
         pointsToNext: pointsToNext,
@@ -102,10 +108,10 @@ function calculateRank(exp = 0, isDev = false) {
   }
 
   return {
-    ...RANK_TIERS[0],
+    ...tiers[0],
     exp: 0,
-    nextRank: RANK_TIERS[1].name,
-    pointsToNext: 100,
+    nextRank: tiers[1] ? tiers[1].name : null,
+    pointsToNext: tiers[1] ? (Number(tiers[1].minExp) || 100) : 100,
     progressPercent: 0
   };
 }
@@ -122,6 +128,7 @@ function getInitialData() {
     weekNumber: 1,
     weekStart: now,
     weekEnd: now + weekInMs,
+    rank_tiers: JSON.parse(JSON.stringify(RANK_TIERS)),
 
     users: {
       "dev_java5263": {
@@ -340,12 +347,44 @@ class Database {
       this.data.categories = categories;
       this.saveData();
       this.logAudit('UPDATE_CATEGORIES', userId, 'system', `อัปเดตรายการหมวดหมู่/คำค้นหา (${categories.length} รายการ)`);
+      
+      // 🔄 ซิงค์หมวดหมู่ขึ้น Google Sheets ทันที (Instant Push)
+      googleSheetsService.syncCategoriesUpdate(this.data.categories).catch(e => console.warn('Sheets categories sync error:', e));
+
       if (this.io) {
         this.io.emit('categories_updated', this.data.categories);
       }
       return this.data.categories;
     }
     return this.getCategories();
+  }
+
+  // ----------------------------------------------------
+  // 🎖️ Dynamic Rank Tiers Engine (Dev & Sheets Configurable)
+  // ----------------------------------------------------
+  getRankTiers() {
+    if (!this.data.rank_tiers || !Array.isArray(this.data.rank_tiers) || this.data.rank_tiers.length === 0) {
+      this.data.rank_tiers = JSON.parse(JSON.stringify(RANK_TIERS));
+      this.saveData();
+    }
+    return this.data.rank_tiers;
+  }
+
+  saveRankTiers(tiers, adminId = 'dev_admin') {
+    if (Array.isArray(tiers) && tiers.length > 0) {
+      this.data.rank_tiers = tiers;
+      this.saveData();
+      this.logAudit('UPDATE_RANK_TIERS', adminId, 'rank_tiers', `อัปเดตการตั้งค่าระดับยศ (${tiers.length} ระดับ)`);
+      
+      // 🔄 ซิงค์ระดับยศขึ้น Google Sheets ทันที (Instant Push)
+      googleSheetsService.syncRankTiersUpdate(this.data.rank_tiers).catch(e => console.warn('Sheets rank tiers sync error:', e));
+
+      if (this.io) {
+        this.io.emit('rank_tiers_updated', this.data.rank_tiers);
+      }
+      return this.data.rank_tiers;
+    }
+    return this.getRankTiers();
   }
 
   addCategory(category, userId = 'dev_java5263') {
@@ -476,7 +515,7 @@ class Database {
         todayScore: u.todayEarnedExp || 0,
         allTimeScore: u.allTimeScore || 0,
         pinsCreated: u.pinsCreated || 0,
-        rank: calculateRank(u.allTimeScore, u.isDev)
+        rank: calculateRank(u.allTimeScore, u.isDev, this.getRankTiers())
       }))
       .sort((a, b) => b.score - a.score);
 
@@ -558,7 +597,7 @@ class Database {
     const user = this.data.users[userData.id];
     return {
       ...user,
-      rank: calculateRank(user.allTimeScore, user.isDev)
+      rank: calculateRank(user.allTimeScore, user.isDev, this.getRankTiers())
     };
   }
 
@@ -570,7 +609,7 @@ class Database {
     if (!user) return null;
     return {
       ...user,
-      rank: calculateRank(user.allTimeScore, user.isDev)
+      rank: calculateRank(user.allTimeScore, user.isDev, this.getRankTiers())
     };
   }
 
@@ -1029,6 +1068,9 @@ class Database {
     room.enabled = enabled === true;
     this.saveData();
     this.logAudit('CHAT_ROOM_TOGGLE', adminId, roomId, `ปรับสถานะห้อง [${room.name}] เป็น: ${room.enabled ? 'เปิดใช้งาน' : 'ปิดปรับปรุง'}`);
+
+    // 🔄 ซิงค์การเปลี่ยนสถานะห้องแชทขึ้น Google Sheets ทันที (Instant Push)
+    googleSheetsService.syncChatRoomsUpdate(this.data.chat_rooms).catch(e => console.warn('Sheets chat room sync error:', e));
 
     if (this.io) {
       this.io.emit('chat_rooms_updated', this.data.chat_rooms);
@@ -1704,6 +1746,9 @@ class Database {
     this.saveData();
     this.logAudit('SYSTEM_CONFIG_UPDATE', adminId, 'system_config', `อัปเดตการตั้งค่าระบบ: ${JSON.stringify(newConfig)}`);
 
+    // 🔄 ซิงค์การตั้งค่าขึ้น Google Sheets ทันที (Instant Push)
+    googleSheetsService.syncSettingsUpdate(this.data).catch(e => console.warn('Sheets settings sync error:', e));
+
     if (this.io) {
       this.io.emit('system_config_updated', this.data.system_config);
       this.io.emit('global_chat_toggled', {
@@ -2307,11 +2352,245 @@ class Database {
     };
     this.saveData();
 
+    // 🔄 ซิงค์ประกาศขึ้น Google Sheets ทันที (Instant Push)
+    googleSheetsService.syncSettingsUpdate(this.data).catch(e => console.warn('Sheets announcement sync error:', e));
+
     // ยิง Broadcast Socket.IO ทันทีแบบ Real-time ไปยังผู้ใช้ทุกคน
     if (this.io) {
       this.io.emit('announcement_updated', this.data.system_config.announcement);
     }
     return this.data.system_config.announcement;
+  }
+
+  // ----------------------------------------------------
+  // 📥 Two-Way Google Sheets Remote Apply Engine (ดึงข้อมูลตลอดเวลา)
+  // ----------------------------------------------------
+  applyRemoteSheetsData(sheetData) {
+    if (!sheetData || sheetData.status !== 'OK') return { applied: false };
+    let hasChanges = false;
+    const changes = [];
+
+    // 1. หมุดด่าน (Pins Sync & Restore)
+    if (Array.isArray(sheetData.pins) && sheetData.pins.length > 0) {
+      sheetData.pins.forEach(sp => {
+        if (!sp.id || !sp.lat || !sp.lng) return;
+        const localPin = this.data.pins.find(p => p.id === sp.id);
+        if (!localPin) {
+          this.data.pins.push({
+            id: sp.id,
+            title: sp.title || sp.locationName,
+            locationName: sp.locationName,
+            campusZone: sp.campusZone || 'มอใหม่ (ขามเรียง)',
+            lat: sp.lat,
+            lng: sp.lng,
+            type: sp.type || 'checkpoint',
+            direction: sp.direction || '',
+            description: sp.description || '',
+            status: sp.status || 'active',
+            reporter: sp.reporter || { name: 'ผู้ใช้ มมส', badge: 'Member' },
+            reporterId: sp.reporter?.email || 'restored_user',
+            likes: [],
+            views: 1,
+            votes: { up: [], down: [] },
+            moveCount: 0,
+            createdAt: typeof sp.createdAt === 'string' ? new Date(sp.createdAt).getTime() || Date.now() : Date.now(),
+            expiresAt: Date.now() + (6 * 3600 * 1000)
+          });
+          hasChanges = true;
+          changes.push(`Restored pin: ${sp.id}`);
+        } else if (sp.status && localPin.status !== sp.status) {
+          localPin.status = sp.status;
+          hasChanges = true;
+          changes.push(`Updated pin status ${sp.id} -> ${sp.status}`);
+        }
+      });
+    }
+
+    // 2. ห้องแชต (Chat Rooms Status from Sheet)
+    if (Array.isArray(sheetData.chatRooms) && sheetData.chatRooms.length > 0) {
+      if (!this.data.chat_rooms) this.data.chat_rooms = [];
+      sheetData.chatRooms.forEach(sr => {
+        if (!sr.id) return;
+        const localRoom = this.data.chat_rooms.find(r => r.id === sr.id);
+        const isRemoteEnabled = sr.enabled !== false && sr.status !== 'ปิดปรับปรุง';
+        if (localRoom) {
+          if (localRoom.enabled !== isRemoteEnabled) {
+            localRoom.enabled = isRemoteEnabled;
+            hasChanges = true;
+            changes.push(`Chat room [${localRoom.name}] toggled -> ${isRemoteEnabled ? 'ENABLED' : 'DISABLED'}`);
+            if (this.io) {
+              this.io.emit('chat_room_status_changed', {
+                roomId: localRoom.id,
+                roomName: localRoom.name,
+                enabled: localRoom.enabled
+              });
+            }
+          }
+        }
+      });
+    }
+
+    // 3. การตั้งค่าระบบ (Settings from Sheet)
+    if (sheetData.settings && typeof sheetData.settings === 'object') {
+      if (!this.data.system_config) this.data.system_config = {};
+      const s = sheetData.settings;
+
+      if (s.globalChatEnabled !== undefined) {
+        const isGlobal = s.globalChatEnabled.enabled === true || s.globalChatEnabled.value === 'เปิดใช้งาน';
+        if (this.data.system_config.globalChatEnabled !== isGlobal) {
+          this.data.system_config.globalChatEnabled = isGlobal;
+          hasChanges = true;
+          changes.push(`Global chat toggled -> ${isGlobal}`);
+          if (this.io) {
+            this.io.emit('global_chat_toggled', {
+              globalChatEnabled: isGlobal,
+              updatedBy: 'google_sheets_sync',
+              timestamp: Date.now()
+            });
+          }
+        }
+      }
+
+      if (s.allowAllEmails !== undefined) {
+        const isAllow = s.allowAllEmails.enabled === true || s.allowAllEmails.value === 'เปิดใช้งาน';
+        if (this.data.system_config.allowAllEmails !== isAllow) {
+          this.data.system_config.allowAllEmails = isAllow;
+          hasChanges = true;
+        }
+      }
+
+      if (s.donateEnabled !== undefined) {
+        const isDonate = s.donateEnabled.enabled === true || s.donateEnabled.value === 'เปิดใช้งาน';
+        if (this.data.system_config.donateEnabled !== isDonate) {
+          this.data.system_config.donateEnabled = isDonate;
+          hasChanges = true;
+        }
+      }
+
+      if (s.announcementText !== undefined || s.announcementEnabled !== undefined) {
+        if (!this.data.system_config.announcement) this.data.system_config.announcement = { enabled: true, text: '' };
+        const newText = s.announcementText?.value || this.data.system_config.announcement.text;
+        const isAnnEnabled = s.announcementEnabled ? (s.announcementEnabled.enabled === true || s.announcementEnabled.value === 'เปิดใช้งาน') : this.data.system_config.announcement.enabled;
+        
+        if (this.data.system_config.announcement.text !== newText || this.data.system_config.announcement.enabled !== isAnnEnabled) {
+          this.data.system_config.announcement.text = newText;
+          this.data.system_config.announcement.enabled = isAnnEnabled;
+          this.data.system_config.announcement.updatedAt = Date.now();
+          hasChanges = true;
+          changes.push(`Announcement updated from Sheets`);
+          if (this.io) {
+            this.io.emit('announcement_updated', this.data.system_config.announcement);
+          }
+        }
+      }
+    }
+
+    // 4. ระดับยศ (Rank Tiers from Sheet)
+    if (Array.isArray(sheetData.rankTiers) && sheetData.rankTiers.length > 0) {
+      const validTiers = sheetData.rankTiers.filter(t => t.level && t.name);
+      if (validTiers.length >= 3) {
+        this.data.rank_tiers = validTiers;
+        hasChanges = true;
+        changes.push(`Rank tiers updated from Sheets (${validTiers.length} tiers)`);
+        if (this.io) {
+          this.io.emit('rank_tiers_updated', this.data.rank_tiers);
+        }
+      }
+    }
+
+    // 5. หมวดหมู่ด่าน (Categories from Sheet)
+    if (Array.isArray(sheetData.categories) && sheetData.categories.length > 0) {
+      const validCats = sheetData.categories.filter(c => c.key && c.name);
+      if (validCats.length >= 1) {
+        this.data.categories = validCats;
+        hasChanges = true;
+        changes.push(`Categories updated from Sheets (${validCats.length} categories)`);
+        if (this.io) {
+          this.io.emit('categories_updated', this.data.categories);
+        }
+      }
+    }
+
+    if (hasChanges) {
+      this.saveData();
+      console.log(`✅ [SHEETS SYNC] Applied updates from Google Sheets:`, changes.join(', '));
+      if (this.io) {
+        this.io.emit('system_config_updated', this.data.system_config);
+        this.io.emit('chat_rooms_updated', this.data.chat_rooms);
+        this.io.emit('stats_update', this.getStatistics());
+      }
+    }
+
+    return { applied: hasChanges, changes };
+  }
+
+  // ----------------------------------------------------
+  // 🏷️ Categories & Filter Words CRUD Operations
+  // ----------------------------------------------------
+  getCategories() {
+    if (!this.data.categories || !Array.isArray(this.data.categories) || this.data.categories.length === 0) {
+      this.data.categories = [
+        { key: 'helmet', name: 'หมวก/ใบขับขี่', icon: '👮‍♂️', sub: 'ใบขับขี่ / อุปกรณ์ส่วนควบ' },
+        { key: 'alcohol', name: 'เป่าแอล', icon: '🍺', sub: 'เป่าแอลกอฮอล์ยามค่ำคืน' },
+        { key: 'security', name: 'ตรวจค้น', icon: '🚔', sub: 'ตรวจค้นสิ่งผิดกฎหมาย' },
+        { key: 'traffic', name: 'รถติด', icon: '🚗', sub: 'ชะลอตัวช่วงเร่งด่วน' },
+        { key: 'accident', name: 'อุบัติเหตุ', icon: '⚠️', sub: 'โปรดระมัดระวัง' }
+      ];
+      this.saveData();
+    }
+    return this.data.categories;
+  }
+
+  addCategory({ key, name, icon, sub }, adminId = 'dev_admin') {
+    if (!this.data.categories) this.getCategories();
+    
+    // สร้าง key ภาษาอังกฤษ/ตัวเลขที่ไม่ซ้ำซ้อน
+    const genKey = key && key.trim() 
+      ? key.trim() 
+      : 'cat_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 5);
+
+    const existingIdx = this.data.categories.findIndex(c => c.key === genKey || c.name === name);
+    const newCat = {
+      key: existingIdx !== -1 ? this.data.categories[existingIdx].key : genKey,
+      name: name.trim(),
+      icon: icon || '📍',
+      sub: sub ? sub.trim() : name.trim()
+    };
+
+    if (existingIdx !== -1) {
+      this.data.categories[existingIdx] = newCat;
+    } else {
+      this.data.categories.push(newCat);
+    }
+
+    this.saveData();
+    this.logAudit('CATEGORY_ADDED', adminId, newCat.key, `เพิ่ม/แก้ไขหมวดหมู่ด่าน: ${newCat.name}`);
+
+    // Sync to Google Sheets and broadcast to clients
+    googleSheetsService.syncSettingsUpdate(this.data).catch(e => console.warn('Sheets sync error:', e));
+    if (this.io) {
+      this.io.emit('categories_updated', this.data.categories);
+    }
+    return this.data.categories;
+  }
+
+  deleteCategory(key, adminId = 'dev_admin') {
+    if (!this.data.categories) this.getCategories();
+    const idx = this.data.categories.findIndex(c => c.key === key);
+    if (idx === -1) {
+      throw new Error('ไม่พบหมวดหมู่นี้ในระบบ');
+    }
+
+    const removed = this.data.categories.splice(idx, 1)[0];
+    this.saveData();
+    this.logAudit('CATEGORY_DELETED', adminId, key, `ลบหมวดหมู่ด่าน: ${removed?.name || key}`);
+
+    // Sync to Google Sheets and broadcast to clients
+    googleSheetsService.syncSettingsUpdate(this.data).catch(e => console.warn('Sheets sync error:', e));
+    if (this.io) {
+      this.io.emit('categories_updated', this.data.categories);
+    }
+    return this.data.categories;
   }
 }
 
