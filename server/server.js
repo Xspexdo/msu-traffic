@@ -5,6 +5,7 @@ const cors = require('cors');
 const { Server } = require('socket.io');
 
 const { rateLimiter, getClientIp, checkIpStatus } = require('./middleware/rateLimiter');
+const { globalCapacityGovernor } = require('./middleware/globalCapacityGovernor');
 const db = require('./database/db');
 const googleSheetsService = require('./services/googleSheetsService');
 
@@ -77,6 +78,9 @@ app.use((req, res, next) => {
   res.setHeader('Permissions-Policy', 'geolocation=(self), camera=(), microphone=()');
   next();
 });
+
+// 🛡️ 3.1 Apply Global Traffic Capacity Governor (Max 100 people/sec & Waiting Room)
+app.use(globalCapacityGovernor);
 
 // Middlewares
 app.use(cors());

@@ -120,11 +120,11 @@ class RankManager {
     const myStatusContainer = document.getElementById('mapRankMyStatus');
     if (!top3Container) return;
 
-    // ❗ เฉพาะผู้ใช้ที่มีคะแนนอย่างน้อย 100 EXP (หรือ Dev) เท่านั้น
-    const list = (this.weeklyData?.rankings || []).filter(u => (u.score || 0) >= 100 || u.isDev).slice(0, 3);
+    // ❗ เฉพาะผู้ใช้ที่มีคะแนนอย่างน้อย 200 EXP (หรือ Dev) เท่านั้น
+    const list = (this.weeklyData?.rankings || []).filter(u => (u.score || 0) >= 200 || u.isDev).slice(0, 3);
 
     if (list.length === 0) {
-      top3Container.innerHTML = '<div style="font-size: 0.72rem; color: #94A3B8; text-align: center; padding: 0.6rem 0.4rem;">🏁 ยังไม่มีผู้สะสมครบ 100 EXP<br><span style="font-size: 0.65rem; color: #CBD5E1;">สะสมให้ครบ 100 EXP เพื่อเริ่มจัดอันดับ!</span></div>';
+      top3Container.innerHTML = '<div style="font-size: 0.72rem; color: #94A3B8; text-align: center; padding: 0.6rem 0.4rem;">🏁 ยังไม่มีผู้สะสมครบ 200 EXP<br><span style="font-size: 0.65rem; color: #CBD5E1;">สะสมให้ครบ 200 EXP เพื่อเริ่มจัดอันดับ!</span></div>';
     } else {
       top3Container.innerHTML = list.map((u, i) => `
         <div class="map-rank-row">
@@ -141,7 +141,7 @@ class RankManager {
       if (this.myStats) {
         const todayExp = this.myStats.todayEarnedExp || this.myStats.weeklyScore || 0;
         const totalExp = this.myStats.allTimeScore || 0;
-        const isEligible = totalExp >= 100 || this.myStats.isDev;
+        const isEligible = totalExp >= 200 || this.myStats.isDev;
 
         myStatusContainer.innerHTML = `
           <div class="map-rank-my-row">
@@ -149,7 +149,7 @@ class RankManager {
             <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
               <span class="map-rank-my-name" style="font-weight: 700; font-size: 0.72rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">อันดับของคุณ (${this.myStats.name})</span>
               <span style="font-size: 0.64rem; color: ${isEligible ? '#10B981' : '#F59E0B'}; font-weight: 700;">
-                ${isEligible ? `+${todayExp} EXP วันนี้ (รอรวมรอบเที่ยงคืน 🌙)` : `สะสมอีก ${100 - totalExp} EXP เพื่อเริ่มจัดอันดับ 🎯`}
+                ${isEligible ? `+${todayExp} EXP วันนี้ (รอรวมรอบเที่ยงคืน 🌙)` : `สะสมอีก ${200 - totalExp} EXP เพื่อเริ่มจัดอันดับ 🎯`}
               </span>
             </div>
             <span style="font-weight: 800; font-size: 0.75rem; color: #3B82F6;">${totalExp} EXP</span>
@@ -206,17 +206,17 @@ class RankManager {
     const container = document.getElementById('rankLeaderboardList');
     if (!container) return;
 
-    // ❗ เกณฑ์ขั้นต่ำ: 100 EXP ขึ้นไปถึงจะเริ่มจัดอันดับ
+    // ❗ เกณฑ์ขั้นต่ำ: 200 EXP ขึ้นไปถึงจะเริ่มจัดอันดับ
     const list = (this.currentTab === 'weekly' ? (this.weeklyData?.rankings || []) : this.allTimeData)
-      .filter(u => (u.score || 0) >= 100 || u.isDev);
+      .filter(u => (u.score || 0) >= 200 || u.isDev);
 
     const midnightBanner = `
       <div style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); color: #F8FAFC; padding: 0.65rem 0.85rem; border-radius: 12px; font-size: 0.72rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; border: 1px solid #334155; flex-wrap: wrap; gap: 0.4rem;">
         <div>
           <span>🌙 <strong>อันดับทางการรอบเที่ยงคืน</strong> (ประมวลผลคะแนนทุก 00:00 น.)</span><br>
-          <span style="font-size: 0.66rem; color: #FDE68A;">🎯 เงื่อนไข: สะสมแต้มครบ 100 EXP ขึ้นไปถึงจะเริ่มติดอันดับ</span>
+          <span style="font-size: 0.66rem; color: #FDE68A;">🎯 เงื่อนไข: สะสมแต้มครบ 200 EXP ขึ้นไปถึงจะเริ่มติดอันดับ</span>
         </div>
-        <span style="color: #60A5FA; font-weight: 700; font-size: 0.66rem; background: rgba(59, 130, 246, 0.2); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(59,130,246,0.3);">เกณฑ์ขั้นต่ำ 100 EXP</span>
+        <span style="color: #60A5FA; font-weight: 700; font-size: 0.66rem; background: rgba(59, 130, 246, 0.2); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(59,130,246,0.3);">เกณฑ์ขั้นต่ำ 200 EXP</span>
       </div>
     `;
 
@@ -225,8 +225,8 @@ class RankManager {
         ${midnightBanner}
         <div style="text-align: center; color: #94A3B8; padding: 2.5rem 1rem;">
           <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏆</div>
-          <div style="font-weight: 700; color: #334155;">ยังไม่มีผู้สะสมคะแนนครบ 100 EXP</div>
-          <div style="font-size: 0.78rem; margin-top: 0.2rem;">ร่วมปักหมุดหรือช่วยโหวตยืนยันด่านเพื่อสะสมแต้มให้ถึง 100 EXP รอขึ้นอันดับเที่ยงคืน!</div>
+          <div style="font-weight: 700; color: #334155;">ยังไม่มีผู้สะสมคะแนนครบ 200 EXP</div>
+          <div style="font-size: 0.78rem; margin-top: 0.2rem;">ร่วมปักหมุดหรือช่วยโหวตยืนยันด่านเพื่อสะสมแต้มให้ถึง 200 EXP รอขึ้นอันดับเที่ยงคืน!</div>
         </div>
       `;
       return;

@@ -709,11 +709,13 @@ class ChatManager {
     };
 
     try {
+      const powHeaders = window.powClient ? await window.powClient.getPoWHeaders() : {};
       const res = await fetch('/api/chat/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...window.authManager.getAuthHeader()
+          ...window.authManager.getAuthHeader(),
+          ...powHeaders
         },
         body: JSON.stringify(payload)
       });

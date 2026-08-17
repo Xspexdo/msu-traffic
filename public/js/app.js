@@ -713,11 +713,13 @@ class MSUApp {
     };
 
     try {
+      const powHeaders = window.powClient ? await window.powClient.getPoWHeaders() : {};
       const res = await fetch('/api/reports', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...window.authManager.getAuthHeader()
+          ...window.authManager.getAuthHeader(),
+          ...powHeaders
         },
         body: JSON.stringify(payload)
       });
@@ -757,11 +759,13 @@ class MSUApp {
     }
 
     try {
+      const powHeaders = window.powClient ? await window.powClient.getPoWHeaders() : {};
       const res = await fetch(`/api/reports/${reportId}/vote`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...window.authManager.getAuthHeader()
+          ...window.authManager.getAuthHeader(),
+          ...powHeaders
         },
         body: JSON.stringify({ voteType })
       });
@@ -924,11 +928,13 @@ class MSUApp {
     const details = detailsInput ? detailsInput.value.trim() : '';
 
     try {
+      const powHeaders = window.powClient ? await window.powClient.getPoWHeaders() : {};
       const res = await fetch(`/api/reports/${pinId}/report`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...window.authManager.getAuthHeader()
+          ...window.authManager.getAuthHeader(),
+          ...powHeaders
         },
         body: JSON.stringify({ reason, details })
       });
@@ -1038,11 +1044,13 @@ class MSUApp {
     const note = document.getElementById('riderReqNote')?.value || '';
 
     try {
+      const powHeaders = window.powClient ? await window.powClient.getPoWHeaders() : {};
       const res = await fetch('/api/chat/rider/request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...window.authManager.getAuthHeader()
+          ...window.authManager.getAuthHeader(),
+          ...powHeaders
         },
         body: JSON.stringify({ platform, phone, note })
       });
@@ -1263,11 +1271,13 @@ class MSUApp {
     if (sendBtn) sendBtn.disabled = true;
 
     try {
+      const powHeaders = window.powClient ? await window.powClient.getPoWHeaders() : {};
       const res = await fetch(`/api/reports/${this.currentChatPinId}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...window.authManager.getAuthHeader()
+          ...window.authManager.getAuthHeader(),
+          ...powHeaders
         },
         body: JSON.stringify({
           text,
