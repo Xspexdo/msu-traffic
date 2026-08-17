@@ -1290,37 +1290,10 @@
   "pin_chat_messages": [],
   "rider_requests": [],
   "leaderboard_snapshot": {
-    "calculatedAt": 1786980395958,
+    "calculatedAt": 1786983566777,
     "nextCalculationAt": 1786986000000,
     "minExpRequired": 200,
-    "rankings": [
-      {
-        "id": "dev_java5263",
-        "name": "Java (Dev)",
-        "email": "java5263@gmail.com",
-        "picture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
-        "badge": "👑 DEV",
-        "isDev": true,
-        "trustScore": 100,
-        "score": 49,
-        "todayScore": 0,
-        "allTimeScore": 49,
-        "pinsCreated": 3,
-        "rank": {
-          "level": 99,
-          "key": "dev",
-          "name": "Developer / ผู้พัฒนาระบบ",
-          "title": "System Creator",
-          "icon": "👑",
-          "color": "#F59E0B",
-          "badgeClass": "rank-dev",
-          "exp": 49,
-          "nextRank": null,
-          "pointsToNext": 0,
-          "progressPercent": 100
-        }
-      }
-    ]
+    "rankings": []
   },
   "lastLeaderboardCalcDate": "2026-08-17",
   "dayNumber": 2,

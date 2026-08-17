@@ -120,8 +120,8 @@ class RankManager {
     const myStatusContainer = document.getElementById('mapRankMyStatus');
     if (!top3Container) return;
 
-    // ❗ เฉพาะผู้ใช้ที่มีคะแนนอย่างน้อย 200 EXP (หรือ Dev) เท่านั้น
-    const list = (this.weeklyData?.rankings || []).filter(u => (u.score || 0) >= 200 || u.isDev).slice(0, 3);
+    // ❗ เฉพาะผู้ใช้ที่มีคะแนนอย่างน้อย 200 EXP เท่านั้น (ทุกคนรวม Dev)
+    const list = (this.weeklyData?.rankings || []).filter(u => (u.score || 0) >= 200).slice(0, 3);
 
     if (list.length === 0) {
       top3Container.innerHTML = '<div style="font-size: 0.72rem; color: #94A3B8; text-align: center; padding: 0.6rem 0.4rem;">🏁 ยังไม่มีผู้สะสมครบ 200 EXP<br><span style="font-size: 0.65rem; color: #CBD5E1;">สะสมให้ครบ 200 EXP เพื่อเริ่มจัดอันดับ!</span></div>';
@@ -141,7 +141,7 @@ class RankManager {
       if (this.myStats) {
         const todayExp = this.myStats.todayEarnedExp || this.myStats.weeklyScore || 0;
         const totalExp = this.myStats.allTimeScore || 0;
-        const isEligible = totalExp >= 200 || this.myStats.isDev;
+        const isEligible = totalExp >= 200;
 
         myStatusContainer.innerHTML = `
           <div class="map-rank-my-row">
@@ -206,9 +206,9 @@ class RankManager {
     const container = document.getElementById('rankLeaderboardList');
     if (!container) return;
 
-    // ❗ เกณฑ์ขั้นต่ำ: 200 EXP ขึ้นไปถึงจะเริ่มจัดอันดับ
+    // ❗ เกณฑ์ขั้นต่ำ: 200 EXP ขึ้นไปถึงจะเริ่มจัดอันดับทุกคน
     const list = (this.currentTab === 'weekly' ? (this.weeklyData?.rankings || []) : this.allTimeData)
-      .filter(u => (u.score || 0) >= 200 || u.isDev);
+      .filter(u => (u.score || 0) >= 200);
 
     const midnightBanner = `
       <div style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); color: #F8FAFC; padding: 0.65rem 0.85rem; border-radius: 12px; font-size: 0.72rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; border: 1px solid #334155; flex-wrap: wrap; gap: 0.4rem;">
