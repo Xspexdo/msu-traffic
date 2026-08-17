@@ -1605,7 +1605,7 @@ class DevManager {
           <td style="font-family: monospace; font-size: 0.72rem; color: #64748B;">${req.id}</td>
           <td>
             <div style="display: flex; align-items: center; gap: 0.45rem;">
-              <img src="${req.userPicture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
+              <img src="${req.userPicture || 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
               <div>
                 <div style="font-weight: 700; color: #1E293B; font-size: 0.8rem;">${this.escapeHtml(req.userName)}</div>
                 <div style="font-size: 0.7rem; color: #94A3B8;">${this.escapeHtml(req.userEmail)}</div>

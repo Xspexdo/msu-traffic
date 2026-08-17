@@ -125,7 +125,7 @@ module.exports = function(io) {
           email: isAnon ? '' : req.user.email,
           picture: (req.body.isAnnouncement === true && isDev)
             ? 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=120&auto=format&fit=crop&q=80' 
-            : (isAnon ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60' : req.user.picture),
+            : (isAnon ? 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff' : req.user.picture),
           isDev: isDev,
           isMsuStudent: isMsu,
           isAnonymous: isAnon,

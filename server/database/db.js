@@ -128,7 +128,7 @@ function getInitialData() {
         id: "dev_java5263",
         email: "java5263@gmail.com",
         name: "Java (Lead Developer)",
-        picture: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80",
+        picture: "https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff",
         role: "dev",
         badge: "👑 DEV",
         trustScore: 100,
@@ -168,7 +168,7 @@ function getInitialData() {
           badge: "👑 DEV",
           isDev: true,
           isMsuStudent: true,
-          picture: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60"
+          picture: "https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff"
         },
         likes: [],
         views: 45,
@@ -202,7 +202,7 @@ function getInitialData() {
           badge: "🎓 MSU",
           isDev: false,
           isMsuStudent: true,
-          picture: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60"
+          picture: "https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff"
         },
         likes: [],
         views: 28,
@@ -236,7 +236,7 @@ function getInitialData() {
         senderName: "Java (Lead Dev)",
         senderEmail: "java5263@gmail.com",
         senderBadge: "👑 DEV",
-        senderPicture: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60",
+        senderPicture: "https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff",
         text: "🎉 ยินดีต้อนรับสู่ห้อง Local Chat ของนิสิต มมส (Season 1)! ห้องแชตนี้จะเปิดให้เฉพาะบัญชี @msu.ac.th ที่อยู่ในรัศมีรอบ มมส เท่านั้นครับ",
         isAnonymous: false,
         location: { lat: 16.2468, lng: 103.2520, distKm: 0.0, inZone: true },
@@ -399,7 +399,7 @@ class Database {
         id: userData.id,
         email: cleanEmail,
         name: userData.name || cleanEmail.split('@')[0],
-        picture: userData.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+        picture: userData.picture || 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff',
         role: isDev ? 'dev' : (isMsu ? 'student' : 'member'),
         badge: userBadge,
         trustScore: initialTrust,
@@ -893,7 +893,7 @@ class Database {
     
     // กำหนดป้ายยศตามลำดับ: DEV > RIDER > GLOBAL > Custom Badge > MSU > Member
     let senderBadge = isDev ? '👑 DEV' : (dbUser?.badge || (isRider ? '🛵 RIDER' : (canChatGlobal ? '🌐 Global' : (isMsu ? '🎓 MSU' : '👤 Member'))));
-    let senderPicture = isAnonymous ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60' : (sender.picture || dbUser?.picture);
+    let senderPicture = isAnonymous ? 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff' : (sender.picture || dbUser?.picture);
     let senderEmail = isAnonymous ? '' : sender.email;
 
     if (isOfficialAnnouncement) {
@@ -1146,7 +1146,7 @@ class Database {
     const isOfficialAnnouncement = isAnnouncement === true && isDev;
     let senderName = isAnonymous ? 'นิสิตนิรนาม' : (sender.name || 'ผู้ใช้งาน มมส');
     let senderBadge = isDev ? '👑 DEV' : (isMsu ? '🎓 MSU' : '👤 Member');
-    let senderPicture = isAnonymous ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60' : (sender.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100');
+    let senderPicture = isAnonymous ? 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff' : (sender.picture || 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff');
     let senderEmail = isAnonymous ? '' : sender.email;
 
     if (isOfficialAnnouncement) {
@@ -1842,7 +1842,7 @@ class Database {
       userId,
       userName: userName || cleanEmail.split('@')[0] || 'ผู้ขอสิทธิ์ไรเดอร์',
       userEmail: cleanEmail,
-      userPicture: userPicture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+      userPicture: userPicture || 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff',
       platform: platform || 'Grab / Lineman / อื่นๆ',
       phone: phone || '',
       note: note || '',

@@ -227,7 +227,7 @@ class RankManager {
       return `
         <div class="rank-item-card ${idx < 3 ? 'top-card' : ''}">
           <div class="rank-pos-col">${medalBadge}</div>
-          <img class="rank-avatar" src="${user.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60'}" alt="avatar">
+          <img class="rank-avatar" src="${user.picture || 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff'}" alt="avatar">
           <div class="rank-info-col">
             <div class="rank-user-name">
               <span>${user.name}</span>

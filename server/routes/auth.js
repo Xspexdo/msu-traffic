@@ -26,7 +26,7 @@ function decodeJwt(token) {
 // Generate Gravatar / Avatar URL from Email
 function getAvatarForEmail(email, name) {
   if (email.toLowerCase().trim() === DEV_EMAIL) {
-    return 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80';
+    return 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff';
   }
   const cleanEmail = email.toLowerCase().trim();
   const hash = crypto.createHash('md5').update(cleanEmail).digest('hex');

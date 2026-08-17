@@ -422,7 +422,7 @@ class MSUApp {
 
         <div class="card-footer">
           <div class="card-reporter">
-            <img class="reporter-avatar" src="${rep.reporter?.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60'}" alt="avatar">
+            <img class="reporter-avatar" src="${rep.reporter?.picture || 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff'}" alt="avatar">
             <span style="font-weight: 600;">${isAnnouncement ? 'MSU Traffic' : (rep.reporter?.name || 'นิสิต มมส')}</span>
             ${badgeHtml}
           </div>
@@ -1062,7 +1062,7 @@ class MSUApp {
 
     const avatarUrl = isAnnouncement 
       ? 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=120&auto=format&fit=crop&q=80'
-      : (msg.senderPicture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100');
+      : (msg.senderPicture || 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff');
 
     return `
       <div class="pin-msg-row ${isSelf && !isAnnouncement ? 'self' : ''} ${isAnnouncement ? 'pin-msg-announcement' : ''}" id="pin-msg-${msg.id}">
@@ -1218,7 +1218,7 @@ class MSUApp {
             </button>
           ` : ''}
           <div class="nav-user-pill" onclick="window.app.openProfileModal()" title="คลิกเพื่อเปิดดูโปรไฟล์ของคุณ">
-            <img src="${user.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60'}" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 1.5px solid #2563EB;">
+            <img src="${user.picture || 'https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff'}" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 1.5px solid #2563EB;">
             <span class="nav-user-name" style="font-size: 0.78rem; font-weight: 700; max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${this.escapeHtml(user.name || 'โปรไฟล์')}</span>
             ${badgeHtml}
           </div>
