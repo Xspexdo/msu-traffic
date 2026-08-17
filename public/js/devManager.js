@@ -385,19 +385,30 @@ class DevManager {
         }
 
         container.innerHTML = data.data.map(cat => {
+          const isAdminOnly = cat.adminOnly === true;
           return `
-            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.6rem 0.85rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
-              <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1;">
-                <span style="font-size: 1.25rem;">${cat.icon || '📍'}</span>
+            <div style="background: #FFFFFF; border: 1.5px solid ${isAdminOnly ? '#FDE68A' : '#E2E8F0'}; border-radius: 10px; padding: 0.65rem 0.95rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; transition: all 0.2s;">
+              <div style="display: flex; align-items: center; gap: 0.6rem; flex: 1;">
+                <span style="font-size: 1.35rem;">${cat.icon || '📍'}</span>
                 <div>
-                  <strong style="font-size: 0.85rem; color: #0F172A;">${cat.name}</strong>
-                  <span style="font-size: 0.72rem; color: #64748B; margin-left: 0.35rem;">(${cat.key})</span>
-                  ${cat.sub ? `<div style="font-size: 0.72rem; color: #94A3B8;">${cat.sub}</div>` : ''}
+                  <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                    <strong style="font-size: 0.88rem; color: #0F172A;">${cat.name}</strong>
+                    <span style="font-size: 0.7rem; color: #64748B; font-family: monospace;">(${cat.key})</span>
+                    ${isAdminOnly 
+                      ? '<span style="font-size: 0.68rem; font-weight: 800; color: #92400E; background: #FEF3C7; border: 1px solid #F59E0B; padding: 2px 7px; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.2rem;">👑 เฉพาะ Admin</span>' 
+                      : '<span style="font-size: 0.68rem; font-weight: 700; color: #047857; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 2px 7px; border-radius: 6px;">🌐 ทุกคนเรียกใช้ได้</span>'}
+                  </div>
+                  ${cat.sub ? `<div style="font-size: 0.72rem; color: #64748B; margin-top: 0.15rem;">${cat.sub}</div>` : ''}
                 </div>
               </div>
-              <button type="button" class="btn btn-outline btn-xs" onclick="window.devManager.handleDeleteCategory('${cat.key}')" style="color: #DC2626; border-color: #FECACA; font-weight: 700;" title="ลบหมวดหมู่นี้">
-                🗑️ ลบ
-              </button>
+              <div style="display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0;">
+                <button type="button" class="btn btn-outline btn-xs" onclick="window.devManager.handleToggleCategoryAdminOnly('${cat.key}')" style="font-weight: 700; font-size: 0.72rem; ${isAdminOnly ? 'color: #1D4ED8; border-color: #BFDBFE; background: #EFF6FF;' : 'color: #B45309; border-color: #FDE68A; background: #FFFBEB;'}" title="สลับการมองเห็นและสิทธิ์การเรียกใช้">
+                  ${isAdminOnly ? '🔓 ปลดล็อกให้ทุกคนใช้' : '🔒 ล็อกเฉพาะ Admin'}
+                </button>
+                <button type="button" class="btn btn-outline btn-xs" onclick="window.devManager.handleDeleteCategory('${cat.key}')" style="color: #DC2626; border-color: #FECACA; font-weight: 700; font-size: 0.72rem;" title="ลบหมวดหมู่นี้">
+                  🗑️ ลบ
+                </button>
+              </div>
             </div>
           `;
         }).join('');
@@ -413,10 +424,12 @@ class DevManager {
     const iconInput = document.getElementById('devCatIconInput');
     const nameInput = document.getElementById('devCatNameInput');
     const subInput = document.getElementById('devCatSubInput');
+    const adminOnlyInput = document.getElementById('devCatAdminOnlyInput');
 
     const icon = iconInput?.value.trim() || '📍';
     const name = nameInput?.value.trim();
     const sub = subInput?.value.trim() || '';
+    const adminOnly = adminOnlyInput ? adminOnlyInput.checked : false;
 
     if (!name) {
       alert('กรุณากรอกชื่อหมวดหมู่');
@@ -427,18 +440,19 @@ class DevManager {
       const res = await fetch('/api/reports/categories', {
         method: 'POST',
         headers: this.getHeaders(),
-        body: JSON.stringify({ icon, name, sub })
+        body: JSON.stringify({ icon, name, sub, adminOnly })
       });
 
       const data = await res.json();
       if (data.success) {
         if (window.app) {
-          window.app.showNotification(`✅ เพิ่มหมวดหมู่ [${name}] สำเร็จแล้ว`, 'success');
+          window.app.showNotification(`✅ เพิ่มหมวดหมู่ [${name}] สำเร็จแล้ว (${adminOnly ? '🔒 เฉพาะ Admin' : '🌐 ทั่วไป'})`, 'success');
           if (window.app.loadCategories) window.app.loadCategories();
         }
         if (iconInput) iconInput.value = '';
         if (nameInput) nameInput.value = '';
         if (subInput) subInput.value = '';
+        if (adminOnlyInput) adminOnlyInput.checked = false;
         this.loadCategoriesList();
       } else {
         alert(data.error || 'ไม่สามารถเพิ่มหมวดหมู่ได้');
@@ -446,6 +460,29 @@ class DevManager {
     } catch (e) {
       console.error('Error adding category:', e);
       alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    }
+  }
+
+  async handleToggleCategoryAdminOnly(key) {
+    try {
+      const res = await fetch(`/api/reports/categories/${key}/toggle-admin-only`, {
+        method: 'POST',
+        headers: this.getHeaders()
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        if (window.app) {
+          window.app.showNotification(data.message, 'success');
+          if (window.app.loadCategories) window.app.loadCategories();
+        }
+        this.loadCategoriesList();
+      } else {
+        alert(data.error || 'ไม่สามารถสลับสิทธิ์ได้');
+      }
+    } catch (e) {
+      console.error('Error toggling category adminOnly:', e);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
     }
   }
 

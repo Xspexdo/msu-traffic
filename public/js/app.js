@@ -298,13 +298,16 @@ class MSUApp {
     const container = document.querySelector('.filter-chips-scroll');
     if (!container || !this.categories || this.categories.length === 0) return;
 
+    const isDev = window.authManager && window.authManager.isDev();
+    const visibleCategories = this.categories.filter(cat => !cat.adminOnly || isDev);
+
     const activeKey = this.activeFilter || 'all';
 
     container.innerHTML = `
       <button class="filter-chip ${activeKey === 'all' ? 'active' : ''}" data-type="all">ทั้งหมด</button>
-      ${this.categories.map(cat => `
+      ${visibleCategories.map(cat => `
         <button class="filter-chip ${activeKey === cat.key ? 'active' : ''}" data-type="${cat.key}">
-          <span>${cat.icon || '📍'}</span> ${cat.name}
+          <span>${cat.icon || '📍'}</span> ${cat.name} ${cat.adminOnly ? '<span style="font-size: 0.65rem; color: #F59E0B;">👑</span>' : ''}
         </button>
       `).join('')}
     `;
@@ -324,17 +327,23 @@ class MSUApp {
     const container = document.querySelector('.type-selection-grid');
     if (!container || !this.categories || this.categories.length === 0) return;
 
-    const checkedRadio = document.querySelector('input[name="checkpointType"]:checked');
-    const currentSelected = checkedRadio ? checkedRadio.value : (this.categories[0]?.key || 'helmet');
+    const isDev = window.authManager && window.authManager.isDev();
+    const visibleCategories = this.categories.filter(cat => !cat.adminOnly || isDev);
 
-    container.innerHTML = this.categories.map((cat, idx) => {
+    const checkedRadio = document.querySelector('input[name="checkpointType"]:checked');
+    const currentSelected = checkedRadio ? checkedRadio.value : (visibleCategories[0]?.key || 'helmet');
+
+    container.innerHTML = visibleCategories.map((cat, idx) => {
       const isSelected = (cat.key === currentSelected) || (!currentSelected && idx === 0);
       return `
-        <label class="type-option-card ${isSelected ? 'selected' : ''}">
+        <label class="type-option-card ${isSelected ? 'selected' : ''}" style="${cat.adminOnly ? 'border-color: #F59E0B; background: #FFFBEB;' : ''}">
           <input type="radio" name="checkpointType" value="${cat.key}" ${isSelected ? 'checked' : ''} style="display: none;">
           <span class="type-option-icon">${cat.icon || '📍'}</span>
           <div class="type-option-text">
-            <span class="type-option-title">${cat.name}</span>
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+              <span class="type-option-title">${cat.name}</span>
+              ${cat.adminOnly ? '<span style="font-size: 0.62rem; font-weight: 800; color: #92400E; background: #FEF3C7; padding: 1px 5px; border-radius: 4px; border: 1px solid #FDE68A;">👑 Dev</span>' : ''}
+            </div>
             <span class="type-option-sub">${cat.sub || cat.name}</span>
           </div>
         </label>

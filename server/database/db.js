@@ -2550,7 +2550,7 @@ class Database {
     return this.data.categories;
   }
 
-  addCategory({ key, name, icon, sub }, adminId = 'dev_admin') {
+  addCategory({ key, name, icon, sub, adminOnly }, adminId = 'dev_admin') {
     if (!this.data.categories) this.getCategories();
     
     // สร้าง key ภาษาอังกฤษ/ตัวเลขที่ไม่ซ้ำซ้อน
@@ -2563,7 +2563,8 @@ class Database {
       key: existingIdx !== -1 ? this.data.categories[existingIdx].key : genKey,
       name: name.trim(),
       icon: icon || '📍',
-      sub: sub ? sub.trim() : name.trim()
+      sub: sub ? sub.trim() : name.trim(),
+      adminOnly: adminOnly === true || adminOnly === 'true'
     };
 
     if (existingIdx !== -1) {
@@ -2573,7 +2574,7 @@ class Database {
     }
 
     this.saveData();
-    this.logAudit('CATEGORY_ADDED', adminId, newCat.key, `เพิ่ม/แก้ไขหมวดหมู่ด่าน: ${newCat.name}`);
+    this.logAudit('CATEGORY_ADDED', adminId, newCat.key, `เพิ่ม/แก้ไขหมวดหมู่ด่าน: ${newCat.name} (เฉพาะ Admin: ${newCat.adminOnly ? 'ใช่' : 'ไม่ใช่'})`);
 
     // Sync to Google Sheets and broadcast to clients
     googleSheetsService.syncSettingsUpdate(this.data).catch(e => console.warn('Sheets sync error:', e));
@@ -2581,6 +2582,23 @@ class Database {
       this.io.emit('categories_updated', this.data.categories);
     }
     return this.data.categories;
+  }
+
+  toggleCategoryAdminOnly(key, adminId = 'dev_admin') {
+    if (!this.data.categories) this.getCategories();
+    const cat = this.data.categories.find(c => c.key === key);
+    if (!cat) throw new Error('ไม่พบหมวดหมู่นี้ในระบบ');
+
+    cat.adminOnly = !cat.adminOnly;
+    this.saveData();
+    this.logAudit('CATEGORY_ADMIN_ONLY_TOGGLE', adminId, key, `สลับสิทธิ์เฉพาะแอดมินหมวดหมู่ [${cat.name}]: ${cat.adminOnly ? '🔒 เฉพาะแอดมิน' : '🌐 ทุกคนใช้ได้'}`);
+
+    // Sync to Google Sheets and broadcast to clients
+    googleSheetsService.syncSettingsUpdate(this.data).catch(e => console.warn('Sheets sync error:', e));
+    if (this.io) {
+      this.io.emit('categories_updated', this.data.categories);
+    }
+    return cat;
   }
 
   deleteCategory(key, adminId = 'dev_admin') {

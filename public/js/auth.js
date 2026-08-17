@@ -157,6 +157,10 @@ class AuthManager {
     if (window.rankManager) {
       window.rankManager.updateMapRankOverlay();
     }
+    if (window.app) {
+      if (window.app.renderFilterChips) window.app.renderFilterChips();
+      if (window.app.renderReportTypeOptions) window.app.renderReportTypeOptions();
+    }
   }
 
   logout() {
@@ -166,6 +170,8 @@ class AuthManager {
       window.app.showNotification('ออกจากระบบเรียบร้อยแล้ว', 'info');
       window.app.updateAuthUI();
       window.app.renderReportsList();
+      if (window.app.renderFilterChips) window.app.renderFilterChips();
+      if (window.app.renderReportTypeOptions) window.app.renderReportTypeOptions();
       if (window.mapManager) {
         window.mapManager.renderReports(window.app.reports);
       }

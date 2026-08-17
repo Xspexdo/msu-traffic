@@ -1601,13 +1601,21 @@
             </div>
 
             <!-- Add Category Form -->
-            <form onsubmit="window.devManager.handleAddCategory(event)" style="display: flex; gap: 0.5rem; margin-bottom: 0.85rem; flex-wrap: wrap; background: #F8FAFC; padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px dashed #94A3B8;">
-              <input type="text" id="devCatIconInput" class="form-control" placeholder="ไอคอน (เช่น 🌧️)" style="width: 100px; font-size: 0.82rem; text-align: center;" maxlength="4" required>
-              <input type="text" id="devCatNameInput" class="form-control" placeholder="ชื่อคำ/หมวดหมู่ (เช่น ฝนตกถนนลื่น)" style="flex: 1; min-width: 160px; font-size: 0.82rem;" required>
-              <input type="text" id="devCatSubInput" class="form-control" placeholder="คำอธิบายย่อย (เช่น ระวังน้ำท่วมขัง)" style="flex: 1; min-width: 180px; font-size: 0.82rem;">
-              <button type="submit" class="btn btn-primary btn-sm" style="background: #2563EB; font-weight: 700; white-space: nowrap;">
-                ➕ เพิ่มคำใหม่
-              </button>
+            <form onsubmit="window.devManager.handleAddCategory(event)" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.85rem; background: #F8FAFC; padding: 0.75rem 0.95rem; border-radius: 10px; border: 1px dashed #94A3B8;">
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <input type="text" id="devCatIconInput" class="form-control" placeholder="ไอคอน (เช่น ⚠️)" style="width: 90px; font-size: 0.82rem; text-align: center;" maxlength="4" required>
+                <input type="text" id="devCatNameInput" class="form-control" placeholder="ชื่อคำ/หมวดหมู่ (เช่น TEST SYSTEMS)" style="flex: 1; min-width: 160px; font-size: 0.82rem;" required>
+                <input type="text" id="devCatSubInput" class="form-control" placeholder="คำอธิบายย่อย (เช่น ทดสอบระบบเฉพาะทีม Dev)" style="flex: 1; min-width: 180px; font-size: 0.82rem;">
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.2rem;">
+                <label style="display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; font-weight: 700; color: #92400E; background: #FEF3C7; border: 1px solid #FDE68A; padding: 0.3rem 0.65rem; border-radius: 6px; cursor: pointer; user-select: none;">
+                  <input type="checkbox" id="devCatAdminOnlyInput" style="width: 16px; height: 16px; accent-color: #D97706;">
+                  <span>🔒 สงวนสิทธิ์เฉพาะ Admin/Dev (ผู้ใช้ทั่วไปจะไม่เห็นและเรียกใช้ไม่ได้)</span>
+                </label>
+                <button type="submit" class="btn btn-primary btn-sm" style="background: #2563EB; font-weight: 700; white-space: nowrap;">
+                  ➕ เพิ่มหมวดหมู่ใหม่
+                </button>
+              </div>
             </form>
 
             <!-- Active Categories List -->

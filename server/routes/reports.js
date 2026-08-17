@@ -19,15 +19,36 @@ module.exports = function(io) {
   // 🏷️ POST /api/reports/categories - เพิ่มหรือแก้ไขหมวดหมู่ด่าน (เฉพาะ Dev)
   router.post('/categories', requireDev, (req, res) => {
     try {
-      const { key, name, icon, sub } = req.body;
+      const { key, name, icon, sub, adminOnly } = req.body;
       if (!name || !name.trim()) {
         return res.status(400).json({ success: false, error: 'กรุณาระบุชื่อหมวดหมู่' });
       }
 
-      const updated = db.addCategory({ key, name: name.trim(), icon: icon || '📍', sub: sub || name }, req.user.id);
+      const updated = db.addCategory({ 
+        key, 
+        name: name.trim(), 
+        icon: icon || '📍', 
+        sub: sub || name,
+        adminOnly: adminOnly === true || adminOnly === 'true'
+      }, req.user.id);
       res.json({ success: true, message: `เพิ่ม/แก้ไขหมวดหมู่ [${name}] เรียบร้อยแล้ว`, data: updated });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 🏷️ POST /api/reports/categories/:key/toggle-admin-only - สลับสิทธิ์เฉพาะแอดมิน (เฉพาะ Dev)
+  router.post('/categories/:key/toggle-admin-only', requireDev, (req, res) => {
+    try {
+      const { key } = req.params;
+      const cat = db.toggleCategoryAdminOnly(key, req.user.id);
+      res.json({ 
+        success: true, 
+        message: `สลับสิทธิ์หมวดหมู่ [${cat.name}] เป็น: ${cat.adminOnly ? '🔒 เฉพาะแอดมิน' : '🌐 ทุกคนเรียกใช้ได้'}`, 
+        category: cat 
+      });
+    } catch (err) {
+      res.status(400).json({ success: false, error: err.message });
     }
   });
 
@@ -133,6 +154,17 @@ module.exports = function(io) {
 
       if (!type) {
         return res.status(400).json({ success: false, error: 'กรุณาระบุประเภทด่านหรือเหตุการณ์' });
+      }
+
+      // 🔒 ตรวจสอบว่าหมวดหมู่นี้สงวนสิทธิ์เฉพาะ Admin/Dev หรือไม่
+      const allCategories = db.getCategories();
+      const chosenCat = allCategories.find(c => c.key === type);
+      if (chosenCat && chosenCat.adminOnly && !isDev) {
+        return res.status(403).json({
+          success: false,
+          error: 'CATEGORY_DEV_ONLY',
+          message: `🔒 หมวดหมู่ [${chosenCat.name}] สงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin/Dev) เท่านั้น`
+        });
       }
 
       if (!lat || !lng) {

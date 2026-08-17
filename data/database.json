@@ -24,7 +24,7 @@
       "isDev": true,
       "status": "active",
       "createdAt": 1786777538446,
-      "lastActiveAt": 1786985456719
+      "lastActiveAt": 1786985514992
     },
     "google_108560811899542656924": {
       "id": "google_108560811899542656924",
@@ -1385,7 +1385,8 @@
       "key": "cat_msxfhv6x_toy",
       "name": "TEST SYSTEMS",
       "icon": "⚠️",
-      "sub": "TEST SYSTEMS"
+      "sub": "TEST SYSTEMS",
+      "adminOnly": true
     }
   ],
   "rank_tiers": [
