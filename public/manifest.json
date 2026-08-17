@@ -1,0 +1,24 @@
+{
+  "name": "MSU Traffic & Campus Life",
+  "short_name": "MSU Traffic",
+  "description": "ระบบแจ้งเตือนด่านตรวจและสภาพจราจร ม.มหาสารคาม",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F172A",
+  "theme_color": "#F59E0B",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

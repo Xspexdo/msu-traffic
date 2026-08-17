@@ -1059,6 +1059,55 @@ class MSUApp {
     if (modal) modal.classList.remove('active');
   }
 
+  openInstallAppModal() {
+    const modal = document.getElementById('installAppModal');
+    if (modal) modal.classList.add('active');
+  }
+
+  closeInstallAppModal() {
+    const modal = document.getElementById('installAppModal');
+    if (modal) modal.classList.remove('active');
+  }
+
+  switchInstallTab(os) {
+    const btnIos = document.getElementById('installTabBtnIos');
+    const btnAndroid = document.getElementById('installTabBtnAndroid');
+    const contentIos = document.getElementById('installContentIos');
+    const contentAndroid = document.getElementById('installContentAndroid');
+
+    if (os === 'ios') {
+      if (btnIos) {
+        btnIos.style.background = '#FFFFFF';
+        btnIos.style.color = '#0F172A';
+        btnIos.style.fontWeight = '800';
+        btnIos.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+      }
+      if (btnAndroid) {
+        btnAndroid.style.background = 'transparent';
+        btnAndroid.style.color = '#64748B';
+        btnAndroid.style.fontWeight = '700';
+        btnAndroid.style.boxShadow = 'none';
+      }
+      if (contentIos) contentIos.style.display = 'flex';
+      if (contentAndroid) contentAndroid.style.display = 'none';
+    } else {
+      if (btnAndroid) {
+        btnAndroid.style.background = '#FFFFFF';
+        btnAndroid.style.color = '#0F172A';
+        btnAndroid.style.fontWeight = '800';
+        btnAndroid.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+      }
+      if (btnIos) {
+        btnIos.style.background = 'transparent';
+        btnIos.style.color = '#64748B';
+        btnIos.style.fontWeight = '700';
+        btnIos.style.boxShadow = 'none';
+      }
+      if (contentIos) contentIos.style.display = 'none';
+      if (contentAndroid) contentAndroid.style.display = 'flex';
+    }
+  }
+
   // 🚩 Pin Report Modal Actions
   openPinReportModal(pinId, event) {
     if (event) event.stopPropagation();

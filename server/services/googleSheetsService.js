@@ -17,20 +17,19 @@ class GoogleSheetsService {
     this.timer = null;
   }
 
-  startAutoSyncTimer(db, intervalMs = 30000) {
+  startAutoSyncTimer(db, intervalMs = 60000) {
     if (this.timer) clearInterval(this.timer);
     
-    // ดึงข้อมูลการตั้งค่าและหมุดจาก Google Sheets ทันทีตอนเริ่มต้น
+    // ดึงข้อมูลการตั้งค่าและหมุดจาก Google Sheets ทันทีตอนเริ่มต้น (ไม่ลบข้อมูลเดิม)
     this.pullAndApplyFromSheets(db).catch(err => {
       console.warn('⚠️ Initial Google Sheets pull failed:', err.message);
     });
 
-    // รันทุกๆ 30 วินาทีในเบื้องหลัง: ดึงข้อมูลล่าสุดจาก Sheets และซิงค์ข้อมูลกลับไป
+    // รันทุกๆ 60 วินาทีในเบื้องหลัง: ดึงข้อมูลล่าสุดจาก Sheets มาอัปเดตเซิร์ฟเวอร์ (ป้องกัน Sheet กระพริบหาย)
     this.timer = setInterval(async () => {
       if (this.config.enabled && this.config.webhookUrl && !this.isSyncing) {
         try {
           await this.pullAndApplyFromSheets(db);
-          await this.syncFullDatabase(db.data);
         } catch (err) {
           console.warn('⚠️ Background Auto-Sync with Google Sheets failed:', err.message);
         }
@@ -100,80 +99,32 @@ class GoogleSheetsService {
       data
     });
 
-    return new Promise((resolve) => {
-      try {
-        const urlObj = new URL(this.config.webhookUrl);
-        const isHttps = urlObj.protocol === 'https:';
-        const client = isHttps ? https : http;
+    try {
+      const response = await fetch(this.config.webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8'
+        },
+        body: payload,
+        redirect: 'follow',
+        signal: AbortSignal.timeout(25000)
+      });
 
-        const options = {
-          hostname: urlObj.hostname,
-          port: urlObj.port || (isHttps ? 443 : 80),
-          path: urlObj.pathname + urlObj.search,
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(payload)
-          },
-          timeout: 10000
-        };
+      const text = await response.text();
+      let json = null;
+      try { json = JSON.parse(text); } catch (e) {}
 
-        const req = client.request(options, (res) => {
-          // ถ้ามี 302/301/303 redirect จาก Google Apps Script
-          if ((res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 303) && res.headers.location) {
-            https.get(res.headers.location, (res2) => {
-              let body2 = '';
-              res2.on('data', chunk => body2 += chunk);
-              res2.on('end', () => {
-                this.config.lastSyncAt = Date.now();
-                this.saveConfig(this.config);
-                try {
-                  const json = JSON.parse(body2);
-                  resolve({ success: true, statusCode: res2.statusCode, data: json, body: body2 });
-                } catch (e) {
-                  resolve({ success: true, statusCode: res2.statusCode, body: body2 });
-                }
-              });
-            }).on('error', (err2) => {
-              resolve({ success: true, statusCode: res.statusCode, body: 'Redirect succeeded' });
-            });
-            return;
-          }
-
-          let body = '';
-          res.on('data', chunk => body += chunk);
-          res.on('end', () => {
-            try {
-              if (res.statusCode >= 200 && res.statusCode < 400) {
-                this.config.lastSyncAt = Date.now();
-                this.saveConfig(this.config);
-                resolve({ success: true, statusCode: res.statusCode, body });
-              } else {
-                resolve({ success: false, statusCode: res.statusCode, error: body });
-              }
-            } catch (e) {
-              resolve({ success: true, body });
-            }
-          });
-        });
-
-        req.on('error', (e) => {
-          console.error('❌ Google Sheets Webhook Error:', e.message);
-          resolve({ success: false, error: e.message });
-        });
-
-        req.on('timeout', () => {
-          req.destroy();
-          resolve({ success: false, error: 'Webhook request timed out (10s)' });
-        });
-
-        req.write(payload);
-        req.end();
-      } catch (err) {
-        console.error('❌ Error executing Google Sheets payload:', err);
-        resolve({ success: false, error: err.message });
+      if (response.ok || (json && (json.status === 'OK' || json.success === true))) {
+        this.config.lastSyncAt = Date.now();
+        this.saveConfig(this.config);
+        return { success: true, statusCode: response.status, data: json || text, body: text };
+      } else {
+        return { success: false, statusCode: response.status, error: text };
       }
-    });
+    } catch (err) {
+      console.warn('⚠️ Google Sheets Webhook Notice:', err.message);
+      return { success: false, error: err.message };
+    }
   }
 
   // 1. ซิงค์เมื่อมีหมุดด่านใหม่ (Real-time Instant Push)
@@ -434,52 +385,21 @@ class GoogleSheetsService {
       if (postResult && postResult.success && postResult.data && postResult.data.status === 'OK') {
         return postResult.data;
       }
-    } catch (e) {
-      // Continue to GET fallback
-    }
+    } catch (e) {}
 
     // วิธีที่ 2: Fallback ดึงข้อมูลผ่าน GET (doGet)
-    return new Promise((resolve) => {
-      try {
-        const urlObj = new URL(this.config.webhookUrl);
-        const isHttps = urlObj.protocol === 'https:';
-        const client = isHttps ? https : http;
-
-        const req = client.get(this.config.webhookUrl, (res) => {
-          if ((res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 303) && res.headers.location) {
-            https.get(res.headers.location, (res2) => {
-              let body2 = '';
-              res2.on('data', chunk => body2 += chunk);
-              res2.on('end', () => {
-                try {
-                  const json = JSON.parse(body2);
-                  resolve(json);
-                } catch (e) {
-                  resolve(null);
-                }
-              });
-            }).on('error', () => resolve(null));
-            return;
-          }
-
-          let body = '';
-          res.on('data', chunk => body += chunk);
-          res.on('end', () => {
-            try {
-              const json = JSON.parse(body);
-              resolve(json);
-            } catch (e) {
-              resolve(null);
-            }
-          });
-        });
-
-        req.on('error', () => resolve(null));
-        req.setTimeout(8000, () => { req.destroy(); resolve(null); });
-      } catch (err) {
-        resolve(null);
+    try {
+      const res = await fetch(this.config.webhookUrl, {
+        method: 'GET',
+        redirect: 'follow',
+        signal: AbortSignal.timeout(10000)
+      });
+      if (res.ok) {
+        return await res.json();
       }
-    });
+    } catch (err) {}
+
+    return null;
   }
 
   // 12. ฟังก์ชันดึงและประยุกต์ใช้ข้อมูลจาก Google Sheets (Auto Apply Remote Changes)
@@ -699,37 +619,28 @@ function doPost(e) {
       var pinSheet = getOrCreateSheet(ss, "📌 รายงานด่าน (Pins)", [
         "รหัสหมุด", "หัวข้อ", "ประเภท", "สถานที่", "โซน", "ละติจูด", "ลองจิจูด", "ทิศทาง", "รายละเอียด", "ผู้รายงาน", "อีเมล", "ป้าย", "สถานะ", "เวลาโพสต์", "เวลาหมดอายุ"
       ]);
-      clearDataRows(pinSheet);
-      if (data.pins && data.pins.length > 0) {
-        var pinRows = data.pins.map(function(p) {
-          return [p.id, p.title, p.type, p.locationName, p.campusZone, p.lat, p.lng, p.direction, p.description, p.reporterName, p.reporterEmail, p.reporterBadge, p.status, p.createdAt, p.expiresAt];
-        });
-        pinSheet.getRange(2, 1, pinRows.length, pinRows[0].length).setValues(pinRows);
-      }
+      var pinRows = (data.pins || []).map(function(p) {
+        return [p.id, p.title, p.type, p.locationName, p.campusZone, p.lat, p.lng, p.direction, p.description, p.reporterName, p.reporterEmail, p.reporterBadge, p.status, p.createdAt, p.expiresAt];
+      });
+      setSheetValuesSmoothly(pinSheet, pinRows);
 
       // 2. Users Sheet
       var userSheet = getOrCreateSheet(ss, "🏆 ผู้ใช้งาน & คะแนน (Users)", [
         "User ID", "ชื่อ", "อีเมล", "คะแนนรวม (EXP)", "คะแนนสัปดาห์นี้", "Trust Score", "บทบาท", "จำนวนหมุดที่สร้าง", "ใช้งานล่าสุด"
       ]);
-      clearDataRows(userSheet);
-      if (data.users && data.users.length > 0) {
-        var userRows = data.users.map(function(u) {
-          return [u.id, u.name, u.email, u.score, u.weeklyScore, u.trustScore, u.role, u.pinsCreated, u.lastActive];
-        });
-        userSheet.getRange(2, 1, userRows.length, userRows[0].length).setValues(userRows);
-      }
+      var userRows = (data.users || []).map(function(u) {
+        return [u.id, u.name, u.email, u.score, u.weeklyScore, u.trustScore, u.role, u.pinsCreated, u.lastActive];
+      });
+      setSheetValuesSmoothly(userSheet, userRows);
 
       // 3. Reports Sheet
       var reportSheet = getOrCreateSheet(ss, "🛡️ รายงานแจ้งลบ (Reports)", [
         "Report ID", "รหัสหมุด", "เหตุผล", "รายละเอียด", "น้ำหนัก (Trust Weight)", "อีเมลผู้แจ้ง", "วันที่แจ้ง"
       ]);
-      clearDataRows(reportSheet);
-      if (data.reports && data.reports.length > 0) {
-        var repRows = data.reports.map(function(r) {
-          return [r.id, r.pinId, r.reason, r.details, r.weight, r.reporterEmail, r.createdAt];
-        });
-        reportSheet.getRange(2, 1, repRows.length, repRows[0].length).setValues(repRows);
-      }
+      var repRows = (data.reports || []).map(function(r) {
+        return [r.id, r.pinId, r.reason, r.details, r.weight, r.reporterEmail, r.createdAt];
+      });
+      setSheetValuesSmoothly(reportSheet, repRows);
 
       // 4. Settings Sheet
       if (data.settings) {
@@ -789,56 +700,62 @@ function doPost(e) {
   }
 }
 
+function setSheetValuesSmoothly(sheet, newRows) {
+  if (!newRows || newRows.length === 0) {
+    clearDataRows(sheet);
+    return;
+  }
+  var numRows = newRows.length;
+  var numCols = newRows[0].length;
+  
+  // 1. เขียนทับลงไปทันที ไม่ต้องลบแผ่นงานก่อน (ป้องกันข้อมูลกระพริบหาย 5 วิ)
+  sheet.getRange(2, 1, numRows, numCols).setValues(newRows);
+  
+  // 2. ถ้ามีแถวเก่าที่ตกค้าง ให้ลบเฉพาะแถวส่วนเกินออก
+  var lastRow = sheet.getLastRow();
+  if (lastRow > numRows + 1) {
+    sheet.getRange(numRows + 2, 1, lastRow - (numRows + 1), sheet.getLastColumn()).clearContent();
+  }
+}
+
 function saveSettingsToSheet(ss, settingsList) {
   var sheet = getOrCreateSheet(ss, "⚙️ ตั้งค่าเว็บไซต์ (Settings)", [
     "Setting Key", "ชื่อการตั้งค่า", "ค่าปัจจุบัน (Value)", "สถานะ (Enabled)", "คำอธิบาย"
   ]);
-  clearDataRows(sheet);
-  if (Array.isArray(settingsList) && settingsList.length > 0) {
-    var rows = settingsList.map(function(s) {
-      return [s.key, s.name, s.value, s.enabled ? "เปิดใช้งาน" : "ปิดใช้งาน", ""];
-    });
-    sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
-  }
+  var rows = (settingsList || []).map(function(s) {
+    return [s.key, s.name, s.value, s.enabled ? "เปิดใช้งาน" : "ปิดใช้งาน", ""];
+  });
+  setSheetValuesSmoothly(sheet, rows);
 }
 
 function saveChatRoomsToSheet(ss, roomsList) {
   var sheet = getOrCreateSheet(ss, "💬 ห้องแชต (Chat Rooms)", [
     "Room ID", "ชื่อห้องแชต", "ไอคอน", "คำอธิบาย", "สถานะห้อง (Status)", "เปิดใช้งาน (Boolean)", "จำนวนข้อความ", "รีเซ็ตล่าสุด"
   ]);
-  clearDataRows(sheet);
-  if (Array.isArray(roomsList) && roomsList.length > 0) {
-    var rows = roomsList.map(function(r) {
-      return [r.id, r.name, r.icon, r.desc, r.status, r.enabled ? "TRUE" : "FALSE", r.msgCount, r.lastReset || "-"];
-    });
-    sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
-  }
+  var rows = (roomsList || []).map(function(r) {
+    return [r.id, r.name, r.icon, r.desc, r.status, r.enabled ? "TRUE" : "FALSE", r.msgCount, r.lastReset || "-"];
+  });
+  setSheetValuesSmoothly(sheet, rows);
 }
 
 function saveRankTiersToSheet(ss, tiersList) {
   var sheet = getOrCreateSheet(ss, "🎖️ ระดับยศ (Rank Tiers)", [
     "Level", "Rank Key", "ชื่อยศ (Rank Name)", "Title", "EXP ขั้นต่ำ (Min EXP)", "EXP สูงสุด (Max EXP)", "ไอคอน (Icon)", "รหัสสี (Hex Color)", "Badge Class"
   ]);
-  clearDataRows(sheet);
-  if (Array.isArray(tiersList) && tiersList.length > 0) {
-    var rows = tiersList.map(function(t) {
-      return [t.level, t.key, t.name, t.title, t.minExp, t.maxExp, t.icon, t.color, t.badgeClass];
-    });
-    sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
-  }
+  var rows = (tiersList || []).map(function(t) {
+    return [t.level, t.key, t.name, t.title, t.minExp, t.maxExp, t.icon, t.color, t.badgeClass];
+  });
+  setSheetValuesSmoothly(sheet, rows);
 }
 
 function saveCategoriesToSheet(ss, catList) {
   var sheet = getOrCreateSheet(ss, "🏷️ หมวดหมู่ด่าน (Categories)", [
     "Category Key", "ชื่อหมวดหมู่ / คำค้นหา", "ไอคอน", "คำอธิบายย่อย"
   ]);
-  clearDataRows(sheet);
-  if (Array.isArray(catList) && catList.length > 0) {
-    var rows = catList.map(function(c) {
-      return [c.key, c.name, c.icon, c.sub];
-    });
-    sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
-  }
+  var rows = (catList || []).map(function(c) {
+    return [c.key, c.name, c.icon, c.sub];
+  });
+  setSheetValuesSmoothly(sheet, rows);
 }
 
 function getOrCreateSheet(ss, sheetName, headers) {
