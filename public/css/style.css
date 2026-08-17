@@ -207,6 +207,12 @@ body {
   color: #F8FAFC !important;
 }
 
+#navDonateBtn.donate-hidden,
+.donate-hidden,
+[data-donate-enabled="false"] #navDonateBtn {
+  display: none !important;
+}
+
 /* ==========================================================================
    ☰ NAVBAR COMPACT DROPDOWN MENU
    ========================================================================== */
@@ -5518,6 +5524,12 @@ body.dark-theme {
     padding: 0.28rem 0.55rem !important;
     font-size: 0.7rem !important;
     gap: 0.2rem;
+  }
+
+  #navDonateBtn.donate-hidden,
+  .donate-hidden,
+  [data-donate-enabled="false"] #navDonateBtn {
+    display: none !important;
   }
 
   .nav-menu-trigger-btn {

@@ -93,6 +93,19 @@
         <span class="donate-emoji-icon">⭐</span>
         <span>โดเนท</span>
       </button>
+      <script>
+        (function() {
+          try {
+            if (localStorage.getItem('msu_donate_enabled') === 'false') {
+              var btn = document.getElementById('navDonateBtn');
+              if (btn) {
+                btn.classList.add('donate-hidden');
+                btn.style.display = 'none';
+              }
+            }
+          } catch (e) {}
+        })();
+      </script>
 
       <!-- ☰ เมนู Dropdown (รวม: โหมดมืด/สว่าง, ข้อมูล, ตารางอันดับ, กฎหมาย) -->
       <div class="nav-menu-dropdown-wrapper" id="navMenuDropdownWrapper">

@@ -1732,8 +1732,13 @@ class Database {
     if (!this.data.system_config) {
       this.data.system_config = {
         globalChatEnabled: true,
-        allowAllEmails: true
+        allowAllEmails: true,
+        donateEnabled: false
       };
+      this.saveData();
+    }
+    if (this.data.system_config.donateEnabled === undefined) {
+      this.data.system_config.donateEnabled = false;
       this.saveData();
     }
     return this.data.system_config;

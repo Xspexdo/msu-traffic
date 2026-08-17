@@ -1733,17 +1733,27 @@ window.checkDonateVisibility = function(forcedState = null) {
   const donateBtn = document.getElementById('navDonateBtn');
   if (!donateBtn) return;
 
+  const applyState = (isEnabled) => {
+    if (isEnabled) {
+      donateBtn.classList.remove('donate-hidden');
+      donateBtn.style.display = '';
+    } else {
+      donateBtn.classList.add('donate-hidden');
+      donateBtn.style.display = 'none';
+    }
+  };
+
   if (forcedState !== null) {
     const isEnabled = forcedState === true || forcedState === 'true';
-    donateBtn.style.display = isEnabled ? '' : 'none';
+    applyState(isEnabled);
     return;
   }
 
   const donateEnabled = localStorage.getItem('msu_donate_enabled');
   if (donateEnabled === 'false') {
-    donateBtn.style.display = 'none';
-  } else {
-    donateBtn.style.display = '';
+    applyState(false);
+  } else if (donateEnabled === 'true') {
+    applyState(true);
   }
 
   // ดึงสถานะล่าสุดจาก Server เพื่อความแม่นยำ 100%
@@ -1753,7 +1763,15 @@ window.checkDonateVisibility = function(forcedState = null) {
       if (data && data.success && data.data && data.data.donateEnabled !== undefined) {
         const isServerEnabled = data.data.donateEnabled !== false;
         localStorage.setItem('msu_donate_enabled', isServerEnabled ? 'true' : 'false');
-        donateBtn.style.display = isServerEnabled ? '' : 'none';
+        applyState(isServerEnabled);
+
+        const devToggle = document.getElementById('devDonateToggle');
+        const devLabel = document.getElementById('devDonateStatusLabel');
+        if (devToggle) devToggle.checked = isServerEnabled;
+        if (devLabel) {
+          devLabel.textContent = isServerEnabled ? 'เปิดอยู่' : 'ปิดอยู่';
+          devLabel.style.color = isServerEnabled ? '#10B981' : '#EF4444';
+        }
       }
     })
     .catch(() => {});

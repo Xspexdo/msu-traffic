@@ -24,7 +24,7 @@
       "isDev": true,
       "status": "active",
       "createdAt": 1786777538446,
-      "lastActiveAt": 1786984928589
+      "lastActiveAt": 1786985456719
     },
     "google_108560811899542656924": {
       "id": "google_108560811899542656924",
@@ -1292,6 +1292,15 @@
       "details": "สั่ง Full Sync ข้อมูลทั้งหมดขึ้น Google Sheets สำเร็จ",
       "ip": "127.0.0.1",
       "createdAt": 1786983354536
+    },
+    {
+      "id": "audit-1786984941044-86k",
+      "action": "CHAT_DELETE",
+      "userId": "dev_java5263",
+      "targetId": "msg-1786978937593-9mfw",
+      "details": "ยกเลิกข้อความในห้อง [general]",
+      "ip": "127.0.0.1",
+      "createdAt": 1786984941044
     }
   ],
   "pin_chat_messages": [],
