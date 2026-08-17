@@ -258,6 +258,16 @@ class MSUApp {
         }
       });
 
+      // ⭐ System Config & Donate Real-time Updates
+      this.socket.on('system_config_updated', (cfg) => {
+        if (cfg && cfg.donateEnabled !== undefined) {
+          localStorage.setItem('msu_donate_enabled', cfg.donateEnabled ? 'true' : 'false');
+          if (window.checkDonateVisibility) {
+            window.checkDonateVisibility(cfg.donateEnabled);
+          }
+        }
+      });
+
       // Pass socket to managers
       if (window.rankManager) window.rankManager.bindSocketEvents(this.socket);
       if (window.chatManager) window.chatManager.bindSocketEvents(this.socket);
@@ -1718,18 +1728,35 @@ window.checkFirstVisitLegal = function() {
   }
 };
 
-// ⭐ ระบบเปิด/ปิด Donate จาก Dev Settings (ใช้ localStorage)
-window.checkDonateVisibility = function() {
-  const donateEnabled = localStorage.getItem('msu_donate_enabled');
+// ⭐ ระบบเปิด/ปิด Donate จาก Dev Settings (รองรับทั้ง Server Config และ Real-time)
+window.checkDonateVisibility = function(forcedState = null) {
   const donateBtn = document.getElementById('navDonateBtn');
-  if (donateBtn) {
-    // ค่าเริ่มต้นคือเปิด (ถ้ายังไม่เคยตั้งค่า)
-    if (donateEnabled === 'false') {
-      donateBtn.style.display = 'none';
-    } else {
-      donateBtn.style.display = '';
-    }
+  if (!donateBtn) return;
+
+  if (forcedState !== null) {
+    const isEnabled = forcedState === true || forcedState === 'true';
+    donateBtn.style.display = isEnabled ? '' : 'none';
+    return;
   }
+
+  const donateEnabled = localStorage.getItem('msu_donate_enabled');
+  if (donateEnabled === 'false') {
+    donateBtn.style.display = 'none';
+  } else {
+    donateBtn.style.display = '';
+  }
+
+  // ดึงสถานะล่าสุดจาก Server เพื่อความแม่นยำ 100%
+  fetch('/api/security/system-config')
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.success && data.data && data.data.donateEnabled !== undefined) {
+        const isServerEnabled = data.data.donateEnabled !== false;
+        localStorage.setItem('msu_donate_enabled', isServerEnabled ? 'true' : 'false');
+        donateBtn.style.display = isServerEnabled ? '' : 'none';
+      }
+    })
+    .catch(() => {});
 };
 
 window.app = new MSUApp();

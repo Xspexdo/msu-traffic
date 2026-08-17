@@ -24,7 +24,7 @@
       "isDev": true,
       "status": "active",
       "createdAt": 1786777538446,
-      "lastActiveAt": 1786984918536
+      "lastActiveAt": 1786984928589
     },
     "google_108560811899542656924": {
       "id": "google_108560811899542656924",
@@ -96,7 +96,7 @@
       "name": "ทั่วไป (General)",
       "icon": "💬",
       "desc": "พูดคุยแลกเปลี่ยนข่าวสารทั่วไปรอบ มมส",
-      "msgCount": 1
+      "msgCount": 0
     },
     {
       "id": "marketplace",
@@ -128,27 +128,7 @@
       "msgCount": 0
     }
   ],
-  "chat_messages": [
-    {
-      "id": "msg-1786978937593-9mfw",
-      "roomId": "general",
-      "senderId": "dev_java5263",
-      "senderName": "Java (Dev)",
-      "senderEmail": "java5263@gmail.com",
-      "senderBadge": "👑 DEV",
-      "senderPicture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
-      "text": "กิ",
-      "isAnonymous": false,
-      "isAnnouncement": false,
-      "location": {
-        "lat": null,
-        "lng": null,
-        "distKm": 999,
-        "inZone": false
-      },
-      "createdAt": 1786978937593
-    }
-  ],
+  "chat_messages": [],
   "message_reports": [],
   "warnings": [],
   "bans": [],

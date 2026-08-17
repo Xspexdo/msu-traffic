@@ -96,19 +96,9 @@ class DevManager {
   // ============================================================================
   // ⚙️ TAB 6: SYSTEM SETTINGS (ตั้งค่าระบบ)
   // ============================================================================
-  loadSettingsState() {
-    // 1. โหลดสถานะปุ่ม Donate จาก localStorage
-    const donateEnabled = localStorage.getItem('msu_donate_enabled');
-    const toggle = document.getElementById('devDonateToggle');
-    const label = document.getElementById('devDonateStatusLabel');
-
-    // ค่าเริ่มต้นคือเปิด (ถ้ายังไม่เคยตั้งค่า)
-    const isEnabled = donateEnabled !== 'false';
-    if (toggle) toggle.checked = isEnabled;
-    if (label) {
-      label.textContent = isEnabled ? 'เปิดอยู่' : 'ปิดอยู่';
-      label.style.color = isEnabled ? '#10B981' : '#EF4444';
-    }
+  async loadSettingsState() {
+    // 1. โหลดสถานะปุ่ม Donate จาก Server และ localStorage
+    this.loadDonateSetting();
 
     // 2. โหลดสถานะระบบแชททั่วโลก (Global Chat)
     this.loadGlobalChatSetting();
@@ -124,6 +114,66 @@ class DevManager {
 
     // 6. โหลดการตั้งค่าระดับยศ (Rank Tiers Settings)
     this.loadRankTiersSettings();
+  }
+
+  async loadDonateSetting() {
+    const toggle = document.getElementById('devDonateToggle');
+    const label = document.getElementById('devDonateStatusLabel');
+
+    try {
+      const res = await fetch('/api/security/system-config');
+      const data = await res.json();
+      if (data.success && data.data) {
+        const isEnabled = data.data.donateEnabled !== false;
+        localStorage.setItem('msu_donate_enabled', isEnabled ? 'true' : 'false');
+        if (toggle) toggle.checked = isEnabled;
+        if (label) {
+          label.textContent = isEnabled ? 'เปิดอยู่' : 'ปิดอยู่';
+          label.style.color = isEnabled ? '#10B981' : '#EF4444';
+        }
+        if (window.checkDonateVisibility) {
+          window.checkDonateVisibility(isEnabled);
+        }
+        return;
+      }
+    } catch (e) {
+      console.warn('Error loading donate config:', e);
+    }
+
+    const stored = localStorage.getItem('msu_donate_enabled');
+    const isEnabled = stored !== 'false';
+    if (toggle) toggle.checked = isEnabled;
+    if (label) {
+      label.textContent = isEnabled ? 'เปิดอยู่' : 'ปิดอยู่';
+      label.style.color = isEnabled ? '#10B981' : '#EF4444';
+    }
+  }
+
+  async toggleDonate(enabled) {
+    const label = document.getElementById('devDonateStatusLabel');
+    if (label) {
+      label.textContent = enabled ? 'เปิดอยู่' : 'ปิดอยู่';
+      label.style.color = enabled ? '#10B981' : '#EF4444';
+    }
+
+    localStorage.setItem('msu_donate_enabled', enabled ? 'true' : 'false');
+    if (window.checkDonateVisibility) {
+      window.checkDonateVisibility(enabled);
+    }
+
+    try {
+      const res = await fetch('/api/security/admin/toggle-donate', {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ enabled })
+      });
+      const data = await res.json();
+      if (data.success && window.app) {
+        window.app.showNotification(data.message, enabled ? 'success' : 'info');
+      }
+    } catch (e) {
+      console.warn('Error saving donate setting:', e);
+    }
   }
 
   async loadAnnouncementSetting() {

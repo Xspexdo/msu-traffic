@@ -585,6 +585,30 @@ router.post('/admin/chat-rooms/toggle', (req, res) => {
   res.json(result);
 });
 
+// 24. GET /api/security/system-config - ดึงการตั้งค่าระบบ (Donate, Global Chat)
+router.get('/system-config', (req, res) => {
+  const config = db.getSystemConfig();
+  res.json({ success: true, data: config });
+});
+
+// 25. POST /api/security/admin/toggle-donate - สลับเปิด/ปิดปุ่ม Donate (พร้อม Real-time Broadcast & Google Sheets Sync)
+router.post('/admin/toggle-donate', (req, res) => {
+  if (!checkDevPermission(req)) {
+    return res.status(403).json({ success: false, error: 'DEV_PERMISSION_REQUIRED', message: 'คุณไม่มีสิทธิ์ Developer' });
+  }
+
+  const { enabled } = req.body;
+  const config = db.updateSystemConfig({
+    donateEnabled: enabled !== false
+  }, req.user?.id || 'dev_admin');
+
+  res.json({
+    success: true,
+    donateEnabled: config.donateEnabled,
+    message: `สลับสถานะระบบ Donate เป็น: ${config.donateEnabled ? '⭐ เปิดใช้งาน (แสดงปุ่ม)' : '🔒 ปิดการแสดงผล (ซ่อนปุ่ม)'}`
+  });
+});
+
 module.exports = router;
 
 
