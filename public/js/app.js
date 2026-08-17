@@ -39,6 +39,16 @@ class MSUApp {
     this.bindEvents();
     this.updateAuthUI();
 
+    // ⚖️ Initialize Terms & Policy agreement persistent state
+    const agreeCheckbox = document.getElementById('reportAgreeTerms');
+    if (agreeCheckbox) {
+      const hasAgreed = localStorage.getItem('msu_terms_agreed') === 'true';
+      agreeCheckbox.checked = hasAgreed;
+      agreeCheckbox.addEventListener('change', (e) => {
+        localStorage.setItem('msu_terms_agreed', e.target.checked ? 'true' : 'false');
+      });
+    }
+
     // Start on Map tab as default
     this.switchTab('map');
   }
@@ -412,7 +422,7 @@ class MSUApp {
     else if (isMsuStudent) badgeHtml = '<span class="badge-msu">🎓 MSU</span>';
 
     return `
-      <div class="report-card ${isAnnouncement ? 'card-announcement-official' : ''} ${isCleared ? 'card-cleared' : ''}" data-id="${rep.id}">
+      <div class="report-card ${isAnnouncement ? 'card-announcement-official' : ''} ${isCleared ? 'card-cleared' : ''}" data-id="${rep.id}" onclick="window.mapManager?.focusReport('${rep.id}')" title="คลิกเพื่อดูตำแหน่งหมุดบนแผนที่" style="cursor: pointer;">
         ${isAnnouncement ? `
           <div class="announcement-card-banner">
             <span class="announcement-banner-icon">📢</span>
@@ -613,12 +623,16 @@ class MSUApp {
       return;
     }
 
-    // ⚖️ ตรวจสอบการยอมรับข้อตกลงการใช้งาน & พ.ร.บ. คอมพิวเตอร์
-    const agreeTerms = document.getElementById('reportAgreeTerms')?.checked;
-    if (!agreeTerms) {
+    // ⚖️ ตรวจสอบการยอมรับข้อตกลงการใช้งาน & พ.ร.บ. คอมพิวเตอร์ (จำค่าตลอดการใช้งาน)
+    const agreeCheckbox = document.getElementById('reportAgreeTerms');
+    const isTermsAgreed = agreeCheckbox?.checked || localStorage.getItem('msu_terms_agreed') === 'true';
+    if (!isTermsAgreed) {
       alert('⚠️ กรุณากดยินยอมและยอมรับข้อตกลงการใช้งาน & คำเตือน พ.ร.บ. คอมพิวเตอร์ ก่อนโพสต์รายงานด่าน');
       return;
     }
+    // จำค่าไว้ตลอดการใช้งาน
+    localStorage.setItem('msu_terms_agreed', 'true');
+    if (agreeCheckbox) agreeCheckbox.checked = true;
 
     const lifespanHours = document.getElementById('reportLifespanHours')?.value || 6;
     const isAnnouncement = document.getElementById('reportIsAnnouncement')?.checked || false;
@@ -767,6 +781,13 @@ class MSUApp {
     const lngInput = document.getElementById('reportLng');
     if (latInput && !latInput.value) latInput.value = '16.2467';
     if (lngInput && !lngInput.value) lngInput.value = '103.2520';
+
+    // ⚖️ จำการยืนยันข้อตกลงและคำเตือน พ.ร.บ. คอมพิวเตอร์ ตลอดการใช้งาน
+    const agreeCheckbox = document.getElementById('reportAgreeTerms');
+    const hasAgreed = localStorage.getItem('msu_terms_agreed') === 'true';
+    if (agreeCheckbox) {
+      agreeCheckbox.checked = hasAgreed;
+    }
 
     // Toggle Announcement option: ONLY for Dev/Admin
     const isDev = window.authManager?.isDev();
@@ -1311,6 +1332,20 @@ class MSUApp {
   closeLegalModal() {
     const modal = document.getElementById('legalNoticeModal');
     if (modal) modal.classList.remove('active');
+  }
+
+  toggleFeedPanelMinimize() {
+    const panel = document.getElementById('mapFeedPanel');
+    const toggleText = document.getElementById('feedPanelToggleText');
+    if (!panel) return;
+    panel.classList.toggle('minimized');
+    const isMin = panel.classList.contains('minimized');
+    if (toggleText) {
+      toggleText.textContent = isMin ? '🔺 ขยายรายการ (แสดงโพสต์ด่าน)' : '🔻 ย่อรายการ (ดูแผนที่เต็มจอ)';
+    }
+    if (window.mapManager) {
+      window.mapManager.forceResize();
+    }
   }
 
   showNotification(msg, type = 'info') {

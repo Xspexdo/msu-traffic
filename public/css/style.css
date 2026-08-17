@@ -1037,27 +1037,61 @@ body {
   flex-direction: column;
   gap: 0.5rem;
   z-index: 450;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.map-feed-panel.minimized {
+  max-height: 48px !important;
+  overflow: hidden;
+  padding-bottom: 0.25rem !important;
+}
+
+.map-feed-panel.minimized .search-filter-wrapper,
+.map-feed-panel.minimized .feed-list-container {
+  display: none !important;
 }
 
 .feed-panel-handle-bar {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 0.2rem 0 0.35rem 0;
+  gap: 0.2rem;
+  padding: 0.15rem 0 0.35rem 0;
   cursor: pointer;
+  user-select: none;
 }
 
 .feed-panel-handle-pill {
-  width: 40px;
-  height: 4px;
+  width: 44px;
+  height: 5px;
   background: #CBD5E1;
   border-radius: 4px;
   transition: background 0.2s ease;
 }
 
+.feed-panel-toggle-text {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748B;
+  letter-spacing: -0.2px;
+  transition: color 0.15s ease;
+}
+
 .feed-panel-handle-bar:hover .feed-panel-handle-pill {
-  background: #94A3B8;
+  background: #3B82F6;
+}
+
+.feed-panel-handle-bar:hover .feed-panel-toggle-text {
+  color: #2563EB;
+}
+
+[data-theme="dark"] .feed-panel-toggle-text {
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .feed-panel-handle-bar:hover .feed-panel-toggle-text {
+  color: #60A5FA;
 }
 
 .feed-list-container {
@@ -3795,6 +3829,108 @@ textarea.form-control {
   font-size: 0.7rem;
   color: #B45309;
   font-weight: 600;
+}
+
+/* ==========================================================================
+   ⚖️ LEGAL NOTICE & TERMS MODAL STYLES (Soft on Eyes / Dark Theme Friendly)
+   ========================================================================== */
+.legal-modal-card {
+  background: #FFFFFF;
+  border-radius: 18px;
+  border: 1.5px solid #E2E8F0;
+  overflow: hidden;
+}
+
+.legal-modal-body {
+  color: #334155;
+}
+
+.legal-alert-warning {
+  background: #FFFBEB;
+  border: 1.5px solid #FDE68A;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  color: #92400E;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.legal-section-title {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0.3rem 0 0 0;
+}
+
+.legal-bullet-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  color: #475569;
+  font-size: 0.8rem;
+}
+
+.legal-alert-disclaimer {
+  background: #EFF6FF;
+  border: 1.5px solid #BFDBFE;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  color: #1E40AF;
+  margin-top: 0.3rem;
+}
+
+.legal-disclaimer-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #1E3A8A;
+  margin: 0 0 0.25rem 0;
+}
+
+.legal-modal-footer {
+  background: #F8FAFC;
+  border-top: 1px solid #E2E8F0;
+  padding: 0.85rem 1rem;
+}
+
+/* Dark Mode Overrides for Legal Notice (สบายตา ไม่แสบตา) */
+[data-theme="dark"] .legal-modal-card {
+  background: #151D2A !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .legal-modal-body {
+  color: #CBD5E1 !important;
+}
+
+[data-theme="dark"] .legal-alert-warning {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+  color: #FDE68A !important;
+}
+
+[data-theme="dark"] .legal-section-title {
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .legal-bullet-list {
+  color: #94A3B8 !important;
+}
+
+[data-theme="dark"] .legal-alert-disclaimer {
+  background: rgba(30, 58, 138, 0.35) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+  color: #BFDBFE !important;
+}
+
+[data-theme="dark"] .legal-disclaimer-title {
+  color: #93C5FD !important;
+}
+
+[data-theme="dark"] .legal-modal-footer {
+  background: #0F172A !important;
+  border-top-color: var(--border) !important;
 }
 
 /* ==========================================================================

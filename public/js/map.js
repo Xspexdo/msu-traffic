@@ -287,6 +287,7 @@ class MSUMapManager {
     this.reports = reports;
     if (!this.markersLayer) return;
     this.markersLayer.clearLayers();
+    this.markers = {};
 
     const currentUser = window.authManager ? window.authManager.getUser() : null;
     const isDev = window.authManager ? window.authManager.isDev() : false;
@@ -561,6 +562,7 @@ class MSUMapManager {
         if (this.restoreFeedPanel) this.restoreFeedPanel();
       });
 
+      this.markers[report.id] = marker;
       this.markersLayer.addLayer(marker);
     });
   }
@@ -568,7 +570,22 @@ class MSUMapManager {
   focusReport(reportId) {
     const rep = this.reports.find(r => r.id === reportId);
     if (rep && rep.lat && rep.lng && this.map) {
-      this.map.flyTo([rep.lat, rep.lng], 16.5, { duration: 1 });
+      const targetZoom = Math.max(16.5, this.map.getZoom());
+      const targetPoint = this.map.project([rep.lat, rep.lng], targetZoom);
+      const isMobile = window.innerWidth <= 768;
+      const offsetY = isMobile ? 120 : 150;
+      const offsetPoint = L.point(targetPoint.x, targetPoint.y + offsetY);
+      const offsetLatLng = this.map.unproject(offsetPoint, targetZoom);
+
+      this.map.flyTo(offsetLatLng, targetZoom, { duration: 0.8 });
+
+      if (this.markers && this.markers[reportId]) {
+        setTimeout(() => {
+          if (this.markers && this.markers[reportId]) {
+            this.markers[reportId].openPopup();
+          }
+        }, 450);
+      }
     }
   }
 

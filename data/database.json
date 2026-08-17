@@ -2,9 +2,9 @@
   "season": 1,
   "seasonName": "Season 1: ปฐมบทชาว มมส",
   "seasonStart": 1786777538446,
-  "weekNumber": 2,
+  "weekNumber": 1,
   "weekStart": 1786777538446,
-  "weekEnd": 1786986000000,
+  "weekEnd": 1787382338446,
   "users": {
     "dev_java5263": {
       "id": "dev_java5263",
@@ -14,9 +14,9 @@
       "role": "dev",
       "badge": "👑 DEV",
       "trustScore": 100,
-      "weeklyScore": 6,
-      "allTimeScore": 6,
-      "pinsCreated": 1,
+      "weeklyScore": 31,
+      "allTimeScore": 31,
+      "pinsCreated": 2,
       "pinsVerified": 0,
       "reportsCount": 0,
       "accurateReports": 0,
@@ -24,8 +24,7 @@
       "isDev": true,
       "status": "active",
       "createdAt": 1786777538446,
-      "lastActiveAt": 1786978173548,
-      "todayEarnedExp": 6
+      "lastActiveAt": 1786978825294
     },
     "google_108560811899542656924": {
       "id": "google_108560811899542656924",
@@ -90,33 +89,32 @@
   },
   "pins": [
     {
-      "id": "pin-1786978174899-27mz2",
-      "title": "รายงานด่าน หน้าป้าย มมส",
-      "locationName": "หน้าป้าย มมส",
+      "id": "pin-1786978484139-an0yt",
+      "title": "รายงานด่าน พิกัดที่ระบุบนแผนที่ มมส",
+      "locationName": "พิกัดที่ระบุบนแผนที่ มมส",
       "customLocation": "",
       "campusZone": "มอใหม่ (ขามเรียง)",
-      "lat": 16.2468,
-      "lng": 103.2514,
+      "lat": 16.245311,
+      "lng": 103.250434,
       "type": "helmet",
-      "direction": "",
+      "direction": "ไม่ระบุฝั่งทาง",
       "description": "",
       "imageUrl": null,
-      "severity": "medium",
-      "isAnonymous": true,
+      "severity": "high",
+      "isAnonymous": false,
       "isAnnouncement": false,
       "reporterId": "dev_java5263",
       "reporter": {
-        "realName": "Java (Dev)",
-        "realEmail": "java5263@gmail.com",
-        "realId": "dev_java5263"
-      },
-      "realReporter": {
         "id": "dev_java5263",
         "name": "Java (Dev)",
         "email": "java5263@gmail.com",
         "picture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
+        "isDev": true,
+        "isMsuStudent": false,
+        "isAnonymous": false,
+        "isAnnouncement": false,
         "badge": "👑 DEV",
-        "trustScore": 100
+        "role": "dev"
       },
       "likes": [],
       "views": 1,
@@ -129,8 +127,50 @@
       "reports": [],
       "status": "active",
       "moveCount": 0,
-      "createdAt": 1786978174899,
-      "expiresAt": 1786999774899
+      "createdAt": 1786978484139,
+      "expiresAt": 1787000084139
+    },
+    {
+      "id": "pin-1786978467418-e7ri9",
+      "title": "รายงานด่าน พิกัดที่ระบุบนแผนที่ มมส",
+      "locationName": "พิกัดที่ระบุบนแผนที่ มมส",
+      "customLocation": "",
+      "campusZone": "มอใหม่ (ขามเรียง)",
+      "lat": 16.245774,
+      "lng": 103.249716,
+      "type": "helmet",
+      "direction": "ไม่ระบุฝั่งทาง",
+      "description": "",
+      "imageUrl": null,
+      "severity": "high",
+      "isAnonymous": false,
+      "isAnnouncement": false,
+      "reporterId": "dev_java5263",
+      "reporter": {
+        "id": "dev_java5263",
+        "name": "Java (Dev)",
+        "email": "java5263@gmail.com",
+        "picture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
+        "isDev": true,
+        "isMsuStudent": false,
+        "isAnonymous": false,
+        "isAnnouncement": false,
+        "badge": "👑 DEV",
+        "role": "dev"
+      },
+      "likes": [],
+      "views": 1,
+      "votes": {
+        "up": [
+          "dev_java5263"
+        ],
+        "down": []
+      },
+      "reports": [],
+      "status": "active",
+      "moveCount": 0,
+      "createdAt": 1786978467418,
+      "expiresAt": 1787000067418
     }
   ],
   "pin_reports": [],
@@ -175,30 +215,23 @@
   ],
   "chat_messages": [
     {
-      "id": "msg-1786978174934-md5t",
+      "id": "msg-1786978937593-9mfw",
       "roomId": "general",
       "senderId": "dev_java5263",
-      "senderName": "นิสิตนิรนาม",
-      "senderEmail": "",
+      "senderName": "Java (Dev)",
+      "senderEmail": "java5263@gmail.com",
       "senderBadge": "👑 DEV",
-      "senderPicture": "https://ui-avatars.com/api/?name=MSU&background=2563EB&color=fff",
-      "realSenderId": "dev_java5263",
-      "realSenderName": "Java (Dev)",
-      "realSenderEmail": "java5263@gmail.com",
-      "realSenderBadge": "👑 DEV",
-      "realSenderPicture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
-      "text": "ทดสอบแชทนิรนาม",
-      "isAnonymous": true,
+      "senderPicture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
+      "text": "กิ",
+      "isAnonymous": false,
       "isAnnouncement": false,
-      "isGlobal": true,
       "location": {
         "lat": null,
         "lng": null,
         "distKm": 999,
-        "inZone": false,
-        "isGlobal": true
+        "inZone": false
       },
-      "createdAt": 1786978174934
+      "createdAt": 1786978937593
     }
   ],
   "message_reports": [],
@@ -1231,63 +1264,24 @@
       "createdAt": 1786976871035
     },
     {
-      "id": "audit-1786978174900-np2",
+      "id": "audit-1786978467419-ljp",
       "action": "PIN_CREATE",
       "userId": "dev_java5263",
-      "targetId": "pin-1786978174899-27mz2",
-      "details": "ปักหมุดด่านใหม่: หน้าป้าย มมส",
+      "targetId": "pin-1786978467418-e7ri9",
+      "details": "ปักหมุดด่านใหม่: พิกัดที่ระบุบนแผนที่ มมส",
       "ip": "127.0.0.1",
-      "createdAt": 1786978174900
+      "createdAt": 1786978467419
     },
     {
-      "id": "audit-1786978174935-9kd",
-      "action": "CHAT_MSG",
+      "id": "audit-1786978484140-dor",
+      "action": "PIN_CREATE",
       "userId": "dev_java5263",
-      "targetId": "general",
-      "details": "ส่งข้อความในห้อง [general] (🌐 Global)",
+      "targetId": "pin-1786978484139-an0yt",
+      "details": "ปักหมุดด่านใหม่: พิกัดที่ระบุบนแผนที่ มมส",
       "ip": "127.0.0.1",
-      "createdAt": 1786978174935
+      "createdAt": 1786978484140
     }
   ],
   "pin_chat_messages": [],
-  "rider_requests": [],
-  "leaderboard_snapshot": {
-    "calculatedAt": 1786978234903,
-    "nextCalculationAt": 1786986000000,
-    "rankings": [
-      {
-        "id": "dev_java5263",
-        "name": "Java (Dev)",
-        "email": "java5263@gmail.com",
-        "picture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
-        "badge": "👑 DEV",
-        "isDev": true,
-        "trustScore": 100,
-        "score": 6,
-        "todayScore": 6,
-        "allTimeScore": 6,
-        "pinsCreated": 1,
-        "rank": {
-          "level": 99,
-          "key": "dev",
-          "name": "Developer / ผู้พัฒนาระบบ",
-          "title": "System Creator",
-          "icon": "👑",
-          "color": "#F59E0B",
-          "badgeClass": "rank-dev",
-          "exp": 6,
-          "nextRank": null,
-          "pointsToNext": 0,
-          "progressPercent": 100
-        }
-      }
-    ]
-  },
-  "system_config": {
-    "globalChatEnabled": true,
-    "allowAllEmails": true
-  },
-  "lastLeaderboardCalcDate": "2026-08-17",
-  "dayNumber": 2,
-  "dayEnd": 1786986000000
+  "rider_requests": []
 }

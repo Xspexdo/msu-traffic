@@ -188,7 +188,11 @@
         </div>
 
         <!-- Feed List below/alongside map -->
-        <div class="map-feed-panel">
+        <div class="map-feed-panel" id="mapFeedPanel">
+          <div class="feed-panel-handle-bar" onclick="window.app?.toggleFeedPanelMinimize()" title="คลิกเพื่อย่อหรือขยายรายการ (ดูหมุดบนแผนที่เต็มจอ)">
+            <div class="feed-panel-handle-pill"></div>
+            <span class="feed-panel-toggle-text" id="feedPanelToggleText">🔻 ย่อรายการ (ดูแผนที่เต็มจอ)</span>
+          </div>
           <div class="search-filter-wrapper">
             <div class="search-input-group">
               <span class="search-icon">🔍</span>
@@ -705,10 +709,15 @@
               </div>
             </div>
             <label style="display: flex; align-items: center; gap: 0.5rem; background: #FFFFFF; padding: 0.55rem 0.75rem; border-radius: 8px; border: 1.5px solid #F59E0B; cursor: pointer; user-select: none;">
-              <input type="checkbox" id="reportAgreeTerms" required style="width: 18px; height: 18px; cursor: pointer; accent-color: #D97706;">
-              <span style="font-size: 0.78rem; font-weight: 800; color: #1E293B; line-height: 1.4;">
-                ข้าพเจ้ายืนยันข้อมูลเป็นความจริง และรับทราบว่าระบบนี้เป็นชุมชนอิสระไม่มีส่วนเกี่ยวข้องกับมหาวิทยาลัย
-              </span>
+              <input type="checkbox" id="reportAgreeTerms" onchange="localStorage.setItem('msu_terms_agreed', this.checked ? 'true' : 'false')" style="width: 18px; height: 18px; cursor: pointer; accent-color: #D97706;">
+              <div style="flex: 1;">
+                <span style="font-size: 0.78rem; font-weight: 800; color: #1E293B; line-height: 1.4;">
+                  ข้าพเจ้ายืนยันข้อมูลเป็นความจริง และรับทราบว่าระบบนี้เป็นชุมชนอิสระไม่มีส่วนเกี่ยวข้องกับมหาวิทยาลัย
+                </span>
+                <div style="font-size: 0.68rem; color: #059669; font-weight: 700; margin-top: 2px;">
+                  ✓ ติ๊กยืนยันครั้งเดียว ระบบจะจำค่าไว้ตลอดการใช้งานโดยอัตโนมัติ
+                </div>
+              </div>
             </label>
           </div>
         </div>
@@ -982,7 +991,7 @@
 
   <!-- MODAL: ข้อกำหนดการใช้งานและข้อกฎหมาย พ.ร.บ. คอมพิวเตอร์ (Legal & Terms Modal) -->
   <div class="modal-overlay" id="legalNoticeModal">
-    <div class="modal-container" style="max-width: 500px; max-height: 85vh; display: flex; flex-direction: column;">
+    <div class="modal-container legal-modal-card" style="max-width: 500px; max-height: 85vh; display: flex; flex-direction: column;">
       <div class="modal-header">
         <div class="modal-title">
           <span>⚖️</span>
@@ -991,34 +1000,34 @@
         <!-- ปุ่มปิด: ซ่อนเมื่อเป็นโหมดบังคับยอมรับ (แสดงเมื่อกดดูภายหลัง) -->
         <button class="modal-close-btn legal-close-btn" onclick="window.closeLegalModal ? window.closeLegalModal() : window.app?.closeLegalModal()" style="display: none;">✕</button>
       </div>
-      <div class="modal-body" style="padding: 1.15rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.82rem; line-height: 1.55; color: #334155;">
-        <div style="background: #FEF2F2; border: 1.5px solid #FECACA; border-radius: 12px; padding: 0.85rem 1rem; color: #991B1B;">
+      <div class="modal-body legal-modal-body" style="padding: 1.15rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.82rem; line-height: 1.55;">
+        <div class="legal-alert-warning">
           <strong style="font-size: 0.88rem; display: block; margin-bottom: 0.25rem;">⚠️ คำเตือนสำคัญตามกฎหมาย:</strong>
           ระบบ MSU Traffic จัดทำขึ้นเพื่อรณรงค์ความปลอดภัย วินัยจราจร และอำนวยความสะดวกในการสัญจรของนิสิต ม.มหาสารคาม เท่านั้น
         </div>
 
-        <h4 style="font-size: 0.92rem; font-weight: 800; color: #0F172A; margin: 0.3rem 0 0 0;">1. ข้อห้ามในการนำเข้าข้อมูล</h4>
-        <ul style="margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.3rem;">
+        <h4 class="legal-section-title">1. ข้อห้ามในการนำเข้าข้อมูล</h4>
+        <ul class="legal-bullet-list">
           <li>ห้ามนำเข้าข้อมูลเท็จ หรือปักหมุดหลอกลวงที่ไม่มีอยู่จริง</li>
           <li>ห้ามใช้ถ้อยคำหยาบคาย ด่าทอ สบถ หรือกลั่นแกล้งเจ้าหน้าที่และบุคคลอื่น</li>
           <li>ห้ามโฆษณา สแปมข้อความ หรือขายสินค้าผิดกฎหมาย</li>
         </ul>
 
-        <h4 style="font-size: 0.92rem; font-weight: 800; color: #0F172A; margin: 0.3rem 0 0 0;">2. มาตรการทางเทคนิคและการรักษาความปลอดภัย</h4>
-        <ul style="margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.3rem;">
+        <h4 class="legal-section-title">2. มาตรการทางเทคนิคและการรักษาความปลอดภัย</h4>
+        <ul class="legal-bullet-list">
           <li>ระบบมีการบันทึก Audit Logs พิกัด GPS และ Ray ID เพื่อตรวจสอบความถูกต้อง</li>
           <li>ระบบตรวจจับคำหยาบ (Profanity Filter) และตัดแต้ม Trust Score อัตโนมัติ</li>
           <li>ผู้ฝ่าฝืนจะถูกแบนบัญชีถาวร และดำเนินคดีตาม พ.ร.บ. คอมพิวเตอร์ พ.ศ. 2560</li>
         </ul>
 
-        <div style="background: #EFF6FF; border: 1.5px solid #BFDBFE; border-radius: 10px; padding: 0.85rem 1rem; color: #1E40AF; margin-top: 0.3rem;">
-          <h4 style="font-size: 0.9rem; font-weight: 800; color: #1E3A8A; margin: 0 0 0.25rem 0;">3. การไม่เกี่ยวข้องกับทางมหาวิทยาลัย (Non-Affiliation Disclaimer)</h4>
-          <p style="margin: 0; font-size: 0.78rem; line-height: 1.5; color: #1E40AF;">
+        <div class="legal-alert-disclaimer">
+          <h4 class="legal-disclaimer-title">3. การไม่เกี่ยวข้องกับทางมหาวิทยาลัย (Non-Affiliation Disclaimer)</h4>
+          <p style="margin: 0; font-size: 0.78rem; line-height: 1.5;">
             ระบบ <strong>MSU Traffic</strong> จัดทำขึ้นโดยกลุ่มนิสิตอิสระเพื่อสาธารณประโยชน์และการสัญจรปลอดภัย <strong>ไม่มีส่วนเกี่ยวข้อง ไม่ได้รับการสนับสนุน ไม่เป็นตัวแทน และไม่ได้อยู่ภายใต้การกำกับดูแลของมหาวิทยาลัยมหาสารคาม (มมส) แต่อย่างใด</strong>
           </p>
         </div>
       </div>
-      <div class="modal-footer" style="justify-content: center; background: #F8FAFC;">
+      <div class="modal-footer legal-modal-footer" style="justify-content: center;">
         <!-- ปุ่มยอมรับ: โหมดบังคับ (เข้าเว็บครั้งแรก) -->
         <button type="button" class="btn btn-primary btn-sm legal-accept-btn" onclick="window.acceptLegalTerms()" style="min-width: 160px; font-weight: 800;">
           ✅ ยอมรับข้อกำหนด
