@@ -339,15 +339,15 @@ body {
 .announcement-ticker-bar {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.75rem;
   background: #0B0F19;
-  border-bottom: 1px solid #1E293B;
-  padding: 0.22rem 0.75rem;
+  border-bottom: 1.5px solid #1E293B;
+  padding: 0.4rem 0.9rem;
   overflow: hidden;
   position: relative;
   z-index: 990;
-  height: 32px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  height: 42px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25);
   transition: all 0.3s ease;
 }
 
@@ -358,21 +358,21 @@ body {
 .ticker-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.35rem;
   background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
   color: #FFFFFF;
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   font-weight: 800;
-  padding: 0.16rem 0.55rem;
+  padding: 0.25rem 0.7rem;
   border-radius: 20px;
   flex-shrink: 0;
-  box-shadow: 0 1px 4px rgba(245, 158, 11, 0.4);
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4);
   letter-spacing: -0.2px;
   user-select: none;
 }
 
 .ticker-badge-icon {
-  font-size: 0.75rem;
+  font-size: 0.95rem;
   animation: pulse-dev 2s infinite;
 }
 
@@ -381,19 +381,19 @@ body {
   overflow: hidden;
   white-space: nowrap;
   position: relative;
-  mask-image: linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent);
+  mask-image: linear-gradient(to right, transparent, black 25px, black calc(100% - 25px), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 25px, black calc(100% - 25px), transparent);
 }
 
 .ticker-content {
   display: inline-block;
   white-space: nowrap;
   padding-left: 100%;
-  animation: marqueeTicker 28s linear infinite;
-  font-size: 0.75rem;
-  font-weight: 600;
+  animation: marqueeTicker 26s linear infinite;
+  font-size: 0.88rem;
+  font-weight: 700;
   color: #F8FAFC;
-  letter-spacing: 0.1px;
+  letter-spacing: 0.2px;
 }
 
 .ticker-track:hover .ticker-content {
@@ -409,13 +409,13 @@ body {
 [data-theme="light"] .announcement-ticker-bar,
 :root:not([data-theme="dark"]) .announcement-ticker-bar {
   background: #F8FAFC;
-  border-bottom: 1px solid #E2E8F0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  border-bottom: 1.5px solid #E2E8F0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 [data-theme="light"] .ticker-content,
 :root:not([data-theme="dark"]) .ticker-content {
-  color: #1E293B;
+  color: #0F172A;
 }
 
 @media (max-width: 580px) {
@@ -426,11 +426,20 @@ body {
     padding: 0.35rem 0.5rem;
     font-size: 0.95rem;
   }
-  .ticker-badge-text {
-    font-size: 0.64rem;
+  .announcement-ticker-bar {
+    height: 38px;
+    padding: 0.3rem 0.65rem;
+    gap: 0.5rem;
+  }
+  .ticker-badge {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.55rem;
+  }
+  .ticker-badge-icon {
+    font-size: 0.82rem;
   }
   .ticker-content {
-    font-size: 0.72rem;
+    font-size: 0.8rem;
   }
 }
 
