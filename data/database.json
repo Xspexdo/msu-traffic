@@ -114,7 +114,7 @@
       "icon": "🛍️",
       "desc": "ส่งต่อของใช้ หนังสือ หอพัก อุปกรณ์การเรียน",
       "msgCount": 0,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "friends",
@@ -122,7 +122,7 @@
       "icon": "👥",
       "desc": "หาเพื่อนติว กินข้าว เล่นกีฬา กลับหอ",
       "msgCount": 0,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "help",
@@ -130,7 +130,7 @@
       "icon": "🆘",
       "desc": "ของหาย ถามทาง ขอความช่วยเหลือนิสิต",
       "msgCount": 0,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "events",
@@ -138,7 +138,7 @@
       "icon": "🎪",
       "desc": "กิจกรรมรอบมหาวิทยาลัย คอนเสิร์ต งานคณะ",
       "msgCount": 0,
-      "enabled": true
+      "enabled": false
     }
   ],
   "chat_messages": [],
@@ -1341,6 +1341,24 @@
       "details": "สั่ง Full Sync ข้อมูลทั้งหมดขึ้น Google Sheets สำเร็จ",
       "ip": "127.0.0.1",
       "createdAt": 1786987500370
+    },
+    {
+      "id": "audit-1786991750244-bry",
+      "action": "PIN_CREATE",
+      "userId": "user_anon_1",
+      "targetId": "pin-1786991750243-h4avp",
+      "details": "ปักหมุดด่านใหม่ [นิรนาม]: หน้า มมส (IP: 1.2.3.4)",
+      "ip": "1.2.3.4",
+      "createdAt": 1786991750244
+    },
+    {
+      "id": "audit-1786991750245-y4p",
+      "action": "PIN_DELETE",
+      "userId": "dev_admin",
+      "targetId": "pin-1786991750243-h4avp",
+      "details": "ลบหมุดด่านถาวร: หน้า มมส",
+      "ip": "127.0.0.1",
+      "createdAt": 1786991750245
     }
   ],
   "pin_chat_messages": [],
@@ -1382,12 +1400,12 @@
   "dayNumber": 3,
   "dayEnd": 1787072400000,
   "system_config": {
-    "globalChatEnabled": true,
+    "globalChatEnabled": false,
     "allowAllEmails": true,
     "announcement": {
       "enabled": true,
-      "text": "📢 ยินดีต้อนรับสู่ MSU Traffic • ขับขี่ปลอดภัย สวมหมวกกันน็อก เปิดไฟหน้ารถ • รายงานด่านแบบเรียลไทม์เพื่อความปลอดภัยของชาว มมส",
-      "updatedAt": 1786987311193
+      "text": "📢 ยินดีต้อนรับสู่ MSU Traffic • ขับขี่ปลอดภัย สวมหมวกกันน็อก • รายงานด่านแบบเรียลไทม์เพื่อความปลอดภัยของชาว มมส อยู่ระหว่างพัฒนาครับ ผิดพลาดประการใด ขออภัยด้วยครับ",
+      "updatedAt": 1786991754282
     },
     "donateEnabled": false
   },

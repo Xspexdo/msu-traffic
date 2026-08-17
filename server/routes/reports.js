@@ -5,6 +5,14 @@ const { requireAuth, requireDev, optionalAuth } = require('../middleware/authMid
 const { requirePoW } = require('../middleware/powSecurity');
 const profanityFilter = require('../services/profanityFilter');
 
+function getClientIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.socket?.remoteAddress || req.ip || '127.0.0.1';
+}
+
 module.exports = function(io) {
   // 🏷️ GET /api/reports/categories - ดึงรายการหมวดหมู่/ประเภทด่านทั้งหมด (Dynamic)
   router.get('/categories', (req, res) => {
@@ -105,15 +113,18 @@ module.exports = function(io) {
   // GET /api/reports/quota - ตรวจสอบโควตาการปักหมุดของผู้ใช้ปัจจุบัน
   router.get('/quota', optionalAuth, (req, res) => {
     try {
+      const clientIp = getClientIp(req);
+      const isAnon = req.query.isAnonymous === 'true';
       if (!req.user || !req.user.id) {
+        const quota = db.checkUserPinQuota('anonymous_guest', '', false, true, clientIp);
         return res.json({
           success: true,
-          quota: { allowed: true, countToday: 0, maxPerDay: 3, remainingToday: 3 }
+          quota
         });
       }
       const userEmail = (req.user.email || '').toLowerCase().trim();
       const isDev = req.user.isDev === true || userEmail === 'java5263@gmail.com';
-      const quota = db.checkUserPinQuota(req.user.id, userEmail, isDev);
+      const quota = db.checkUserPinQuota(req.user.id, userEmail, isDev, isAnon, clientIp);
       res.json({
         success: true,
         quota
@@ -138,9 +149,13 @@ module.exports = function(io) {
 
       const userEmail = (req.user.email || '').toLowerCase().trim();
       const isDev = req.user.isDev === true || userEmail === 'java5263@gmail.com';
+      const isAnon = req.body.isAnonymous === true;
+      const clientIp = getClientIp(req);
 
-      // 🔒 ตรวจสอบโควตา: 1 คน ต่อ 1 หมุด ต่อ 1 ชม. และไม่เกิน 3 หมุดต่อวัน (ยกเว้น Dev)
-      const quota = db.checkUserPinQuota(req.user.id, userEmail, isDev);
+      // 🔒 ตรวจสอบโควตา:
+      // - โหมดนิรนาม: 1 หมุด/วัน (24 ชม.) ต่อ User ID, Email จริง และ IP Address เพื่อกันสแปม
+      // - สมาชิกทั่วไป: 3 หมุด/ชม. (ยกเว้น Dev)
+      const quota = db.checkUserPinQuota(req.user.id, userEmail, isDev, isAnon, clientIp);
       if (!quota.allowed) {
         return res.status(429).json({
           success: false,
@@ -225,6 +240,7 @@ module.exports = function(io) {
         imageUrl: imageUrl || null,
         isAnonymous: isAnon,
         isAnnouncement: req.body.isAnnouncement === true && isDev,
+        ip: clientIp,
         reporterId: req.user.id,
         reporter: {
           id: req.user.id,
@@ -238,7 +254,8 @@ module.exports = function(io) {
           isAnonymous: isAnon,
           isAnnouncement: req.body.isAnnouncement === true && isDev,
           badge: (req.body.isAnnouncement === true && isDev) ? '📢 MSU Traffic' : userBadge,
-          role: isDev ? 'dev' : (isMsu ? 'student' : 'member')
+          role: isDev ? 'dev' : (isMsu ? 'student' : 'member'),
+          ip: clientIp
         }
       });
 

@@ -690,17 +690,70 @@ class Database {
     return this.data.pins.find(p => p.id === id) || null;
   }
 
-  // 🔒 ตรวจสอบโควตาการปักหมุด: 3 หมุด ต่อ 1 ชั่วโมง (ยกเว้น Dev)
-  checkUserPinQuota(userId, userEmail, isDev = false) {
+  // 🔒 ตรวจสอบโควตาการปักหมุด:
+  // 1. โหมดนิรนาม (isAnonymous): จำกัด 1 หมุด ต่อ 1 วัน (24 ชม.) ต่อ บัญชี/อีเมล และต่อ IP (ป้องกันการสแปม)
+  // 2. สมาชิกทั่วไป: 3 หมุด ต่อ 1 ชั่วโมง
+  // 3. Dev: ไม่จำกัดโควตา
+  checkUserPinQuota(userId, userEmail, isDev = false, isAnonymous = false, clientIp = '') {
     const cleanEmail = (userEmail || '').toLowerCase().trim();
+    const cleanIp = (clientIp || '').trim();
     if (isDev || cleanEmail === 'java5263@gmail.com') {
-      return { allowed: true, isDev: true, countLastHour: 0, maxPerHour: 3, remainingLastHour: 999 };
+      return { allowed: true, isDev: true, countLastHour: 0, maxPerHour: 999, remainingLastHour: 999, remainingToday: 999 };
     }
 
     const now = Date.now();
-    const ONE_HOUR_MS = 60 * 60 * 1000; // 1 ชั่วโมง (3,600,000 ms)
+    const ONE_HOUR_MS = 60 * 60 * 1000;
+    const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
-    // 1. กรองหมุดทั้งหมดที่สร้างโดยผู้ใช้นี้ (ตาม ID หรือ Email)
+    // 🕵️‍♂️ กฎโควตาโหมดนิรนาม: 1 หมุด ต่อ 24 ชั่วโมง (ตรวจสอบทั้ง User ID, Email จริง และ IP Address)
+    if (isAnonymous) {
+      const anonPins = (this.data.pins || []).filter(p => {
+        if (p.status === 'deleted') return false;
+        if (!p.isAnonymous) return false;
+
+        const isMatchId = userId && (p.reporterId === userId || p.realReporter?.id === userId);
+        const isMatchEmail = cleanEmail && (
+          (p.realReporter?.email && p.realReporter.email.toLowerCase().trim() === cleanEmail) ||
+          (p.reporter?.email && p.reporter.email.toLowerCase().trim() === cleanEmail) ||
+          (p.reporter?.realEmail && p.reporter.realEmail.toLowerCase().trim() === cleanEmail)
+        );
+        const isMatchIp = cleanIp && (p.ip === cleanIp || (p.reporter?.ip && p.reporter.ip === cleanIp) || (p.realReporter?.ip && p.realReporter.ip === cleanIp));
+        return isMatchId || isMatchEmail || isMatchIp;
+      }).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+      const anonPinsLast24h = anonPins.filter(p => (now - (p.createdAt || 0)) < TWENTY_FOUR_HOURS_MS);
+
+      if (anonPinsLast24h.length >= 1) {
+        const latestAnonPin = anonPinsLast24h[0];
+        const remainingMs = ((latestAnonPin.createdAt || now) + TWENTY_FOUR_HOURS_MS) - now;
+        const remainingHours = Math.floor(remainingMs / (60 * 60 * 1000));
+        const remainingMinutes = Math.max(1, Math.ceil((remainingMs % (60 * 60 * 1000)) / (60 * 1000)));
+
+        return {
+          allowed: false,
+          isAnonymous: true,
+          reason: 'ANONYMOUS_DAILY_LIMIT_EXCEEDED',
+          message: `🚫 โหมดนิรนามจำกัดการปักหมุดสูงสุด 1 หมุดต่อวัน (24 ชม.) ต่อบัญชีและ IP เพื่อป้องกันการสแปมข้อมูลเท็จ (กรุณารออีก ${remainingHours > 0 ? remainingHours + ' ชั่วโมง ' : ''}${remainingMinutes} นาที หรือปักหมุดแบบเปิดเผยชื่อเพื่อใช้โควตาสมาชิกปกติ)`,
+          remainingHours,
+          remainingMinutes,
+          maxPerDay: 1,
+          remainingToday: 0,
+          ip: cleanIp,
+          nextAllowedTime: (latestAnonPin.createdAt || now) + TWENTY_FOUR_HOURS_MS
+        };
+      }
+
+      return {
+        allowed: true,
+        isAnonymous: true,
+        countToday: anonPinsLast24h.length,
+        maxPerDay: 1,
+        remainingToday: 1 - anonPinsLast24h.length,
+        ip: cleanIp
+      };
+    }
+
+    // 👤 กฎโควตาสมาชิกทั่วไป: 3 หมุด ต่อ 1 ชั่วโมง
     const userPins = (this.data.pins || []).filter(p => {
       if (p.status === 'deleted') return false;
       const isMatchId = userId && (p.reporterId === userId || p.realReporter?.id === userId);
@@ -708,14 +761,13 @@ class Database {
         (p.realReporter?.email && p.realReporter.email.toLowerCase().trim() === cleanEmail) ||
         (p.reporter?.email && p.reporter.email.toLowerCase().trim() === cleanEmail)
       );
-      return isMatchId || isMatchEmail;
+      const isMatchIp = cleanIp && (p.ip === cleanIp);
+      return isMatchId || isMatchEmail || isMatchIp;
     }).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
-    // 2. ตรวจสอบหมุดที่สร้างในรอบ 1 ชั่วโมงที่ผ่านมา (Rolling 1 Hour Window)
     const pinsInLastHour = userPins.filter(p => (now - (p.createdAt || 0)) < ONE_HOUR_MS);
 
     if (pinsInLastHour.length >= 3) {
-      // หาหมุดที่เก่าที่สุดใน 3 หมุดล่าสุด เพื่อคำนวณเวลาที่ต้องรอจนกว่าหมุดนั้นจะพ้น 1 ชั่วโมง
       const oldestOfThree = pinsInLastHour[pinsInLastHour.length - 1];
       const remainingMs = ((oldestOfThree.createdAt || now) + ONE_HOUR_MS) - now;
       const remainingMinutes = Math.max(1, Math.ceil(remainingMs / (60 * 1000)));
@@ -728,6 +780,7 @@ class Database {
         countLastHour: pinsInLastHour.length,
         maxPerHour: 3,
         remainingLastHour: 0,
+        ip: cleanIp,
         nextAllowedTime: (oldestOfThree.createdAt || now) + ONE_HOUR_MS
       };
     }
@@ -736,13 +789,15 @@ class Database {
       allowed: true,
       countLastHour: pinsInLastHour.length,
       maxPerHour: 3,
-      remainingLastHour: 3 - pinsInLastHour.length
+      remainingLastHour: 3 - pinsInLastHour.length,
+      ip: cleanIp
     };
   }
 
   addPin(pinData) {
     const now = Date.now();
     const id = `pin-${now}-${Math.random().toString(36).substring(2, 7)}`;
+    const clientIp = pinData.ip || '127.0.0.1';
     
     // Set decay duration based on type or custom selection
     let lifespanHours = parseFloat(pinData.lifespanHours) || 6;
@@ -764,7 +819,8 @@ class Database {
       email: dbUser?.email || reporterObj.email || pinData.reporterEmail || '',
       picture: dbUser?.picture || reporterObj.picture || pinData.reporterPicture || '',
       badge: dbUser?.badge || reporterObj.badge || '🎓 MSU',
-      trustScore: dbUser?.trustScore ?? reporterObj.trustScore ?? 50
+      trustScore: dbUser?.trustScore ?? reporterObj.trustScore ?? 50,
+      ip: clientIp
     };
 
     if (isAnnouncement && reporterObj) {
@@ -774,7 +830,8 @@ class Database {
         picture: 'https://ui-avatars.com/api/?name=MSU+Traffic&background=1E3A8A&color=fff',
         badge: '📢 MSU Traffic',
         isOfficial: true,
-        isAnnouncement: true
+        isAnnouncement: true,
+        ip: clientIp
       };
     } else if (isAnon) {
       reporterObj.name = 'นิสิตนิรนาม';
@@ -783,6 +840,7 @@ class Database {
       reporterObj.realName = realReporterObj.name;
       reporterObj.realEmail = realReporterObj.email;
       reporterObj.realId = realReporterObj.id;
+      reporterObj.ip = clientIp;
     }
 
     const newPin = {
@@ -800,6 +858,7 @@ class Database {
       severity: pinData.severity || 'medium',
       isAnonymous: isAnon,
       isAnnouncement: isAnnouncement,
+      ip: clientIp,
       reporterId: pinData.reporterId || 'anonymous',
       reporter: reporterObj,
       realReporter: realReporterObj,
@@ -827,8 +886,7 @@ class Database {
     }
 
     this.saveData();
-    this.logAudit('PIN_CREATE', pinData.reporterId, id, `ปักหมุดด่านใหม่: ${newPin.locationName}`);
-    googleSheetsService.syncNewPin(newPin).catch(e => console.warn('Sheets sync error:', e));
+    this.logAudit('PIN_CREATE', pinData.reporterId, id, `ปักหมุดด่านใหม่ [${isAnon ? 'นิรนาม' : 'เปิดเผย'}]: ${newPin.locationName} (IP: ${clientIp})`, clientIp);
     return newPin;
   }
 
