@@ -291,44 +291,50 @@
         </div>
       </div>
 
-      <!-- 2. Rooms Category Scroll Carousel (Tabs) -->
-      <div class="fb-rooms-bar" id="chatRoomsContainer">
-        <!-- Rendered dynamically by chatManager.js -->
-      </div>
+      <!-- Main Layout Body (Left Vertical Rooms Panel + Right Chat Pane) -->
+      <div class="fb-chat-layout-body">
+        <!-- 2. Vertical Rooms Category Sidebar Panel -->
+        <aside class="fb-rooms-bar" id="chatRoomsContainer">
+          <!-- Rendered dynamically by chatManager.js -->
+        </aside>
 
-      <!-- 3. Sub-Banner Notice -->
-      <div class="fb-chat-subbanner">
-        <div class="chat-geo-banner" id="chatGeofenceBanner" style="display: none;"></div>
-        <div class="fb-reset-notice" id="chatResetNoticeBanner">
-          <span style="font-size: 0.68rem; color: var(--text-muted);">🧹 รีเซ็ตเที่ยงคืนเมื่อไม่มีคนคุย 15 นาที</span>
-          <span id="chatResetCountdown" class="chat-reset-countdown" style="font-size: 0.68rem;">⏳ อีก --:-- ชม.</span>
+        <!-- Right Side: Sub-Banner + Messages Body + Footer Input -->
+        <div class="fb-chat-main-pane">
+          <!-- 3. Sub-Banner Notice -->
+          <div class="fb-chat-subbanner">
+            <div class="chat-geo-banner" id="chatGeofenceBanner" style="display: none;"></div>
+            <div class="fb-reset-notice" id="chatResetNoticeBanner">
+              <span style="font-size: 0.68rem; color: var(--text-muted);">🧹 รีเซ็ตเที่ยงคืนเมื่อไม่มีคนคุย 15 นาที</span>
+              <span id="chatResetCountdown" class="chat-reset-countdown" style="font-size: 0.68rem;">⏳ อีก --:-- ชม.</span>
+            </div>
+          </div>
+
+          <!-- 4. Messages Stream Area -->
+          <div class="fb-chat-body" id="chatMessagesContainer">
+            <!-- Chat bubbles rendered dynamically -->
+          </div>
+
+          <!-- 5. Bottom Messenger Input Bar -->
+          <form class="fb-chat-footer" id="chatForm" onsubmit="window.chatManager?.sendMessage(event)">
+            <div class="fb-footer-top">
+              <label for="chatAnonToggle" class="fb-anon-label">
+                <input type="checkbox" id="chatAnonToggle">
+                <span>ซ่อนชื่อ (นิรนาม)</span>
+              </label>
+              <label id="chatAnnouncementLabel" class="fb-announcement-label" style="display: none;">
+                <input type="checkbox" id="chatAnnouncementToggle" style="accent-color: #2563EB;">
+                <span>📢 ประกาศ (MSU Traffic)</span>
+              </label>
+            </div>
+            <div class="fb-input-row">
+              <input type="text" id="chatMessageInput" class="fb-text-input" placeholder="พิมพ์ข้อความ... (กด Enter เพื่อส่ง)" autocomplete="off">
+              <button type="submit" class="fb-send-btn" id="chatSendBtn" title="ส่งข้อความ">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+              </button>
+            </div>
+          </form>
         </div>
       </div>
-
-      <!-- 4. Messages Stream Area -->
-      <div class="fb-chat-body" id="chatMessagesContainer">
-        <!-- Chat bubbles rendered dynamically -->
-      </div>
-
-      <!-- 5. Bottom Messenger Input Bar -->
-      <form class="fb-chat-footer" id="chatForm" onsubmit="window.chatManager?.sendMessage(event)">
-        <div class="fb-footer-top">
-          <label for="chatAnonToggle" class="fb-anon-label">
-            <input type="checkbox" id="chatAnonToggle">
-            <span>ซ่อนชื่อ (นิรนาม)</span>
-          </label>
-          <label id="chatAnnouncementLabel" class="fb-announcement-label" style="display: none;">
-            <input type="checkbox" id="chatAnnouncementToggle" style="accent-color: #2563EB;">
-            <span>📢 ประกาศ (MSU Traffic)</span>
-          </label>
-        </div>
-        <div class="fb-input-row">
-          <input type="text" id="chatMessageInput" class="fb-text-input" placeholder="พิมพ์ข้อความ... (กด Enter เพื่อส่ง)" autocomplete="off">
-          <button type="submit" class="fb-send-btn" id="chatSendBtn" title="ส่งข้อความ">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
-          </button>
-        </div>
-      </form>
     </div>
   </div>
 

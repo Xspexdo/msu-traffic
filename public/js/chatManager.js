@@ -360,24 +360,15 @@ class ChatManager {
     container.innerHTML = this.rooms.map(r => {
       const isClosed = r.enabled === false;
       return `
-        <button class="chat-room-chip ${r.id === this.currentRoom ? 'active' : ''} ${isClosed ? 'chip-maintenance' : ''}" onclick="window.chatManager.switchRoom('${r.id}')">
-          <span class="room-icon">${r.icon}</span>
-          <span class="room-name">${r.name}</span>
+        <button class="chat-room-chip ${r.id === this.currentRoom ? 'active' : ''} ${isClosed ? 'chip-maintenance' : ''}" onclick="window.chatManager.switchRoom('${r.id}')" title="${r.desc || r.name}">
+          <div style="display: flex; align-items: center; gap: 0.35rem; width: 100%; overflow: hidden;">
+            <span class="room-icon" style="font-size: 1rem; flex-shrink: 0;">${r.icon}</span>
+            <span class="room-name" style="font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.78rem;">${r.name}</span>
+          </div>
           ${isClosed ? '<span class="room-maintenance-badge" title="ปิดปรับปรุง เร็วๆนี้">🚧 ปิดปรับปรุง</span>' : ''}
         </button>
       `;
     }).join('');
-
-    // รองรับการใช้ Mouse Wheel เลื่อนซ้าย-ขวาบน PC/Mac
-    if (!container.dataset.wheelBound) {
-      container.dataset.wheelBound = 'true';
-      container.addEventListener('wheel', (e) => {
-        if (e.deltaY !== 0) {
-          e.preventDefault();
-          container.scrollLeft += e.deltaY;
-        }
-      }, { passive: false });
-    }
   }
 
   // 3. Switch Room & Load Messages

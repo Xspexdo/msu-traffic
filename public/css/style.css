@@ -2110,8 +2110,8 @@ body.feed-panel-minimized .fb-chat-widget {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 380px;
-  height: 550px;
+  width: 480px;
+  height: 560px;
   max-height: calc(100vh - 100px);
   background: #FFFFFF;
   border: 1px solid rgba(226, 232, 240, 0.85);
@@ -2145,17 +2145,14 @@ body.feed-panel-minimized .fb-chat-widget {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
-.fb-chat-box.is-minimized .fb-rooms-bar,
-.fb-chat-box.is-minimized .fb-chat-subbanner,
-.fb-chat-box.is-minimized .fb-chat-body,
-.fb-chat-box.is-minimized .fb-chat-footer {
+.fb-chat-box.is-minimized .fb-chat-layout-body {
   display: none !important;
 }
 
 /* Expanded State */
 .fb-chat-box.is-expanded {
-  width: 520px;
-  height: 680px;
+  width: 640px;
+  height: 720px;
   max-height: calc(100vh - 90px);
 }
 
@@ -2272,30 +2269,41 @@ body.feed-panel-minimized .fb-chat-widget {
   border: 1px solid #FECACA;
 }
 
-/* 2. Rooms Category Scroll Carousel (Tabs) */
+/* 📱 Main Layout Body (Left Vertical Rooms Panel + Right Chat Pane) */
+.fb-chat-layout-body {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 2. Vertical Rooms Category Sidebar Panel */
 .fb-rooms-bar {
   display: flex;
-  gap: 0.45rem;
-  overflow-x: auto !important;
-  overflow-y: hidden;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 145px;
+  min-width: 145px;
+  max-width: 155px;
+  overflow-y: auto !important;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x;
-  scroll-behavior: smooth;
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 0.4rem;
   background: #F8FAFC;
-  border-bottom: 1px solid var(--border-light);
+  border-right: 1px solid var(--border-light);
+  border-bottom: none;
   flex-shrink: 0;
-  width: 100%;
 }
 
 .dark-theme .fb-rooms-bar,
 [data-theme="dark"] .fb-rooms-bar {
   background: #0F172A;
-  border-bottom-color: #334155;
+  border-right-color: #334155;
 }
 
 .fb-rooms-bar::-webkit-scrollbar {
-  height: 4px;
+  width: 4px;
 }
 
 .fb-rooms-bar::-webkit-scrollbar-thumb {
@@ -2303,33 +2311,48 @@ body.feed-panel-minimized .fb-chat-widget {
   border-radius: 4px;
 }
 
+/* Room Item / Chip in Vertical Panel */
 .chat-room-chip {
-  white-space: nowrap;
+  width: 100%;
+  box-sizing: border-box;
   background: #FFFFFF;
   border: 1px solid var(--border);
-  padding: 0.28rem 0.65rem;
-  border-radius: 20px;
-  font-size: 0.72rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 10px;
+  font-size: 0.76rem;
   font-weight: 700;
   color: var(--text-muted);
   cursor: pointer;
   display: flex;
-  align-items: center;
-  gap: 0.3rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
   transition: all 0.15s ease;
   flex-shrink: 0;
+  text-align: left;
 }
 
 .chat-room-chip:hover {
   background: #F1F5F9;
   color: var(--text-main);
+  transform: translateX(2px);
 }
 
 .chat-room-chip.active {
-  background: #2563EB;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
   color: #FFFFFF;
   border-color: #2563EB;
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.chat-room-chip.active .room-name {
+  color: #FFFFFF !important;
+}
+
+.chat-room-chip.active .room-maintenance-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .chat-room-chip.chip-maintenance {
@@ -2345,12 +2368,24 @@ body.feed-panel-minimized .fb-chat-widget {
 }
 
 .room-maintenance-badge {
-  font-size: 0.58rem;
+  font-size: 0.55rem;
   background: #FEF2F2;
   color: #DC2626;
   border: 1px solid #FECACA;
   padding: 1px 4px;
   border-radius: 4px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Right Chat Main Pane */
+.fb-chat-main-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* 3. Sub-Banner Notice */
@@ -2534,6 +2569,25 @@ body.feed-panel-minimized .fb-chat-widget {
     height: 75vh !important;
     max-height: 80vh;
     border-radius: 18px 18px 12px 12px;
+  }
+
+  .fb-rooms-bar {
+    width: 105px;
+    min-width: 105px;
+    max-width: 110px;
+    padding: 0.4rem 0.25rem;
+    gap: 0.25rem;
+  }
+
+  .chat-room-chip {
+    padding: 0.35rem 0.4rem;
+    font-size: 0.7rem;
+    border-radius: 8px;
+  }
+
+  .room-maintenance-badge {
+    font-size: 0.5rem;
+    padding: 1px 3px;
   }
 
   .fb-chat-box.is-expanded {
