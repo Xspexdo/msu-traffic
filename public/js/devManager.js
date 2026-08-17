@@ -817,6 +817,100 @@ class DevManager {
     }
   }
 
+  async inspectUser(userId) {
+    if (!userId) return;
+    
+    // Check if dev
+    if (!window.authManager?.isDev()) {
+      alert('🔒 สำหรับ Developer เท่านั้น');
+      return;
+    }
+
+    // Try finding in loaded allUsers or fetch from server
+    let user = this.allUsers.find(u => u.id === userId);
+    if (!user) {
+      try {
+        const res = await fetch('/api/security/admin/all-users', { headers: this.getHeaders() });
+        const data = await res.json();
+        if (data.success && data.data) {
+          this.allUsers = data.data;
+          user = this.allUsers.find(u => u.id === userId);
+        }
+      } catch (e) {
+        console.error('Error fetching user for inspection:', e);
+      }
+    }
+
+    if (!user) {
+      alert(`ไม่พบข้อมูลผู้ใช้ ID: ${userId}`);
+      return;
+    }
+
+    const modal = document.getElementById('devUserInspectModal');
+    if (!modal) return;
+
+    const avatarSrc = user.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'MSU')}&background=2563EB&color=fff`;
+    const isDev = user.isDev || user.email === 'java5263@gmail.com' || user.role === 'dev';
+    const isGlobal = user.canChatGlobal === true || user.role === 'global';
+    const isRider = user.isRider === true || user.role === 'rider';
+    const isBanned = user.status === 'banned';
+
+    const elAvatar = document.getElementById('inspectUserAvatar');
+    const elName = document.getElementById('inspectUserName');
+    const elEmail = document.getElementById('inspectUserEmail');
+    const elId = document.getElementById('inspectUserId');
+    const elBadge = document.getElementById('inspectUserBadge');
+    const elRole = document.getElementById('inspectUserRole');
+    const elTrust = document.getElementById('inspectUserTrustScore');
+    const elGlobal = document.getElementById('inspectUserGlobalStatus');
+    const elStatus = document.getElementById('inspectUserStatus');
+
+    if (elAvatar) elAvatar.src = avatarSrc;
+    if (elName) elName.textContent = user.name || 'ไม่ระบุชื่อ';
+    if (elEmail) elEmail.textContent = user.email || 'ไม่ระบุอีเมล';
+    if (elId) elId.textContent = user.id;
+    if (elBadge) elBadge.textContent = user.badge || (isDev ? '👑 DEV' : '👤 Member');
+    if (elRole) elRole.textContent = user.role || 'member';
+    if (elTrust) elTrust.textContent = `${user.trustScore ?? 50} / 100`;
+    if (elGlobal) {
+      elGlobal.textContent = (isGlobal || isDev) ? '🌐 อนุญาต (แชทได้ทั่วโลก)' : '📍 ตามพื้นที่ (เฉพาะ มมส)';
+      elGlobal.style.color = (isGlobal || isDev) ? '#2563EB' : '#64748B';
+    }
+    if (elStatus) {
+      elStatus.textContent = isBanned ? '🚫 ถูกระงับการใช้งาน (Banned)' : '✅ ปกติ (Active)';
+      elStatus.style.color = isBanned ? '#DC2626' : '#059669';
+    }
+
+    const actionsContainer = document.getElementById('inspectUserActions');
+    if (actionsContainer) {
+      actionsContainer.innerHTML = `
+        <button class="btn btn-primary btn-sm" onclick="window.devManager.closeInspectUserModal(); window.devManager.openRoleEditModal('${user.id}')" style="background: #2563EB; font-weight: 700;">
+          🎖️ ปรับยศ/สิทธิ์/ชื่อ
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="window.devManager.quickRenameUser('${user.id}', '${this.escapeHtml(user.name)}')" style="font-weight: 700; color: #0284C7; border-color: #BAE6FD;">
+          ✏️ เปลี่ยนชื่อ
+        </button>
+        ${!isDev && !isBanned ? `
+          <button class="btn btn-outline btn-sm" onclick="window.devManager.quickBanUser('${user.id}', '${this.escapeHtml(user.name)}')" style="color: #DC2626; border-color: #FECACA; font-weight: 700;">
+            🚫 แบนผู้ใช้
+          </button>
+        ` : ''}
+        ${isBanned ? `
+          <button class="btn btn-outline btn-sm" onclick="window.devManager.unbanUser('${user.id}', '${this.escapeHtml(user.name)}')" style="color: #059669; border-color: #A7F3D0; font-weight: 700;">
+            🔓 ปลดแบน
+          </button>
+        ` : ''}
+      `;
+    }
+
+    modal.classList.add('active');
+  }
+
+  closeInspectUserModal() {
+    const modal = document.getElementById('devUserInspectModal');
+    if (modal) modal.classList.remove('active');
+  }
+
   async loadBannedUsers() {
     const tbody = document.getElementById('devBannedUsersTableBody');
     if (!tbody) return;

@@ -80,29 +80,54 @@
     </a>
 
     <div class="nav-actions">
-      <!-- 🌙 Dark / Light Mode Toggle Button -->
-      <button class="btn btn-outline btn-sm theme-toggle-btn" id="navThemeToggleBtn" onclick="window.app?.toggleTheme()" title="เปลี่ยนโหมดมืด/สว่าง">
-        <span class="theme-toggle-icon">🌙</span>
-        <span class="theme-toggle-text">โหมดมืด</span>
-      </button>
-
-      <!-- 📖 ข้อมูลระบบ Button -->
-      <button class="btn btn-outline btn-sm" id="navInfoBtn" onclick="window.app?.switchTab('info')" title="ข้อมูลเกี่ยวกับโปรเจค MSU Traffic">
-        <span>📖 ข้อมูล</span>
-      </button>
-
-      <!-- ⭐ โดเนท ค่า Server Button -->
+      <!-- ⭐ โดเนท ค่า Server Button (คงเด่นชัดด้านนอกตามเดิม) -->
       <button class="btn btn-donate" id="navDonateBtn" onclick="window.openDonateModal ? window.openDonateModal() : window.app?.openDonateModal()" title="ร่วมสนับสนุนค่า Server & พัฒนาระบบ">
         <span class="donate-emoji-icon">⭐</span>
         <span>โดเนท</span>
       </button>
 
-      <!-- ⚖️ ข้อกฎหมาย Button -->
-      <button class="btn btn-outline btn-sm" id="navLegalBtn" onclick="window.openLegalModal ? window.openLegalModal() : window.app?.openLegalModal()" title="ข้อกำหนดการใช้งาน">
-        <span>⚖️ กฎหมาย</span>
-      </button>
+      <!-- ☰ เมนู Dropdown (รวม: โหมดมืด/สว่าง, ข้อมูล, ตารางอันดับ, กฎหมาย) -->
+      <div class="nav-menu-dropdown-wrapper" id="navMenuDropdownWrapper">
+        <button class="btn btn-outline btn-sm nav-menu-trigger-btn" id="navMenuTriggerBtn" onclick="window.app?.toggleNavMenu(event)" title="เมนูหลัก">
+          <span class="nav-menu-icon">☰</span>
+          <span class="nav-menu-text">เมนู</span>
+        </button>
 
-      <!-- Auth Container -->
+        <div class="nav-menu-dropdown-content" id="navMenuDropdownContent">
+          <!-- 1. 🌙/☀️ สลับโหมดมืด / สว่าง -->
+          <button class="nav-dropdown-item" onclick="window.app?.toggleTheme(); window.app?.closeNavMenu();">
+            <span class="dropdown-item-icon" id="menuThemeIcon">🌙</span>
+            <span class="dropdown-item-label" id="menuThemeText">โหมดมืด</span>
+          </button>
+
+          <!-- 2. 📖 ข้อมูลระบบ & พัฒนาโดย -->
+          <button class="nav-dropdown-item" onclick="window.app?.switchTab('info'); window.app?.closeNavMenu();">
+            <span class="dropdown-item-icon">📖</span>
+            <span class="dropdown-item-label">ข้อมูลระบบ</span>
+          </button>
+
+          <!-- 3. 🏆 ตารางอันดับ (Hall of Fame) -->
+          <button class="nav-dropdown-item" onclick="window.rankManager?.openLeaderboardModal(); window.app?.closeNavMenu();">
+            <span class="dropdown-item-icon">🏆</span>
+            <span class="dropdown-item-label">ตารางอันดับ Hall of Fame</span>
+          </button>
+
+          <!-- 4. ⚖️ ข้อกำหนด & กฎหมาย -->
+          <button class="nav-dropdown-item" onclick="window.openLegalModal ? window.openLegalModal() : window.app?.openLegalModal(); window.app?.closeNavMenu();">
+            <span class="dropdown-item-icon">⚖️</span>
+            <span class="dropdown-item-label">กฎหมาย & พ.ร.บ.</span>
+          </button>
+
+          <!-- 5. 👑 Dev Moderation Panel (แสดงเฉพาะเมื่อเป็น Dev) -->
+          <div class="nav-dropdown-divider" id="menuDevDivider" style="display: none;"></div>
+          <button class="nav-dropdown-item dev-only-menu-item" id="menuDevBtn" style="display: none;" onclick="window.devManager?.openDevModal(); window.app?.closeNavMenu();">
+            <span class="dropdown-item-icon">👑</span>
+            <span class="dropdown-item-label" style="color: #F59E0B; font-weight: 700;">Dev Moderation Panel</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Auth Container (User Profile / Login Button) -->
       <div id="navAuthContainer">
         <button class="btn btn-outline btn-sm" onclick="window.authManager.openLoginModal()">
           <span>🔑 เข้าสู่ระบบ</span>

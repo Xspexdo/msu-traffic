@@ -93,6 +93,12 @@ class MSUApp {
       navBtn.setAttribute('title', isDark ? 'เปลี่ยนเป็นโหมดสว่าง (Light Mode)' : 'เปลี่ยนเป็นโหมดมืด (Dark Mode)');
     }
 
+    // Update Menu Dropdown Theme Item UI
+    const menuThemeIcon = document.getElementById('menuThemeIcon');
+    const menuThemeText = document.getElementById('menuThemeText');
+    if (menuThemeIcon) menuThemeIcon.textContent = isDark ? '☀️' : '🌙';
+    if (menuThemeText) menuThemeText.textContent = isDark ? 'โหมดสว่าง' : 'โหมดมืด';
+
     // Update Profile Modal Theme Item UI
     const profileIcon = document.getElementById('profileThemeIcon');
     const profileVal = document.getElementById('profileThemeValue');
@@ -103,6 +109,17 @@ class MSUApp {
     if (window.mapManager && typeof window.mapManager.setTheme === 'function') {
       window.mapManager.setTheme(theme);
     }
+  }
+
+  toggleNavMenu(event) {
+    if (event) event.stopPropagation();
+    const dropdown = document.getElementById('navMenuDropdownContent');
+    if (dropdown) dropdown.classList.toggle('active');
+  }
+
+  closeNavMenu() {
+    const dropdown = document.getElementById('navMenuDropdownContent');
+    if (dropdown) dropdown.classList.remove('active');
   }
 
   // ----------------------------------------------------
@@ -1232,6 +1249,13 @@ class MSUApp {
       `;
     }
 
+    // Toggle Dev item in Dropdown Menu
+    const menuDevBtn = document.getElementById('menuDevBtn');
+    const menuDevDivider = document.getElementById('menuDevDivider');
+    const isDev = window.authManager && typeof window.authManager.isDev === 'function' && window.authManager.isDev();
+    if (menuDevBtn) menuDevBtn.style.display = isDev ? 'flex' : 'none';
+    if (menuDevDivider) menuDevDivider.style.display = isDev ? 'block' : 'none';
+
     if (window.chatManager) {
       window.chatManager.updateDevClearBtn();
     }
@@ -1324,13 +1348,13 @@ class MSUApp {
       });
     }
 
-    const legalBtn = document.getElementById('navLegalBtn');
-    if (legalBtn) {
-      legalBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.openLegalModal();
-      });
-    }
+    // Close nav dropdown menu when clicking outside
+    document.addEventListener('click', (e) => {
+      const menuWrapper = document.getElementById('navMenuDropdownWrapper');
+      if (menuWrapper && !menuWrapper.contains(e.target)) {
+        this.closeNavMenu();
+      }
+    });
   }
 }
 

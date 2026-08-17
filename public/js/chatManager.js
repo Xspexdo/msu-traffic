@@ -582,6 +582,24 @@ class ChatManager {
       ? 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=120&auto=format&fit=crop&q=80'
       : (m.senderPicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.senderName || 'MSU')}&background=2563EB&color=fff`);
 
+    let senderNameHtml = `<span class="chat-sender-name">${this.escapeHtml(m.senderName)}</span>`;
+    if (m.isAnonymous) {
+      if (isDev) {
+        const realName = m.realSenderName || m.senderName || 'นิสิต มมส';
+        const realId = m.realSenderId || m.senderId || '';
+        senderNameHtml = `
+          <span class="chat-sender-name">
+            🕵️‍♂️ นิสิตนิรนาม
+            <button type="button" class="dev-anon-inspect-btn" onclick="event.stopPropagation(); window.devManager?.inspectUser('${realId}')" title="สิทธิ์ Dev: คลิกเพื่อดูข้อมูลจริงและโปรไฟล์">
+              (จริง: ${this.escapeHtml(realName)} #${realId.slice(-6)}) ℹ️ info
+            </button>
+          </span>
+        `;
+      } else {
+        senderNameHtml = `<span class="chat-sender-name">🕵️‍♂️ นิสิตนิรนาม</span>`;
+      }
+    }
+
     return `
       <div class="chat-bubble-wrap ${isMe && !isAnnouncement ? 'bubble-me' : 'bubble-other'} ${isAnnouncement ? 'bubble-announcement' : ''}" id="chat-msg-${m.id}" data-id="${m.id}">
         ${(!isMe || isAnnouncement) ? `
@@ -593,7 +611,7 @@ class ChatManager {
         <div class="chat-bubble-content">
           ${(!isMe || isAnnouncement) ? `
             <div class="chat-sender-header">
-              <span class="chat-sender-name">${m.senderName}</span>
+              ${senderNameHtml}
               <span class="chat-badge ${badgeClass}">${badgeText}</span>
               ${m.location?.distKm !== undefined && m.location.distKm < 50 && !isAnnouncement ? `<span class="chat-geo-tag">📍 ~${m.location.distKm} กม.</span>` : ''}
               <span class="chat-header-time">${timeStr}</span>

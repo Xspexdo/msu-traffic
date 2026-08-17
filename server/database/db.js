@@ -583,7 +583,19 @@ class Database {
     lifespanHours = Math.max(1, Math.min(24, lifespanHours));
 
     const isAnnouncement = pinData.isAnnouncement === true;
-    let reporterObj = pinData.reporter;
+    const isAnon = pinData.isAnonymous === true;
+    let reporterObj = pinData.reporter ? { ...pinData.reporter } : {};
+    const dbUser = pinData.reporterId ? this.data.users[pinData.reporterId] : null;
+
+    const realReporterObj = {
+      id: pinData.reporterId || dbUser?.id || reporterObj.id || 'anonymous',
+      name: dbUser?.name || reporterObj.name || pinData.reporterName || 'ผู้ใช้ มมส',
+      email: dbUser?.email || reporterObj.email || pinData.reporterEmail || '',
+      picture: dbUser?.picture || reporterObj.picture || pinData.reporterPicture || '',
+      badge: dbUser?.badge || reporterObj.badge || '🎓 MSU',
+      trustScore: dbUser?.trustScore ?? reporterObj.trustScore ?? 50
+    };
+
     if (isAnnouncement && reporterObj) {
       reporterObj = {
         ...reporterObj,
@@ -593,6 +605,10 @@ class Database {
         isOfficial: true,
         isAnnouncement: true
       };
+    } else if (isAnon) {
+      reporterObj.realName = realReporterObj.name;
+      reporterObj.realEmail = realReporterObj.email;
+      reporterObj.realId = realReporterObj.id;
     }
 
     const newPin = {
@@ -608,10 +624,11 @@ class Database {
       description: pinData.description || '',
       imageUrl: pinData.imageUrl || null,
       severity: pinData.severity || 'medium',
-      isAnonymous: pinData.isAnonymous === true,
+      isAnonymous: isAnon,
       isAnnouncement: isAnnouncement,
       reporterId: pinData.reporterId || 'anonymous',
       reporter: reporterObj,
+      realReporter: realReporterObj,
       likes: [],
       views: 1,
       votes: {
@@ -971,6 +988,11 @@ class Database {
       senderEmail,
       senderBadge,
       senderPicture,
+      realSenderId: sender.id,
+      realSenderName: sender.name || dbUser?.name || 'ผู้ใช้งาน',
+      realSenderEmail: sender.email || dbUser?.email || '',
+      realSenderBadge: dbUser?.badge || senderBadge,
+      realSenderPicture: sender.picture || dbUser?.picture || '',
       text: text.trim(),
       isAnonymous: !isOfficialAnnouncement && isAnonymous === true,
       isAnnouncement: isOfficialAnnouncement,
@@ -1224,6 +1246,11 @@ class Database {
       senderBadge,
       senderPicture,
       senderRank: userRank,
+      realSenderId: sender.id,
+      realSenderName: sender.name || dbUser?.name || 'ผู้ใช้งาน',
+      realSenderEmail: sender.email || dbUser?.email || '',
+      realSenderBadge: dbUser?.badge || senderBadge,
+      realSenderPicture: sender.picture || dbUser?.picture || '',
       text: cleanText,
       isAnonymous: !isOfficialAnnouncement && isAnonymous === true,
       isAnnouncement: isOfficialAnnouncement,
