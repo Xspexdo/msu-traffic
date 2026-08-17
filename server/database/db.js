@@ -590,17 +590,29 @@ class Database {
 
     const now = Date.now();
     const elapsedSeconds = Math.floor((now - (pin.createdAt || now)) / 1000);
-    const ALLOWED_WINDOW_SECONDS = 20;
+    const INITIAL_WINDOW_SECONDS = 20;
+    const isWithinInitial20s = elapsedSeconds <= INITIAL_WINDOW_SECONDS;
 
-    // 🔒 ผู้ใช้ทั่วไปสามารถย้ายหมุดได้เรื่อยๆ ไม่จำกัดครั้ง ภายใน 20 วินาทีแรกหลังปักหมุด
-    if (!isDev && elapsedSeconds > ALLOWED_WINDOW_SECONDS) {
-      return {
-        success: false,
-        error: 'MOVE_TIME_EXPIRED',
-        message: `หมดเวลาย้ายตำแหน่งแล้ว (สามารถย้ายได้ภายใน ${ALLOWED_WINDOW_SECONDS} วินาทีหลังปักหมุด)`,
-        secondsRemaining: 0,
-        pin
-      };
+    // 🔒 กฎการย้ายหมุด:
+    // 1. ใน 20 วินาทีแรก: ย้ายได้เรื่อยๆ ไม่จำกัดครั้ง
+    // 2. หลังจาก 20 วินาทีแรก: ย้ายได้อีก 3 ครั้ง
+    // 3. Dev ย้ายได้ตลอดเวลาไม่จำกัด
+    if (!isDev) {
+      if (isWithinInitial20s) {
+        pin.initialMoveCount = (pin.initialMoveCount || 0) + 1;
+      } else {
+        const currentPostMoves = pin.post20sMoveCount || 0;
+        if (currentPostMoves >= 3) {
+          return {
+            success: false,
+            error: 'MOVE_LIMIT_REACHED',
+            message: 'คุณได้ใช้โควตาย้ายหมุดครบ 3 ครั้งแล้ว (ล็อกตำแหน่งถาวร)',
+            remainingMoves: 0,
+            pin
+          };
+        }
+        pin.post20sMoveCount = currentPostMoves + 1;
+      }
     }
 
     pin.lat = lat;
@@ -612,11 +624,14 @@ class Database {
     this.logAudit('PIN_MOVE', pin.reporterId, pinId, `ย้ายพิกัดหมุดเป็น [${lat}, ${lng}]`);
     googleSheetsService.syncPinUpdate(pin).catch(e => console.warn('Sheets sync error:', e));
 
+    const postMovesUsed = pin.post20sMoveCount || 0;
     return {
       success: true,
       pin,
+      isWithinInitial20s,
+      secondsRemaining: isWithinInitial20s ? Math.max(0, INITIAL_WINDOW_SECONDS - elapsedSeconds) : 0,
       moveCount: pin.moveCount,
-      secondsRemaining: isDev ? 999 : Math.max(0, ALLOWED_WINDOW_SECONDS - elapsedSeconds)
+      post20sMovesRemaining: isDev ? 999 : Math.max(0, 3 - postMovesUsed)
     };
   }
 

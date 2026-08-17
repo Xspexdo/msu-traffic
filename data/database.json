@@ -14,8 +14,8 @@
       "role": "dev",
       "badge": "👑 DEV",
       "trustScore": 100,
-      "weeklyScore": 1,
-      "allTimeScore": 1,
+      "weeklyScore": 0,
+      "allTimeScore": 0,
       "pinsCreated": 0,
       "pinsVerified": 0,
       "reportsCount": 0,
@@ -24,7 +24,7 @@
       "isDev": true,
       "status": "active",
       "createdAt": 1786777538446,
-      "lastActiveAt": 1786976848760
+      "lastActiveAt": 1786977313222
     },
     "google_108560811899542656924": {
       "id": "google_108560811899542656924",
@@ -71,8 +71,8 @@
       "email": "thanaphonsimsa5@gmail.com",
       "name": "Tha Na",
       "picture": "https://lh3.googleusercontent.com/a/ACg8ocKCJCzPyCqDsf7SmR3AbX268ExWjO9qYo2Fw9XkIn-k1Hg9GQ=s96-c",
-      "role": "global",
-      "badge": "🌐 Global Citizen",
+      "role": "member",
+      "badge": "👤 Member",
       "trustScore": 100,
       "weeklyScore": 0,
       "allTimeScore": 0,
@@ -84,8 +84,7 @@
       "isDev": false,
       "status": "active",
       "createdAt": 1786974991191,
-      "lastActiveAt": 1786975816679,
-      "canChatGlobal": true
+      "lastActiveAt": 1786975816679
     }
   },
   "pins": [],
@@ -97,7 +96,7 @@
       "name": "ทั่วไป (General)",
       "icon": "💬",
       "desc": "พูดคุยแลกเปลี่ยนข่าวสารทั่วไปรอบ มมส",
-      "msgCount": 1
+      "msgCount": 0
     },
     {
       "id": "marketplace",
@@ -129,29 +128,7 @@
       "msgCount": 0
     }
   ],
-  "chat_messages": [
-    {
-      "id": "msg-1786977226102-rjiy",
-      "roomId": "general",
-      "senderId": "dev_java5263",
-      "senderName": "Java (Dev)",
-      "senderEmail": "java5263@gmail.com",
-      "senderBadge": "👑 DEV",
-      "senderPicture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
-      "text": "ทดสอบส่งข้อความ Global Chat ทั่วโลก",
-      "isAnonymous": false,
-      "isAnnouncement": false,
-      "isGlobal": true,
-      "location": {
-        "lat": 13.7563,
-        "lng": 100.5018,
-        "distKm": 403.4,
-        "inZone": false,
-        "isGlobal": true
-      },
-      "createdAt": 1786977226102
-    }
-  ],
+  "chat_messages": [],
   "message_reports": [],
   "warnings": [],
   "bans": [],
@@ -1162,12 +1139,26 @@
       "details": "ลบหมุดด่านถาวร: พิกัดที่ระบุบนแผนที่ มมส",
       "ip": "127.0.0.1",
       "createdAt": 1786975975059
+    },
+    {
+      "id": "audit-1786976859227-gkr",
+      "action": "SHEETS_CONFIG_UPDATE",
+      "userId": "dev_java5263",
+      "targetId": "google_sheets",
+      "details": "อัปเดตการตั้งค่า Google Sheets (Enabled: true)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786976859228
+    },
+    {
+      "id": "audit-1786976871035-x1q",
+      "action": "SHEETS_CONFIG_UPDATE",
+      "userId": "dev_java5263",
+      "targetId": "google_sheets",
+      "details": "อัปเดตการตั้งค่า Google Sheets (Enabled: true)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786976871035
     }
   ],
   "pin_chat_messages": [],
-  "rider_requests": [],
-  "system_config": {
-    "globalChatEnabled": true,
-    "allowAllEmails": true
-  }
+  "rider_requests": []
 }

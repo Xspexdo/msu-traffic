@@ -308,16 +308,19 @@ class MSUMapManager {
       const elapsedMs = Date.now() - createdAtMs;
       const MOVE_WINDOW_MS = 20 * 1000;
       const isWithin20s = elapsedMs < MOVE_WINDOW_MS;
-      const canDrag = isDev || (isAuthor && isWithin20s);
+      const postMovesUsed = report.post20sMoveCount || 0;
+      const canDrag = isDev || (isAuthor && (isWithin20s || postMovesUsed < 3));
 
       let dragBadgeHtml = '';
       if (isDev) {
         dragBadgeHtml = '<span class="dev-drag-crown" title="Dev สามารถลากหมุดนี้ได้ (ไม่จำกัดเวลา)">👑</span>';
       } else if (isAuthor && isWithin20s) {
         const remainingSec = Math.max(0, Math.ceil((MOVE_WINDOW_MS - elapsedMs) / 1000));
-        dragBadgeHtml = `<span class="author-drag-badge pin-timer-badge" id="pin-timer-${report.id}" title="ย้ายได้เรื่อยๆ ใน 20 วินาที">⏱️ ${remainingSec}s</span>`;
-      } else if (isAuthor && !isWithin20s) {
-        dragBadgeHtml = '<span class="author-drag-badge" style="background:#F1F5F9; border-color:#CBD5E1; color:#94A3B8;" title="หมดเวลาย้าย (ล็อกตำแหน่งถาวรแล้ว)">🔒</span>';
+        dragBadgeHtml = `<span class="author-drag-badge pin-timer-badge" id="pin-timer-${report.id}" title="ย้ายได้เรื่อยๆ ใน 20 วินาทีแรก">⏱️ ${remainingSec}s</span>`;
+      } else if (isAuthor && !isWithin20s && postMovesUsed < 3) {
+        dragBadgeHtml = `<span class="author-drag-badge" style="background:#EFF6FF; border-color:#2563EB; color:#2563EB; font-weight:800;" title="โพสต์ของคุณ: ย้ายได้อีก ${3 - postMovesUsed} ครั้ง">✏️ ${3 - postMovesUsed}</span>`;
+      } else if (isAuthor && !isWithin20s && postMovesUsed >= 3) {
+        dragBadgeHtml = '<span class="author-drag-badge" style="background:#F1F5F9; border-color:#CBD5E1; color:#94A3B8;" title="ย้ายครบโควตา 3 ครั้งแล้ว (ล็อกตำแหน่งถาวร)">🔒</span>';
       }
 
       const customIcon = L.divIcon({
@@ -352,19 +355,25 @@ class MSUMapManager {
             if (currentRem > 0) {
               badgeEl.innerHTML = `⏱️ ${currentRem}s`;
             } else {
-              badgeEl.outerHTML = '<span class="author-drag-badge" style="background:#F1F5F9; border-color:#CBD5E1; color:#94A3B8;" title="หมดเวลาย้าย (ล็อกตำแหน่งถาวรแล้ว)">🔒</span>';
-              if (marker && marker.dragging) marker.dragging.disable();
+              const remainingPostMoves = Math.max(0, 3 - (report.post20sMoveCount || 0));
+              if (remainingPostMoves > 0) {
+                badgeEl.outerHTML = `<span class="author-drag-badge" style="background:#EFF6FF; border-color:#2563EB; color:#2563EB; font-weight:800;" title="ย้ายได้อีก ${remainingPostMoves} ครั้ง">✏️ ${remainingPostMoves}</span>`;
+                if (marker && marker.dragging) marker.dragging.enable();
+              } else {
+                badgeEl.outerHTML = '<span class="author-drag-badge" style="background:#F1F5F9; border-color:#CBD5E1; color:#94A3B8;" title="ย้ายครบโควตา 3 ครั้งแล้ว (ล็อกตำแหน่งถาวร)">🔒</span>';
+                if (marker && marker.dragging) marker.dragging.disable();
+              }
               clearInterval(this.pinTimers[report.id]);
               delete this.pinTimers[report.id];
               if (window.app) {
-                window.app.showNotification(`🔒 หมุด "${report.title || report.locationName}" ล็อกตำแหน่งถาวรเรียบร้อยแล้ว`, 'info');
+                window.app.showNotification(`⏱️ ครบ 20 วิแรกแล้ว: คุณยังสามารถย้ายหมุด "${report.title || report.locationName}" ได้อีก ${remainingPostMoves} ครั้ง`, 'info');
               }
             }
           }
         }, 1000);
       }
 
-      // ✋ ถ้าอยู่ในช่วง 20 วินาที หรือเป็น DEV: แตะลากหมุดเพื่อเปลี่ยนตำแหน่งได้ทันที
+      // ✋ แตะลากหมุดเพื่อเปลี่ยนตำแหน่ง
       if (canDrag) {
         marker.on('dragend', async (e) => {
           const newPos = e.target.getLatLng();
@@ -391,12 +400,20 @@ class MSUMapManager {
               report.lat = newPos.lat;
               report.lng = newPos.lng;
               report.moveCount = data.moveCount;
+              report.post20sMoveCount = data.pin?.post20sMoveCount || report.post20sMoveCount;
 
               if (window.app) {
                 const msg = isDev
                   ? `👑 DEV: ย้ายตำแหน่งหมุด "${pinTitle}" สำเร็จแล้ว! (ไม่จำกัดครั้ง)`
-                  : `📍 ย้ายตำแหน่งสำเร็จ! (เหลือเวลาย้ายอีก ${data.secondsRemaining} วินาที)`;
+                  : (data.isWithinInitial20s
+                      ? `📍 ย้ายตำแหน่งสำเร็จ! (เหลือเวลาย้ายไม่จำกัดอีก ${data.secondsRemaining} วิ + ย้ายได้อีก 3 ครั้งหลังหมดเวลา)`
+                      : `📍 ย้ายตำแหน่งสำเร็จ! (เหลือโควตาย้ายได้อีก ${data.post20sMovesRemaining} ครั้ง)`);
                 window.app.showNotification(msg, 'success');
+              }
+
+              // ถ้าหมดโควตาย้ายแล้ว ให้ปิด draggable
+              if (!isDev && !data.isWithinInitial20s && data.post20sMovesRemaining <= 0) {
+                marker.dragging.disable();
               }
             } else {
               alert('ไม่สามารถย้ายตำแหน่งได้: ' + (data.message || data.error || 'เกิดข้อผิดพลาด'));
@@ -417,9 +434,11 @@ class MSUMapManager {
       } else if (isAuthor) {
         if (isWithin20s) {
           const currentRem = Math.max(0, Math.ceil((MOVE_WINDOW_MS - (Date.now() - createdAtMs)) / 1000));
-          dragTipText = `<div style="font-size: 0.72rem; color: #DC2626; font-weight: 700; background: #FEF2F2; border: 1px solid #FECACA; padding: 0.25rem 0.45rem; border-radius: 4px; margin-top: 0.2rem;">⏱️ ย้ายหมุดได้เรื่อยๆ ใน 20 วินาที (เหลืออีก ${currentRem} วิ)</div>`;
+          dragTipText = `<div style="font-size: 0.72rem; color: #DC2626; font-weight: 700; background: #FEF2F2; border: 1px solid #FECACA; padding: 0.25rem 0.45rem; border-radius: 4px; margin-top: 0.2rem;">⏱️ ย้ายหมุดได้เรื่อยๆ ใน 20 วินาที (เหลืออีก ${currentRem} วิ) + ย้ายได้อีก 3 ครั้งหลังจากนั้น</div>`;
+        } else if (postMovesUsed < 3) {
+          dragTipText = `<div style="font-size: 0.72rem; color: #2563EB; font-weight: 700; background: #EFF6FF; border: 1px solid #BFDBFE; padding: 0.25rem 0.45rem; border-radius: 4px; margin-top: 0.2rem;">✏️ โพสต์ของคุณ: แตะลากย้ายได้อีก ${3 - postMovesUsed} ครั้ง</div>`;
         } else {
-          dragTipText = `<div style="font-size: 0.72rem; color: #64748B; font-weight: 700; background: #F1F5F9; border: 1px solid #E2E8F0; padding: 0.25rem 0.45rem; border-radius: 4px; margin-top: 0.2rem;">🔒 หมดเวลาแก้ไข 20 วินาทีแล้ว (ล็อกตำแหน่งถาวร)</div>`;
+          dragTipText = `<div style="font-size: 0.72rem; color: #64748B; font-weight: 700; background: #F1F5F9; border: 1px solid #E2E8F0; padding: 0.25rem 0.45rem; border-radius: 4px; margin-top: 0.2rem;">🔒 ย้ายครบโควตา 3 ครั้งแล้ว (ล็อกตำแหน่งถาวร)</div>`;
         }
       }
 
