@@ -1,6 +1,6 @@
 /**
  * MSU Traffic & Campus Life - Google Sheets & Cloud Auto-Sync Service (Season 1)
- * ระบบเชื่อมต่อและซิงค์ข้อมูลกับ Google Sheets อัตโนมัติ (Real-time & Scheduled Sync)
+ * ระบบเชื่อมต่อและซิงค์ข้อมูลกับ Google Sheets แบบ Two-Way Real-time อัตโนมัติ (ดึงและดันข้อมูลตลอดเวลา)
  */
 
 const fs = require('fs');
@@ -19,15 +19,25 @@ class GoogleSheetsService {
 
   startAutoSyncTimer(db, intervalMs = 30000) {
     if (this.timer) clearInterval(this.timer);
-    // รันทุกๆ 30 วินาทีในเบื้องหลังอัตโนมัติ (ดึงและดันข้อมูลกับ Google Sheets สม่ำเสมอ)
-    this.timer = setInterval(() => {
+    
+    // ดึงข้อมูลการตั้งค่าและหมุดจาก Google Sheets ทันทีตอนเริ่มต้น
+    this.pullAndApplyFromSheets(db).catch(err => {
+      console.warn('⚠️ Initial Google Sheets pull failed:', err.message);
+    });
+
+    // รันทุกๆ 30 วินาทีในเบื้องหลัง: ดึงข้อมูลล่าสุดจาก Sheets และซิงค์ข้อมูลกลับไป
+    this.timer = setInterval(async () => {
       if (this.config.enabled && this.config.webhookUrl && !this.isSyncing) {
-        this.syncFullDatabase(db.data).catch(err => {
-          console.warn('⚠️ Background Auto-Sync to Google Sheets failed:', err.message);
-        });
+        try {
+          await this.pullAndApplyFromSheets(db);
+          await this.syncFullDatabase(db.data);
+        } catch (err) {
+          console.warn('⚠️ Background Auto-Sync with Google Sheets failed:', err.message);
+        }
       }
     }, intervalMs);
-    console.log(`🔄 Google Sheets Auto-Sync background timer started (Every ${intervalMs / 1000}s)`);
+
+    console.log(`🔄 Google Sheets Two-Way Auto-Sync background timer started (Every ${intervalMs / 1000}s)`);
   }
 
   loadConfig() {
@@ -45,6 +55,7 @@ class GoogleSheetsService {
       autoSyncNewPins: true,
       autoSyncChat: false,
       autoSyncReports: true,
+      autoSyncSettings: true,
       lastSyncAt: null
     };
   }
@@ -69,6 +80,7 @@ class GoogleSheetsService {
       autoSyncNewPins: this.config.autoSyncNewPins !== false,
       autoSyncChat: this.config.autoSyncChat === true,
       autoSyncReports: this.config.autoSyncReports !== false,
+      autoSyncSettings: this.config.autoSyncSettings !== false,
       lastSyncAt: this.config.lastSyncAt || null
     };
   }
@@ -164,7 +176,7 @@ class GoogleSheetsService {
     });
   }
 
-  // 1. ซิงค์เมื่อมีหมุดด่านใหม่ (Real-time Instant Push 0.0s)
+  // 1. ซิงค์เมื่อมีหมุดด่านใหม่ (Real-time Instant Push)
   async syncNewPin(pin) {
     if (!this.config.enabled || !this.config.autoSyncNewPins) return;
     return this.sendPayload('NEW_PIN', {
@@ -187,7 +199,7 @@ class GoogleSheetsService {
     });
   }
 
-  // 2. ซิงค์เมื่อหมุดถูกอัปเดต / โหวต / ปรับสถานะ / ย้ายจุด (Real-time Instant Push 0.0s)
+  // 2. ซิงค์เมื่อหมุดถูกอัปเดต / โหวต / ปรับสถานะ / ย้ายจุด
   async syncPinUpdate(pin) {
     if (!this.config.enabled) return;
     return this.sendPayload('UPDATE_PIN', {
@@ -228,7 +240,115 @@ class GoogleSheetsService {
     });
   }
 
-  // 5. Full Sync: ส่งข้อมูลทั้งหมดขึ้น Google Sheets
+  // 5. ซิงค์การตั้งค่าเว็บ, ประกาศ, โหมดระบบ (Instant Push)
+  async syncSettingsUpdate(dbData) {
+    if (!this.config.enabled) return;
+    const settingsPayload = this.formatSettingsPayload(dbData);
+    return this.sendPayload('SYNC_SETTINGS', settingsPayload);
+  }
+
+  // 6. ซิงค์สถานะห้องแชททั้งหมด (Instant Push เมื่อเปิด/ปิดห้องแชท)
+  async syncChatRoomsUpdate(chatRooms) {
+    if (!this.config.enabled) return;
+    return this.sendPayload('UPDATE_CHAT_ROOMS', {
+      chatRooms: (chatRooms || []).map(r => ({
+        id: r.id,
+        name: r.name,
+        icon: r.icon || '💬',
+        desc: r.desc || '',
+        status: r.enabled !== false ? 'เปิดใช้งาน' : 'ปิดปรับปรุง',
+        enabled: r.enabled !== false,
+        msgCount: r.msgCount || 0,
+        lastReset: r.lastAutoResetDate || '-'
+      }))
+    });
+  }
+
+  // 7. ซิงค์ระดับยศ Rank Tiers (Instant Push เมื่อปรับแต่งยศ)
+  async syncRankTiersUpdate(rankTiers) {
+    if (!this.config.enabled) return;
+    return this.sendPayload('UPDATE_RANK_TIERS', {
+      rankTiers: (rankTiers || []).map(t => ({
+        level: t.level,
+        key: t.key,
+        name: t.name,
+        title: t.title || t.name,
+        minExp: t.minExp,
+        maxExp: t.maxExp === Infinity ? 'ไม่จำกัด' : t.maxExp,
+        icon: t.icon || '🎖️',
+        color: t.color || '#2563EB',
+        badgeClass: t.badgeClass || ''
+      }))
+    });
+  }
+
+  // 8. ซิงค์หมวดหมู่และตัวกรองด่าน (Instant Push)
+  async syncCategoriesUpdate(categories) {
+    if (!this.config.enabled) return;
+    return this.sendPayload('UPDATE_CATEGORIES', {
+      categories: (categories || []).map(c => ({
+        key: c.key,
+        name: c.name,
+        icon: c.icon || '📍',
+        sub: c.sub || c.name
+      }))
+    });
+  }
+
+  // 9. ตัวจัดรูปแบบข้อมูลการตั้งค่าสำหรับส่งขึ้นชีต
+  formatSettingsPayload(dbData) {
+    const sys = dbData.system_config || {};
+    const ann = sys.announcement || { enabled: true, text: '' };
+
+    return {
+      settings: [
+        { key: 'globalChatEnabled', name: 'โหมดแชททั่วโลก (Global Chat)', value: sys.globalChatEnabled !== false ? 'เปิดใช้งาน' : 'ปิดใช้งาน', enabled: sys.globalChatEnabled !== false },
+        { key: 'allowAllEmails', name: 'อนุญาตทุกอีเมล (Allow All Emails)', value: sys.allowAllEmails !== false ? 'เปิดใช้งาน' : 'ปิดใช้งาน', enabled: sys.allowAllEmails !== false },
+        { key: 'donateEnabled', name: 'ปุ่มสนับสนุน Donate (PromptPay)', value: sys.donateEnabled !== false ? 'เปิดใช้งาน' : 'ปิดใช้งาน', enabled: sys.donateEnabled !== false },
+        { key: 'announcementEnabled', name: 'แถบประชาสัมพันธ์ตัววิ่ง (Announcement Ticker)', value: ann.enabled !== false ? 'เปิดใช้งาน' : 'ปิดใช้งาน', enabled: ann.enabled !== false },
+        { key: 'announcementText', name: 'ข้อความประชาสัมพันธ์ตัววิ่ง', value: ann.text || '📢 ยินดีต้อนรับสู่ MSU Traffic', enabled: true },
+        { key: 'minExpForRanking', name: 'EXP ขั้นต่ำในการจัดอันดับประจำวัน', value: (dbData.leaderboard_snapshot?.minExpRequired || 200).toString(), enabled: true },
+        { key: 'seasonName', name: 'ชื่อ Season ปัจจุบัน', value: dbData.seasonName || 'Season 1: ปฐมบทชาว มมส', enabled: true },
+        { key: 'seasonNumber', name: 'หมายเลข Season', value: (dbData.season || 1).toString(), enabled: true },
+        { key: 'lastSyncedAt', name: 'เวลาซิงค์ข้อมูลล่าสุด', value: new Date().toLocaleString('th-TH'), enabled: true }
+      ],
+      chatRooms: (dbData.chat_rooms || []).map(r => ({
+        id: r.id,
+        name: r.name,
+        icon: r.icon || '💬',
+        desc: r.desc || '',
+        status: r.enabled !== false ? 'เปิดใช้งาน' : 'ปิดปรับปรุง',
+        enabled: r.enabled !== false,
+        msgCount: r.msgCount || 0,
+        lastReset: r.lastAutoResetDate || '-'
+      })),
+      rankTiers: ((Array.isArray(dbData.rank_tiers) && dbData.rank_tiers.length > 0) ? dbData.rank_tiers : [
+        { level: 1, key: 'novice', name: 'ผู้สัญจรมือใหม่', minExp: 0, maxExp: 99, icon: '🥉', color: '#B45309', badgeClass: 'rank-bronze', title: 'Novice Scout' },
+        { level: 2, key: 'scout', name: 'สายสืบ มมส', minExp: 100, maxExp: 299, icon: '🥈', color: '#475569', badgeClass: 'rank-silver', title: 'Campus Scout' },
+        { level: 3, key: 'warden', name: 'ผู้พิทักษ์ทางหลวง', minExp: 300, maxExp: 699, icon: '🥇', color: '#D97706', badgeClass: 'rank-gold', title: 'Traffic Warden' },
+        { level: 4, key: 'veteran', name: 'ยอดสายตรวจขามเรียง', minExp: 700, maxExp: 1499, icon: '💎', color: '#2563EB', badgeClass: 'rank-diamond', title: 'Khamriang Veteran' },
+        { level: 5, key: 'legend', name: 'ตำนานมีด่านบอกด้วย', minExp: 1500, maxExp: Infinity, icon: '👑', color: '#7C3AED', badgeClass: 'rank-legend', title: 'MSU Legend' }
+      ]).map(t => ({
+        level: t.level,
+        key: t.key,
+        name: t.name,
+        title: t.title || t.name,
+        minExp: t.minExp,
+        maxExp: t.maxExp === Infinity ? 'ไม่จำกัด' : t.maxExp,
+        icon: t.icon || '🎖️',
+        color: t.color || '#2563EB',
+        badgeClass: t.badgeClass || ''
+      })),
+      categories: (dbData.categories || []).map(c => ({
+        key: c.key,
+        name: c.name,
+        icon: c.icon || '📍',
+        sub: c.sub || c.name
+      }))
+    };
+  }
+
+  // 10. Full Sync: ส่งข้อมูลทั้งหมดขึ้น Google Sheets (ทุกชีต)
   async syncFullDatabase(dbData) {
     if (this.isSyncing) return { success: false, error: 'กำลังดำเนินการซิงค์อยู่' };
     this.isSyncing = true;
@@ -276,16 +396,24 @@ class GoogleSheetsService {
         createdAt: new Date(r.createdAt).toLocaleString('th-TH')
       }));
 
+      const settingsData = this.formatSettingsPayload(dbData);
+
       const result = await this.sendPayload('FULL_SYNC', {
         summary: {
           totalPins: pinsList.length,
           totalUsers: usersList.length,
           totalReports: reportsList.length,
+          totalRooms: settingsData.chatRooms.length,
+          totalTiers: settingsData.rankTiers.length,
           syncedAt: new Date().toLocaleString('th-TH')
         },
         pins: pinsList,
         users: usersList,
-        reports: reportsList
+        reports: reportsList,
+        settings: settingsData.settings,
+        chatRooms: settingsData.chatRooms,
+        rankTiers: settingsData.rankTiers,
+        categories: settingsData.categories
       });
 
       this.isSyncing = false;
@@ -296,9 +424,21 @@ class GoogleSheetsService {
     }
   }
 
-  // 6. ดึงข้อมูลหมุดทั้งหมดจาก Google Sheets กลับมา (Two-Way Pull & Auto Restore)
-  async fetchPinsFromSheets() {
+  // 11. ดึงข้อมูลทั้งหมดจาก Google Sheets กลับมา (Two-Way Pull)
+  async fetchFullDataFromSheets() {
     if (!this.config.enabled || !this.config.webhookUrl) return null;
+
+    // วิธีที่ 1: ดึงข้อมูลผ่าน POST 'FETCH_ALL' (เสถียรที่สุดและรองรับ Redirects อัตโนมัติ)
+    try {
+      const postResult = await this.sendPayload('FETCH_ALL', {});
+      if (postResult && postResult.success && postResult.data && postResult.data.status === 'OK') {
+        return postResult.data;
+      }
+    } catch (e) {
+      // Continue to GET fallback
+    }
+
+    // วิธีที่ 2: Fallback ดึงข้อมูลผ่าน GET (doGet)
     return new Promise((resolve) => {
       try {
         const urlObj = new URL(this.config.webhookUrl);
@@ -342,52 +482,32 @@ class GoogleSheetsService {
     });
   }
 
-  // 7. ฟังก์ชันกู้คืนหมุดอัตโนมัติเมื่อเซิร์ฟเวอร์เปิดขึ้นมาใหม่ (Startup Restore)
-  async restorePinsFromSheets(db) {
-    if (!this.config.enabled || !this.config.webhookUrl) return;
-    console.log('🔄 [SHEETS RESTORE] Checking & Restoring pins from Google Sheets on boot...');
+  // 12. ฟังก์ชันดึงและประยุกต์ใช้ข้อมูลจาก Google Sheets (Auto Apply Remote Changes)
+  async pullAndApplyFromSheets(db) {
+    if (!this.config.enabled || !this.config.webhookUrl) return { success: false, reason: 'Sheets sync disabled' };
+    
     try {
-      const result = await this.fetchPinsFromSheets();
-      if (result && Array.isArray(result.pins) && result.pins.length > 0) {
-        let restoredCount = 0;
-        result.pins.forEach(sheetPin => {
-          if (!sheetPin.id) return;
-          const exists = db.data.pins.find(p => p.id === sheetPin.id);
-          if (!exists && sheetPin.lat && sheetPin.lng) {
-            db.data.pins.push({
-              id: sheetPin.id,
-              title: sheetPin.title || sheetPin.locationName,
-              locationName: sheetPin.locationName,
-              campusZone: sheetPin.campusZone || 'มอใหม่ (ขามเรียง)',
-              lat: sheetPin.lat,
-              lng: sheetPin.lng,
-              type: sheetPin.type || 'checkpoint',
-              direction: sheetPin.direction || '',
-              description: sheetPin.description || '',
-              status: sheetPin.status || 'active',
-              reporter: sheetPin.reporter || { name: 'ผู้ใช้ มมส', badge: 'Member' },
-              reporterId: sheetPin.reporter?.email || 'restored_user',
-              likes: [],
-              views: 1,
-              votes: { up: [], down: [] },
-              moveCount: 0,
-              createdAt: typeof sheetPin.createdAt === 'string' ? new Date(sheetPin.createdAt).getTime() || Date.now() : Date.now(),
-              expiresAt: Date.now() + (6 * 3600 * 1000)
-            });
-            restoredCount++;
-          }
-        });
-        if (restoredCount > 0) {
-          db.saveData();
-          console.log(`✅ [SHEETS RESTORE] Successfully restored ${restoredCount} pins from Google Sheets!`);
-        }
+      const sheetData = await this.fetchFullDataFromSheets();
+      if (!sheetData || sheetData.status !== 'OK') {
+        return { success: false, reason: 'Invalid response from Google Sheets' };
       }
+
+      // นำข้อมูลจาก Sheets มาประยุกต์ใช้ใน database
+      const applied = db.applyRemoteSheetsData(sheetData);
+      return { success: true, applied };
     } catch (e) {
-      console.warn('⚠️ [SHEETS RESTORE] Could not restore from sheets:', e.message);
+      console.warn('⚠️ Error pulling from Google Sheets:', e.message);
+      return { success: false, error: e.message };
     }
   }
 
-  // 8. ทดสอบการเชื่อมต่อ
+  // 13. ฟังก์ชันกู้คืนหมุดและการตั้งค่าเมื่อเซิร์ฟเวอร์เปิดขึ้นมาใหม่ (Startup Restore)
+  async restorePinsFromSheets(db) {
+    console.log('🔄 [SHEETS RESTORE] Checking & Restoring pins and settings from Google Sheets on boot...');
+    return this.pullAndApplyFromSheets(db);
+  }
+
+  // 14. ทดสอบการเชื่อมต่อ (Ping Test)
   async testConnection() {
     return this.sendPayload('PING', {
       message: 'ทดสอบการเชื่อมต่อระบบ MSU Traffic กับ Google Sheets สำเร็จ! 🚀'
@@ -396,12 +516,17 @@ class GoogleSheetsService {
 
   getGoogleAppsScriptTemplate() {
     return `/**
- * ========================================================
- * 🚀 MSU Traffic & Campus Life - Google Sheets Webhook App
- * วางโค้ดนี้ใน: Google Sheets > ส่วนขยาย (Extensions) > Apps Script
- * จากนั้นกด "ทำให้ใช้งานได้ (Deploy)" > "การทำให้ใช้งานได้ใหม่ (New Deployment)" > เลือก "เว็บแอป (Web App)"
- * ตั้งค่า "ผู้มีสิทธิ์เข้าถึง (Who has access)" เป็น "ทุกคน (Anyone)"
- * ========================================================
+ * ==============================================================================
+ * 🚀 MSU Traffic & Campus Life - Google Sheets Webhook App (Season 1 Edition)
+ * ระบบเชื่อมต่อและซิงค์ข้อมูลกับ Google Sheets อัตโนมัติ (หมุด, ยศ, ห้องแชท, การตั้งค่า)
+ * ==============================================================================
+ * วิธีติดตั้ง:
+ * 1. วางโค้ดนี้ใน: Google Sheets > ส่วนขยาย (Extensions) > Apps Script
+ * 2. กด "ทำให้ใช้งานได้ (Deploy)" > "การทำให้ใช้งานได้ใหม่ (New Deployment)"
+ * 3. เลือกประเภทเป็น "เว็บแอป (Web App)"
+ * 4. ตั้งค่า "ผู้มีสิทธิ์เข้าถึง (Who has access)" เป็น "ทุกคน (Anyone)"
+ * 5. กด Deploy แล้วคัดลอก URL เว็บแอปมาใส่ในเว็บ MSU Traffic
+ * ==============================================================================
  */
 
 var SPREADSHEET_ID = ""; 
@@ -416,35 +541,124 @@ function getSpreadsheet() {
   }
   var active = SpreadsheetApp.getActiveSpreadsheet();
   if (active) return active;
-  throw new Error("ไม่พบ Active Spreadsheet กรุณาระบุ SPREADSHEET_ID ในบรรทัดที่ 2 ของโค้ด");
+  throw new Error("ไม่พบ Active Spreadsheet กรุณาระบุ SPREADSHEET_ID ในบรรทัดที่ 16 ของโค้ด");
+}
+
+function readAllSheetsData(ss) {
+  // 1. ดึงข้อมูลหมุด
+  var pinSheet = ss.getSheetByName("📌 รายงานด่าน (Pins)");
+  var pins = [];
+  if (pinSheet && pinSheet.getLastRow() > 1) {
+    var pinData = pinSheet.getRange(2, 1, pinSheet.getLastRow() - 1, pinSheet.getLastColumn()).getValues();
+    pins = pinData.map(function(row) {
+      return {
+        id: row[0],
+        title: row[1],
+        type: row[2],
+        locationName: row[3],
+        campusZone: row[4],
+        lat: parseFloat(row[5]),
+        lng: parseFloat(row[6]),
+        direction: row[7],
+        description: row[8],
+        reporter: { name: row[9], email: row[10], badge: row[11] },
+        status: row[12],
+        createdAt: row[13],
+        expiresAt: row[14]
+      };
+    });
+  }
+
+  // 2. ดึงข้อมูลการตั้งค่าเว็บไซต์
+  var settingSheet = ss.getSheetByName("⚙️ ตั้งค่าเว็บไซต์ (Settings)");
+  var settings = {};
+  if (settingSheet && settingSheet.getLastRow() > 1) {
+    var sData = settingSheet.getRange(2, 1, settingSheet.getLastRow() - 1, settingSheet.getLastColumn()).getValues();
+    sData.forEach(function(row) {
+      var key = row[0];
+      var val = row[2];
+      var enabled = row[3];
+      if (key) {
+        settings[key] = {
+          name: row[1],
+          value: val,
+          enabled: enabled === true || enabled === "เปิดใช้งาน" || enabled === "TRUE"
+        };
+      }
+    });
+  }
+
+  // 3. ดึงข้อมูลห้องแชท
+  var roomSheet = ss.getSheetByName("💬 ห้องแชต (Chat Rooms)");
+  var chatRooms = [];
+  if (roomSheet && roomSheet.getLastRow() > 1) {
+    var rData = roomSheet.getRange(2, 1, roomSheet.getLastRow() - 1, roomSheet.getLastColumn()).getValues();
+    chatRooms = rData.map(function(row) {
+      var st = row[4];
+      var isEn = (st === "เปิดใช้งาน" || st === true || st === "TRUE" || row[5] === true || row[5] === "TRUE");
+      return {
+        id: row[0],
+        name: row[1],
+        icon: row[2],
+        desc: row[3],
+        status: isEn ? "เปิดใช้งาน" : "ปิดปรับปรุง",
+        enabled: isEn,
+        msgCount: parseInt(row[6]) || 0
+      };
+    });
+  }
+
+  // 4. ดึงข้อมูลระดับยศ Rank Tiers
+  var rankSheet = ss.getSheetByName("🎖️ ระดับยศ (Rank Tiers)");
+  var rankTiers = [];
+  if (rankSheet && rankSheet.getLastRow() > 1) {
+    var rkData = rankSheet.getRange(2, 1, rankSheet.getLastRow() - 1, rankSheet.getLastColumn()).getValues();
+    rankTiers = rkData.map(function(row) {
+      return {
+        level: parseInt(row[0]) || 1,
+        key: row[1],
+        name: row[2],
+        title: row[3],
+        minExp: parseInt(row[4]) || 0,
+        maxExp: (row[5] === "ไม่จำกัด" || row[5] === "" || row[5] === 999999) ? Infinity : (parseInt(row[5]) || 999),
+        icon: row[6],
+        color: row[7],
+        badgeClass: row[8]
+      };
+    });
+  }
+
+  // 5. ดึงข้อมูลหมวดหมู่ด่าน
+  var catSheet = ss.getSheetByName("🏷️ หมวดหมู่ด่าน (Categories)");
+  var categories = [];
+  if (catSheet && catSheet.getLastRow() > 1) {
+    var cData = catSheet.getRange(2, 1, catSheet.getLastRow() - 1, catSheet.getLastColumn()).getValues();
+    categories = cData.map(function(row) {
+      return {
+        key: row[0],
+        name: row[1],
+        icon: row[2],
+        sub: row[3]
+      };
+    });
+  }
+
+  return {
+    status: "OK",
+    timestamp: new Date().toISOString(),
+    pins: pins,
+    settings: settings,
+    chatRooms: chatRooms,
+    rankTiers: rankTiers,
+    categories: categories
+  };
 }
 
 function doGet(e) {
   try {
     var ss = getSpreadsheet();
-    var pinSheet = ss.getSheetByName("📌 รายงานด่าน (Pins)");
-    var pins = [];
-    if (pinSheet && pinSheet.getLastRow() > 1) {
-      var data = pinSheet.getRange(2, 1, pinSheet.getLastRow() - 1, pinSheet.getLastColumn()).getValues();
-      pins = data.map(function(row) {
-        return {
-          id: row[0],
-          title: row[1],
-          type: row[2],
-          locationName: row[3],
-          campusZone: row[4],
-          lat: parseFloat(row[5]),
-          lng: parseFloat(row[6]),
-          direction: row[7],
-          description: row[8],
-          reporter: { name: row[9], email: row[10], badge: row[11] },
-          status: row[12],
-          createdAt: row[13],
-          expiresAt: row[14]
-        };
-      });
-    }
-    return ContentService.createTextOutput(JSON.stringify({ status: "OK", pins: pins }))
+    var result = readAllSheetsData(ss);
+    return ContentService.createTextOutput(JSON.stringify(result))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ status: "ERROR", error: err.toString() }))
@@ -465,6 +679,12 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
+    if (action === "FETCH_ALL" || action === "GET_DATA" || action === "PULL") {
+      var result = readAllSheetsData(ss);
+      return ContentService.createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     if (action === "NEW_PIN") {
       var sheet = getOrCreateSheet(ss, "📌 รายงานด่าน (Pins)", [
         "รหัสหมุด", "หัวข้อ", "ประเภท", "สถานที่", "โซน", "ละติจูด", "ลองจิจูด", "ทิศทาง", "รายละเอียด", "ผู้รายงาน", "อีเมล", "ป้าย", "สถานะ", "เวลาโพสต์", "เวลาหมดอายุ"
@@ -475,6 +695,7 @@ function doPost(e) {
     }
 
     if (action === "FULL_SYNC") {
+      // 1. Pins Sheet
       var pinSheet = getOrCreateSheet(ss, "📌 รายงานด่าน (Pins)", [
         "รหัสหมุด", "หัวข้อ", "ประเภท", "สถานที่", "โซน", "ละติจูด", "ลองจิจูด", "ทิศทาง", "รายละเอียด", "ผู้รายงาน", "อีเมล", "ป้าย", "สถานะ", "เวลาโพสต์", "เวลาหมดอายุ"
       ]);
@@ -486,6 +707,7 @@ function doPost(e) {
         pinSheet.getRange(2, 1, pinRows.length, pinRows[0].length).setValues(pinRows);
       }
 
+      // 2. Users Sheet
       var userSheet = getOrCreateSheet(ss, "🏆 ผู้ใช้งาน & คะแนน (Users)", [
         "User ID", "ชื่อ", "อีเมล", "คะแนนรวม (EXP)", "คะแนนสัปดาห์นี้", "Trust Score", "บทบาท", "จำนวนหมุดที่สร้าง", "ใช้งานล่าสุด"
       ]);
@@ -497,6 +719,7 @@ function doPost(e) {
         userSheet.getRange(2, 1, userRows.length, userRows[0].length).setValues(userRows);
       }
 
+      // 3. Reports Sheet
       var reportSheet = getOrCreateSheet(ss, "🛡️ รายงานแจ้งลบ (Reports)", [
         "Report ID", "รหัสหมุด", "เหตุผล", "รายละเอียด", "น้ำหนัก (Trust Weight)", "อีเมลผู้แจ้ง", "วันที่แจ้ง"
       ]);
@@ -507,6 +730,45 @@ function doPost(e) {
         });
         reportSheet.getRange(2, 1, repRows.length, repRows[0].length).setValues(repRows);
       }
+
+      // 4. Settings Sheet
+      if (data.settings) {
+        saveSettingsToSheet(ss, data.settings);
+      }
+
+      // 5. Chat Rooms Sheet
+      if (data.chatRooms) {
+        saveChatRoomsToSheet(ss, data.chatRooms);
+      }
+
+      // 6. Rank Tiers Sheet
+      if (data.rankTiers) {
+        saveRankTiersToSheet(ss, data.rankTiers);
+      }
+
+      // 7. Categories Sheet
+      if (data.categories) {
+        saveCategoriesToSheet(ss, data.categories);
+      }
+    }
+
+    if (action === "SYNC_SETTINGS") {
+      if (data.settings) saveSettingsToSheet(ss, data.settings);
+      if (data.chatRooms) saveChatRoomsToSheet(ss, data.chatRooms);
+      if (data.rankTiers) saveRankTiersToSheet(ss, data.rankTiers);
+      if (data.categories) saveCategoriesToSheet(ss, data.categories);
+    }
+
+    if (action === "UPDATE_CHAT_ROOMS" && data.chatRooms) {
+      saveChatRoomsToSheet(ss, data.chatRooms);
+    }
+
+    if (action === "UPDATE_RANK_TIERS" && data.rankTiers) {
+      saveRankTiersToSheet(ss, data.rankTiers);
+    }
+
+    if (action === "UPDATE_CATEGORIES" && data.categories) {
+      saveCategoriesToSheet(ss, data.categories);
     }
 
     if (action === "PIN_REPORT") {
@@ -527,6 +789,58 @@ function doPost(e) {
   }
 }
 
+function saveSettingsToSheet(ss, settingsList) {
+  var sheet = getOrCreateSheet(ss, "⚙️ ตั้งค่าเว็บไซต์ (Settings)", [
+    "Setting Key", "ชื่อการตั้งค่า", "ค่าปัจจุบัน (Value)", "สถานะ (Enabled)", "คำอธิบาย"
+  ]);
+  clearDataRows(sheet);
+  if (Array.isArray(settingsList) && settingsList.length > 0) {
+    var rows = settingsList.map(function(s) {
+      return [s.key, s.name, s.value, s.enabled ? "เปิดใช้งาน" : "ปิดใช้งาน", ""];
+    });
+    sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+  }
+}
+
+function saveChatRoomsToSheet(ss, roomsList) {
+  var sheet = getOrCreateSheet(ss, "💬 ห้องแชต (Chat Rooms)", [
+    "Room ID", "ชื่อห้องแชต", "ไอคอน", "คำอธิบาย", "สถานะห้อง (Status)", "เปิดใช้งาน (Boolean)", "จำนวนข้อความ", "รีเซ็ตล่าสุด"
+  ]);
+  clearDataRows(sheet);
+  if (Array.isArray(roomsList) && roomsList.length > 0) {
+    var rows = roomsList.map(function(r) {
+      return [r.id, r.name, r.icon, r.desc, r.status, r.enabled ? "TRUE" : "FALSE", r.msgCount, r.lastReset || "-"];
+    });
+    sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+  }
+}
+
+function saveRankTiersToSheet(ss, tiersList) {
+  var sheet = getOrCreateSheet(ss, "🎖️ ระดับยศ (Rank Tiers)", [
+    "Level", "Rank Key", "ชื่อยศ (Rank Name)", "Title", "EXP ขั้นต่ำ (Min EXP)", "EXP สูงสุด (Max EXP)", "ไอคอน (Icon)", "รหัสสี (Hex Color)", "Badge Class"
+  ]);
+  clearDataRows(sheet);
+  if (Array.isArray(tiersList) && tiersList.length > 0) {
+    var rows = tiersList.map(function(t) {
+      return [t.level, t.key, t.name, t.title, t.minExp, t.maxExp, t.icon, t.color, t.badgeClass];
+    });
+    sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+  }
+}
+
+function saveCategoriesToSheet(ss, catList) {
+  var sheet = getOrCreateSheet(ss, "🏷️ หมวดหมู่ด่าน (Categories)", [
+    "Category Key", "ชื่อหมวดหมู่ / คำค้นหา", "ไอคอน", "คำอธิบายย่อย"
+  ]);
+  clearDataRows(sheet);
+  if (Array.isArray(catList) && catList.length > 0) {
+    var rows = catList.map(function(c) {
+      return [c.key, c.name, c.icon, c.sub];
+    });
+    sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+  }
+}
+
 function getOrCreateSheet(ss, sheetName, headers) {
   var sheet = ss.getSheetByName(sheetName);
   if (!sheet) {
@@ -540,7 +854,7 @@ function getOrCreateSheet(ss, sheetName, headers) {
     sheet.clear();
     sheet.appendRow(headers);
     var headerRange = sheet.getRange(1, 1, 1, headers.length);
-    headerRange.setBackground("#2563EB").setFontColor("#FFFFFF").setFontWeight("bold");
+    headerRange.setBackground("#1E3A8A").setFontColor("#FFFFFF").setFontWeight("bold");
     sheet.setFrozenRows(1);
   }
   return sheet;

@@ -307,6 +307,10 @@ class Database {
           this.saveData(fresh);
           return fresh;
         }
+        if (!parsed.rank_tiers || !Array.isArray(parsed.rank_tiers) || parsed.rank_tiers.length === 0) {
+          parsed.rank_tiers = JSON.parse(JSON.stringify(RANK_TIERS));
+          this.saveData(parsed);
+        }
         return parsed;
       }
     } catch (e) {

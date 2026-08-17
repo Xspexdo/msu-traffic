@@ -54,7 +54,33 @@ router.post('/sync-all', requireDev, async (req, res) => {
 
   res.json({
     success: result.success,
-    message: result.success ? '🎉 ซิงค์ข้อมูลทั้งหมดขึ้น Google Sheets สำเร็จแล้ว!' : `❌ ซิงค์ไม่สำเร็จ: ${result.error || 'เกิดข้อผิดพลาด'}`,
+    message: result.success ? '🎉 ซิงค์ข้อมูลทั้งหมด (หมุด, ยศ, ห้องแชท, การตั้งค่า) ขึ้น Google Sheets สำเร็จแล้ว!' : `❌ ซิงค์ไม่สำเร็จ: ${result.error || 'เกิดข้อผิดพลาด'}`,
+    detail: result
+  });
+});
+
+// 4.1 สั่งซิงค์เฉพาะการตั้งค่าเว็บ, ยศ, ห้องแชท ขึ้น Google Sheets ทันที
+router.post('/sync-settings', requireDev, async (req, res) => {
+  const result = await googleSheetsService.syncSettingsUpdate(db.data);
+  res.json({
+    success: result ? result.success : false,
+    message: (result && result.success) ? '⚙️ ซิงค์การตั้งค่าเว็บและห้องแชทขึ้น Google Sheets เรียบร้อยแล้ว!' : 'เกิดข้อผิดพลาดในการซิงค์การตั้งค่า',
+    detail: result
+  });
+});
+
+// 4.2 สั่งดึงข้อมูลล่าสุดจาก Google Sheets กลับมาทันที (Pull Now)
+router.post('/pull-now', requireDev, async (req, res) => {
+  const result = await googleSheetsService.pullAndApplyFromSheets(db);
+  if (result.success) {
+    db.logAudit('SHEETS_PULL_NOW', req.user.id, 'google_sheets', `ดึงข้อมูลจาก Google Sheets สำเร็จ (${result.applied?.changes?.length || 0} รายการที่อัปเดต)`);
+  }
+
+  res.json({
+    success: result.success,
+    message: result.success 
+      ? `📥 ดึงและอัปเดตข้อมูลจาก Google Sheets สำเร็จเรียบร้อย! (${result.applied?.changes?.length || 0} รายการ)` 
+      : `❌ ดึงข้อมูลไม่สำเร็จ: ${result.reason || result.error || 'ตรวจสอบ Webhook URL'}`,
     detail: result
   });
 });
@@ -68,3 +94,4 @@ router.get('/script-template', (req, res) => {
 });
 
 module.exports = router;
+

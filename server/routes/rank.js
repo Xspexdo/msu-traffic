@@ -47,4 +47,40 @@ router.get('/my-stats', optionalAuth, (req, res) => {
   }
 });
 
+// 4. GET /api/rank/tiers - ดึงระดับยศทั้งหมด (Rank Tiers Config)
+router.get('/tiers', (req, res) => {
+  try {
+    const tiers = db.getRankTiers();
+    res.json({ success: true, data: tiers });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 5. POST /api/rank/tiers - อัปเดตการตั้งค่าระดับยศ (เฉพาะ Dev)
+router.post('/tiers', requireAuth, (req, res) => {
+  try {
+    const userEmail = (req.user.email || '').toLowerCase().trim();
+    const isDev = req.user.isDev === true || userEmail === 'java5263@gmail.com';
+    if (!isDev) {
+      return res.status(403).json({ success: false, error: 'เฉพาะ Developer เท่านั้นที่สามารถปรับค่าระดับยศได้' });
+    }
+
+    const { tiers } = req.body;
+    if (!Array.isArray(tiers) || tiers.length === 0) {
+      return res.status(400).json({ success: false, error: 'กรุณาส่งรายการระดับยศที่ถูกต้อง' });
+    }
+
+    const updated = db.saveRankTiers(tiers, req.user.id);
+    res.json({
+      success: true,
+      message: 'บันทึกการตั้งค่าระดับยศ และซิงค์ขึ้น Google Sheets สำเร็จแล้ว',
+      data: updated
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;
+

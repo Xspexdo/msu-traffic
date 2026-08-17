@@ -121,6 +121,9 @@ class DevManager {
 
     // 5. โหลดรายการหมวดหมู่ & ตัวกรอง (Categories & Filter Words)
     this.loadCategoriesList();
+
+    // 6. โหลดการตั้งค่าระดับยศ (Rank Tiers Settings)
+    this.loadRankTiersSettings();
   }
 
   async loadAnnouncementSetting() {
@@ -417,6 +420,98 @@ class DevManager {
       }
     } catch (e) {
       console.error('Error deleting category:', e);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    }
+  }
+
+  // ============================================================================
+  // 🎖️ RANK TIERS SETTINGS MANAGEMENT (Dev & Sheets Sync)
+  // ============================================================================
+  async loadRankTiersSettings() {
+    const container = document.getElementById('devRankTiersListContainer');
+    if (!container) return;
+
+    container.innerHTML = '<div style="text-align: center; color: #94A3B8; font-size: 0.8rem; padding: 0.75rem;">⏳ กำลังโหลดระดับยศ...</div>';
+
+    try {
+      const res = await fetch('/api/rank/tiers');
+      const data = await res.json();
+
+      if (data.success && Array.isArray(data.data)) {
+        this.rankTiersData = data.data;
+        container.innerHTML = data.data.map((tier, idx) => {
+          const maxText = (tier.maxExp === Infinity || tier.maxExp === 'ไม่จำกัด' || tier.maxExp === null) ? '∞ ไม่จำกัด' : `${tier.maxExp} EXP`;
+          return `
+            <div style="background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 10px; padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 180px;">
+                <span style="font-size: 1.4rem;">${tier.icon || '🎖️'}</span>
+                <div>
+                  <div style="font-weight: 800; font-size: 0.88rem; color: #0F172A; display: flex; align-items: center; gap: 0.35rem;">
+                    <span>Level ${tier.level}: ${tier.name}</span>
+                  </div>
+                  <div style="font-size: 0.72rem; color: #64748B;">${tier.title || tier.key}</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 0.3rem;">
+                  <span style="font-size: 0.74rem; font-weight: 700; color: #475569;">EXP ขั้นต่ำ:</span>
+                  <input type="number" class="form-control form-control-sm dev-tier-minexp-input" data-index="${idx}" value="${tier.minExp}" style="width: 85px; font-size: 0.82rem; padding: 0.25rem 0.5rem; text-align: center; font-weight: 700; border-radius: 6px;" min="0">
+                </div>
+                <span style="font-size: 0.74rem; color: #94A3B8;">ถึง ${maxText}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        container.innerHTML = '<div style="color: #EF4444; font-size: 0.8rem;">❌ ไม่สามารถโหลดระดับยศได้</div>';
+      }
+    } catch (e) {
+      console.error('Error loading rank tiers:', e);
+      container.innerHTML = '<div style="color: #EF4444; font-size: 0.8rem;">❌ เกิดข้อผิดพลาดในการโหลดระดับยศ</div>';
+    }
+  }
+
+  async saveRankTiersSettings() {
+    if (!this.rankTiersData || !Array.isArray(this.rankTiersData)) {
+      alert('ไม่พบข้อมูลระดับยศ');
+      return;
+    }
+
+    const inputs = document.querySelectorAll('.dev-tier-minexp-input');
+    const updatedTiers = JSON.parse(JSON.stringify(this.rankTiersData));
+
+    inputs.forEach(input => {
+      const idx = parseInt(input.dataset.index);
+      const val = parseInt(input.value);
+      if (!isNaN(idx) && !isNaN(val) && updatedTiers[idx]) {
+        updatedTiers[idx].minExp = Math.max(0, val);
+      }
+    });
+
+    // Update maxExp range dynamically
+    for (let i = 0; i < updatedTiers.length - 1; i++) {
+      updatedTiers[i].maxExp = updatedTiers[i + 1].minExp - 1;
+    }
+    updatedTiers[updatedTiers.length - 1].maxExp = Infinity;
+
+    try {
+      const res = await fetch('/api/rank/tiers', {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ tiers: updatedTiers })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        if (window.app) {
+          window.app.showNotification('🎖️ บันทึกระดับยศ และซิงค์ลง Google Sheets สำเร็จแล้ว!', 'success');
+        }
+        this.loadRankTiersSettings();
+      } else {
+        alert(data.error || 'ไม่สามารถบันทึกระดับยศได้');
+      }
+    } catch (e) {
+      console.error('Error saving rank tiers:', e);
       alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
     }
   }
@@ -1596,6 +1691,56 @@ class DevManager {
     } catch (err) {
       console.error('Error in full sync:', err);
       alert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
+    }
+  }
+
+  async syncSettingsToSheets() {
+    window.app?.showNotification('📤 กำลังซิงค์การตั้งค่าเว็บและห้องแชทขึ้น Google Sheets...', 'info');
+
+    try {
+      const res = await fetch('/api/sheets/sync-settings', {
+        method: 'POST',
+        headers: this.getHeaders()
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        window.app?.showNotification(data.message || '⚙️ ซิงค์การตั้งค่าขึ้น Google Sheets สำเร็จ!', 'success');
+        this.loadSheetsConfig();
+      } else {
+        alert(data.message || data.error || 'ซิงค์การตั้งค่าไม่สำเร็จ');
+      }
+    } catch (err) {
+      console.error('Error in sync settings:', err);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
+    }
+  }
+
+  async pullFromSheetsNow() {
+    window.app?.showNotification('📥 กำลังดึงข้อมูลล่าสุดจาก Google Sheets...', 'info');
+
+    try {
+      const res = await fetch('/api/sheets/pull-now', {
+        method: 'POST',
+        headers: this.getHeaders()
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        window.app?.showNotification(data.message || '📥 ดึงข้อมูลสำเร็จ!', 'success');
+        this.loadSheetsConfig();
+        if (this.currentTab === 'settings') {
+          this.loadSettingsState();
+        } else if (this.currentTab === 'pins') {
+          this.loadPins();
+        }
+        if (window.chatManager) {
+          window.chatManager.loadRooms();
+        }
+      } else {
+        alert(data.message || data.error || 'ไม่สามารถดึงข้อมูลจาก Google Sheets ได้ ตรวจสอบ Webhook URL');
+      }
+    } catch (err) {
+      console.error('Error pulling from sheets:', err);
+      alert('เกิดข้อผิดพลาดในการดึงข้อมูล: ' + err.message);
     }
   }
 

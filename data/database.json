@@ -1240,6 +1240,51 @@
       "details": "ลบหมุดด่านถาวร: พิกัดที่ระบุบนแผนที่ มมส",
       "ip": "127.0.0.1",
       "createdAt": 1786979999805
+    },
+    {
+      "id": "audit-1786982123941-qfc",
+      "action": "PIN_CREATE",
+      "userId": "test_user_1786982123940",
+      "targetId": "pin-1786982123940-to71w",
+      "details": "ปักหมุดด่านใหม่: หน้า มอใหม่ 1",
+      "ip": "127.0.0.1",
+      "createdAt": 1786982123941
+    },
+    {
+      "id": "audit-1786982123956-lxy",
+      "action": "PIN_CREATE",
+      "userId": "test_user_1786982123940",
+      "targetId": "pin-1786982123954-z14gq",
+      "details": "ปักหมุดด่านใหม่: หน้า มอใหม่ 2",
+      "ip": "127.0.0.1",
+      "createdAt": 1786982123956
+    },
+    {
+      "id": "audit-1786982123957-ax6",
+      "action": "PIN_CREATE",
+      "userId": "test_user_1786982123940",
+      "targetId": "pin-1786982123956-01r78",
+      "details": "ปักหมุดด่านใหม่: หน้า มอใหม่ 3",
+      "ip": "127.0.0.1",
+      "createdAt": 1786982123957
+    },
+    {
+      "id": "audit-1786982724710-dwl",
+      "action": "UPDATE_CATEGORIES",
+      "userId": "dev_java5263",
+      "targetId": "system",
+      "details": "อัปเดตรายการหมวดหมู่/คำค้นหา (6 รายการ)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786982724710
+    },
+    {
+      "id": "audit-1786982814347-vpj",
+      "action": "CATEGORY_ADDED",
+      "userId": "dev_java5263",
+      "targetId": "cat_msxffg5l_p2r",
+      "details": "เพิ่ม/แก้ไขหมวดหมู่ด่าน: ตรวจใบขับขี่",
+      "ip": "127.0.0.1",
+      "createdAt": 1786982814347
     }
   ],
   "pin_chat_messages": [],
@@ -1279,5 +1324,109 @@
   },
   "lastLeaderboardCalcDate": "2026-08-17",
   "dayNumber": 2,
-  "dayEnd": 1786986000000
+  "dayEnd": 1786986000000,
+  "system_config": {
+    "globalChatEnabled": true,
+    "allowAllEmails": true,
+    "announcement": {
+      "enabled": true,
+      "text": "📢 ยินดีต้อนรับสู่ MSU Traffic • ขับขี่ปลอดภัย สวมหมวกกันน็อก เปิดไฟหน้ารถ • รายงานด่านแบบเรียลไทม์เพื่อความปลอดภัยของชาว มมส",
+      "updatedAt": 1786982900467
+    }
+  },
+  "categories": [
+    {
+      "key": "helmet",
+      "name": "หมวก/ใบขับขี่",
+      "icon": "👮‍♂️",
+      "sub": "ใบขับขี่ / อุปกรณ์ส่วนควบ"
+    },
+    {
+      "key": "alcohol",
+      "name": "เป่าแอล",
+      "icon": "🍺",
+      "sub": "เป่าแอลกอฮอล์ยามค่ำคืน"
+    },
+    {
+      "key": "security",
+      "name": "ตรวจค้น",
+      "icon": "🚔",
+      "sub": "ตรวจค้นสิ่งผิดกฎหมาย"
+    },
+    {
+      "key": "traffic",
+      "name": "รถติด",
+      "icon": "🚗",
+      "sub": "ชะลอตัวช่วงเร่งด่วน"
+    },
+    {
+      "key": "accident",
+      "name": "อุบัติเหตุ",
+      "icon": "⚠️",
+      "sub": "โปรดระมัดระวัง"
+    },
+    {
+      "key": "cat_msxfhv6x_toy",
+      "name": "TEST SYSTEMS",
+      "icon": "⚠️",
+      "sub": "TEST SYSTEMS"
+    }
+  ],
+  "rank_tiers": [
+    {
+      "level": 1,
+      "key": "novice",
+      "name": "ผู้สัญจรมือใหม่",
+      "minExp": 0,
+      "maxExp": 99,
+      "icon": "🥉",
+      "color": "#B45309",
+      "badgeClass": "rank-bronze",
+      "title": "Novice Scout"
+    },
+    {
+      "level": 2,
+      "key": "scout",
+      "name": "สายสืบ มมส",
+      "minExp": 100,
+      "maxExp": 299,
+      "icon": "🥈",
+      "color": "#475569",
+      "badgeClass": "rank-silver",
+      "title": "Campus Scout"
+    },
+    {
+      "level": 3,
+      "key": "warden",
+      "name": "ผู้พิทักษ์ทางหลวง",
+      "minExp": 300,
+      "maxExp": 699,
+      "icon": "🥇",
+      "color": "#D97706",
+      "badgeClass": "rank-gold",
+      "title": "Traffic Warden"
+    },
+    {
+      "level": 4,
+      "key": "veteran",
+      "name": "ยอดสายตรวจขามเรียง",
+      "minExp": 700,
+      "maxExp": 1499,
+      "icon": "💎",
+      "color": "#2563EB",
+      "badgeClass": "rank-diamond",
+      "title": "Khamriang Veteran"
+    },
+    {
+      "level": 5,
+      "key": "legend",
+      "name": "ตำนานมีด่านบอกด้วย",
+      "minExp": 1500,
+      "maxExp": null,
+      "icon": "👑",
+      "color": "#7C3AED",
+      "badgeClass": "rank-legend",
+      "title": "MSU Legend"
+    }
+  ]
 }

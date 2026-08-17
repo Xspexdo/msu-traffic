@@ -1388,8 +1388,14 @@
               <button class="btn btn-outline btn-sm" onclick="window.devManager.testSheetsConnection()" style="font-weight: 700;">
                 <span>⚡ ทดสอบการเชื่อมต่อ (Ping Test)</span>
               </button>
+              <button class="btn btn-outline btn-sm" onclick="window.devManager.pullFromSheetsNow()" style="font-weight: 700; color: #1D4ED8; border-color: #BFDBFE; background: #EFF6FF;">
+                <span>📥 ดึงข้อมูลจาก Google Sheets ทันที (Pull Now)</span>
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="window.devManager.syncSettingsToSheets()" style="font-weight: 700; color: #D97706; border-color: #FDE68A; background: #FFFBEB;">
+                <span>⚙️ ซิงค์การตั้งค่าเว็บขึ้นชีต (Sync Settings)</span>
+              </button>
               <button class="btn btn-outline btn-sm" onclick="window.devManager.fullSyncSheets()" style="font-weight: 700; color: #059669; border-color: #A7F3D0; background: #ECFDF5;">
-                <span>📤 ซิงค์ข้อมูลทั้งหมดขึ้นชีตทันที (Full Sync)</span>
+                <span>📤 ซิงค์ข้อมูลทั้งหมดขึ้นชีต (Full Sync)</span>
               </button>
               <button class="btn btn-outline btn-sm" onclick="window.devManager.copyGoogleAppsScript()" style="font-weight: 700; margin-left: auto;">
                 <span>📋 คัดลอกโค้ด Apps Script</span>
@@ -1585,6 +1591,35 @@
 
             <!-- Active Categories List -->
             <div id="devCategoriesListContainer" style="display: flex; flex-direction: column; gap: 0.45rem;">
+              <!-- Rendered by devManager.js -->
+            </div>
+          </div>
+
+          <!-- 🎖️ Rank Tiers & EXP Settings Card (Dev & Sheets Sync) -->
+          <div style="background: #FFFFFF; border: 1.5px solid #CBD5E1; border-radius: 14px; padding: 1.2rem 1.3rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 0.45rem;">
+                  <span style="font-size: 1.25rem;">🎖️</span>
+                  <h4 style="font-size: 0.95rem; font-weight: 800; color: #0F172A; margin: 0;">เกณฑ์ EXP และระดับยศ (Rank Tiers & Progression)</h4>
+                  <span class="dev-badge badge-active">Auto-Sync</span>
+                </div>
+                <p style="font-size: 0.76rem; color: #64748B; margin: 0.2rem 0 0 0;">
+                  ปรับแต่งเกณฑ์คะแนน EXP ขั้นต่ำของแต่ละยศ ทุกการแก้ไขจะซิงค์ขึ้น Google Sheets ทันที
+                </p>
+              </div>
+              <div style="display: flex; gap: 0.4rem;">
+                <button type="button" class="btn btn-outline btn-xs" onclick="window.devManager.loadRankTiersSettings()" style="font-weight: 700;">
+                  🔄 รีเฟรชยศ
+                </button>
+                <button type="button" class="btn btn-primary btn-xs" onclick="window.devManager.saveRankTiersSettings()" style="background: #2563EB; font-weight: 700;">
+                  💾 บันทึกระดับยศ
+                </button>
+              </div>
+            </div>
+
+            <!-- Active Rank Tiers List -->
+            <div id="devRankTiersListContainer" style="display: flex; flex-direction: column; gap: 0.55rem;">
               <!-- Rendered by devManager.js -->
             </div>
           </div>

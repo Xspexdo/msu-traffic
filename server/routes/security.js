@@ -566,5 +566,25 @@ router.post('/admin/announcement', (req, res) => {
   res.json({ success: true, data: ann, message: 'บันทึกและยิงประกาศข้อความประชาสัมพันธ์แบบ Real-time สำเร็จ!' });
 });
 
+// 23. POST /api/security/admin/chat-rooms/toggle - แอดมิน/Dev เปิด-ปิดห้องแชท (พร้อมซิงค์ Google Sheets)
+router.post('/admin/chat-rooms/toggle', (req, res) => {
+  if (!checkDevPermission(req)) {
+    return res.status(403).json({ success: false, error: 'DEV_PERMISSION_REQUIRED', message: 'คุณไม่มีสิทธิ์ Developer' });
+  }
+
+  const { roomId, enabled } = req.body;
+  if (!roomId) {
+    return res.status(400).json({ success: false, error: 'กรุณาระบุ roomId' });
+  }
+
+  const result = db.updateChatRoomStatus(roomId, enabled === true, req.user?.id || 'dev_admin');
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+
+  res.json(result);
+});
+
 module.exports = router;
+
 
