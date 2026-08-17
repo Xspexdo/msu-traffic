@@ -1563,6 +1563,12 @@ class MSUApp {
     if (!panel) return;
     panel.classList.toggle('minimized');
     const isMin = panel.classList.contains('minimized');
+
+    // 🔄 ซิงค์ class feed-panel-minimized ไปที่ body และ viewMap เพื่อให้ปุ่มและ popup เลื่อนไหลลงตามอย่างสมูท
+    document.body.classList.toggle('feed-panel-minimized', isMin);
+    const viewMap = document.getElementById('viewMap');
+    if (viewMap) viewMap.classList.toggle('feed-panel-minimized', isMin);
+
     if (toggleText) {
       toggleText.textContent = isMin ? '🔺 ขยายรายการ (แสดงโพสต์ด่าน)' : '🔻 ย่อรายการ (ดูแผนที่เต็มจอ)';
     }
