@@ -10,7 +10,7 @@
       "id": "dev_java5263",
       "email": "java5263@gmail.com",
       "name": "Java (Dev)",
-      "picture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s256-c",
       "role": "dev",
       "badge": "👑 DEV",
       "trustScore": 100,
@@ -24,7 +24,7 @@
       "isDev": true,
       "status": "active",
       "createdAt": 1786777538446,
-      "lastActiveAt": 1786980216543
+      "lastActiveAt": 1786984918536
     },
     "google_108560811899542656924": {
       "id": "google_108560811899542656924",
@@ -1285,15 +1285,69 @@
       "details": "เพิ่ม/แก้ไขหมวดหมู่ด่าน: ตรวจใบขับขี่",
       "ip": "127.0.0.1",
       "createdAt": 1786982814347
+    },
+    {
+      "id": "audit-1786982927146-io3",
+      "action": "CATEGORY_ADDED",
+      "userId": "dev_java5263",
+      "targetId": "cat_msxfhv6x_toy",
+      "details": "เพิ่ม/แก้ไขหมวดหมู่ด่าน: TEST SYSTEMS",
+      "ip": "127.0.0.1",
+      "createdAt": 1786982927146
+    },
+    {
+      "id": "audit-1786983323264-c2n",
+      "action": "SHEETS_CONFIG_UPDATE",
+      "userId": "dev_java5263",
+      "targetId": "google_sheets",
+      "details": "อัปเดตการตั้งค่า Google Sheets (Enabled: true)",
+      "ip": "127.0.0.1",
+      "createdAt": 1786983323264
+    },
+    {
+      "id": "audit-1786983354536-9wm",
+      "action": "SHEETS_FULL_SYNC",
+      "userId": "dev_java5263",
+      "targetId": "google_sheets",
+      "details": "สั่ง Full Sync ข้อมูลทั้งหมดขึ้น Google Sheets สำเร็จ",
+      "ip": "127.0.0.1",
+      "createdAt": 1786983354536
     }
   ],
   "pin_chat_messages": [],
   "rider_requests": [],
   "leaderboard_snapshot": {
-    "calculatedAt": 1786983566777,
+    "calculatedAt": 1786980395958,
     "nextCalculationAt": 1786986000000,
     "minExpRequired": 200,
-    "rankings": []
+    "rankings": [
+      {
+        "id": "dev_java5263",
+        "name": "Java (Dev)",
+        "email": "java5263@gmail.com",
+        "picture": "https://lh3.googleusercontent.com/a/ACg8ocLx2YnzJ1E-_cFThd94AnObd5Ltfy4K7h84c-3tj5N5EHSvoLkhig=s96-c",
+        "badge": "👑 DEV",
+        "isDev": true,
+        "trustScore": 100,
+        "score": 49,
+        "todayScore": 0,
+        "allTimeScore": 49,
+        "pinsCreated": 3,
+        "rank": {
+          "level": 99,
+          "key": "dev",
+          "name": "Developer / ผู้พัฒนาระบบ",
+          "title": "System Creator",
+          "icon": "👑",
+          "color": "#F59E0B",
+          "badgeClass": "rank-dev",
+          "exp": 49,
+          "nextRank": null,
+          "pointsToNext": 0,
+          "progressPercent": 100
+        }
+      }
+    ]
   },
   "lastLeaderboardCalcDate": "2026-08-17",
   "dayNumber": 2,
