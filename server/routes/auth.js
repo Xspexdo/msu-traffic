@@ -3,8 +3,10 @@ const crypto = require('crypto');
 const router = express.Router();
 const db = require('../database/db');
 const { requirePoW } = require('../middleware/powSecurity');
+const { optionalAuth } = require('../middleware/authMiddleware');
+const { signToken } = require('../services/jwtService');
 
-const DEV_EMAIL = 'java5263@gmail.com';
+const DEV_EMAIL = (process.env.DEV_EMAIL || 'java5263@gmail.com').toLowerCase().trim();
 
 // Helper to decode Google JWT token (Base64)
 function decodeJwt(token) {
@@ -38,11 +40,9 @@ function getAvatarForEmail(email, name) {
 function getHighResGooglePicture(url) {
   if (!url) return url;
   if (url.includes('googleusercontent.com')) {
-    // If URL contains =sXX parameter, replace with =s256-c for 100% crystal-clear HD avatar
     if (/=s\d+(-c)?$/.test(url)) {
       return url.replace(/=s\d+(-c)?$/, '=s256-c');
     }
-    // If no size suffix, append =s256-c
     return url.includes('?') ? `${url}&sz=256` : `${url}=s256-c`;
   }
   return url;
@@ -69,9 +69,21 @@ router.post('/google', (req, res) => {
     const rawPicture = payload.picture || getAvatarForEmail(email, payload.name);
     const highResPicture = getHighResGooglePicture(rawPicture);
 
+    const displayName = isDev ? 'Java (Dev)' : (payload.name || email.split('@')[0]);
+
+    // สร้าง Server-Signed Secure Token
+    const secureToken = signToken({
+      id: userId,
+      name: displayName,
+      email: email,
+      role: isDev ? 'dev' : (isMsu ? 'student' : 'member'),
+      isDev: isDev,
+      picture: highResPicture
+    });
+
     const initialUser = {
       id: userId,
-      name: isDev ? 'Java (Dev)' : (payload.name || email.split('@')[0]),
+      name: displayName,
       email: email,
       picture: highResPicture,
       role: isDev ? 'dev' : (isMsu ? 'student' : 'member'),
@@ -79,7 +91,7 @@ router.post('/google', (req, res) => {
       isMsuStudent: isMsu,
       badge: isDev ? '👑 Dev' : (isMsu ? '🎓 MSU' : '👤 Member'),
       verified: true,
-      token: credential
+      token: secureToken
     };
 
     const stats = db.getUserStats(userId, initialUser);
@@ -91,6 +103,7 @@ router.post('/google', (req, res) => {
 
     res.json({
       success: true,
+      token: secureToken,
       message: isDev ? '👑 ยินดีต้อนรับ Developer เข้าสู่ระบบ!' : `เข้าสู่ระบบสำเร็จในชื่อ ${user.name}`,
       user: user
     });
@@ -112,13 +125,21 @@ const handleEmailLogin = (req, res) => {
     const isMsu = cleanEmail.endsWith('@msu.ac.th');
     const displayName = name ? name.trim() : (isDev ? 'Java (Lead Dev)' : cleanEmail.split('@')[0]);
 
-    const sessionToken = `msu-auth-${isDev ? 'dev' : 'user'}-${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
     const userId = isDev ? 'dev_java5263' : `user_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
-    // ดึงรูป Google Profile ที่มีอยู่ในฐานข้อมูลถ้าเคยล็อกอินไว้ หรือสร้าง Gravatar
     const existingUser = db.getUserByEmail(cleanEmail);
     const rawPicture = existingUser?.picture || getAvatarForEmail(cleanEmail, displayName);
     const picture = getHighResGooglePicture(rawPicture);
+
+    // สร้าง Server-Signed Secure Token
+    const secureToken = signToken({
+      id: userId,
+      name: displayName,
+      email: cleanEmail,
+      role: isDev ? 'dev' : (isMsu ? 'student' : 'member'),
+      isDev: isDev,
+      picture: picture
+    });
 
     const initialUser = {
       id: userId,
@@ -130,7 +151,7 @@ const handleEmailLogin = (req, res) => {
       isMsuStudent: isMsu,
       badge: isDev ? '👑 Dev' : (isMsu ? '🎓 MSU' : '👤 Member'),
       verified: true,
-      token: sessionToken
+      token: secureToken
     };
 
     const stats = db.getUserStats(userId, initialUser);
@@ -142,7 +163,7 @@ const handleEmailLogin = (req, res) => {
 
     res.json({
       success: true,
-      token: sessionToken,
+      token: secureToken,
       message: isDev ? '👑 เข้าสู่ระบบในฐานะ Developer สำเร็จแล้ว (สิทธิ์เต็ม)' : `ยินดีต้อนรับ ${displayName}`,
       user: user
     });
@@ -166,18 +187,28 @@ router.post('/demo', requirePoW, (req, res) => {
     const cleanEmail = isDev ? DEV_EMAIL : (userEmail || `student_${randomId}@msu.ac.th`);
     const displayName = isDev ? 'Java (Lead Dev)' : (name || `นิสิต มมส (${randomId})`);
     const userId = isDev ? 'dev_java5263' : `demo_${randomId}`;
+    const picture = getAvatarForEmail(cleanEmail, displayName);
+
+    const secureToken = signToken({
+      id: userId,
+      name: displayName,
+      email: cleanEmail,
+      role: isDev ? 'dev' : 'student',
+      isDev: isDev,
+      picture: picture
+    });
 
     const initialUser = {
       id: userId,
       name: displayName,
       email: cleanEmail,
-      picture: getAvatarForEmail(cleanEmail, displayName),
+      picture: picture,
       role: isDev ? 'dev' : 'student',
       isDev: isDev,
       isMsuStudent: true,
       badge: isDev ? '👑 Developer / ผู้พัฒนาระบบ' : '🎓 นิสิต มมส (ทดสอบ)',
       verified: true,
-      token: `token-${isDev ? 'dev' : 'demo'}-${Date.now()}-${randomId}`
+      token: secureToken
     };
 
     const stats = db.getUserStats(userId, initialUser);
@@ -189,6 +220,7 @@ router.post('/demo', requirePoW, (req, res) => {
 
     res.json({
       success: true,
+      token: secureToken,
       message: isDev ? '⚡ เข้าสู่ระบบในฐานะ Developer สำเร็จแล้ว (สิทธิ์เต็ม)' : 'เข้าสู่ระบบสำเร็จ',
       user: user
     });
@@ -197,26 +229,21 @@ router.post('/demo', requirePoW, (req, res) => {
   }
 });
 
-// 4. GET /api/auth/me - เช็คข้อมูล session ปัจจุบัน พร้อม Rank ล่าสุด
-router.get('/me', (req, res) => {
-  const userHeader = req.headers['x-user-data'];
-  if (userHeader) {
-    try {
-      const user = JSON.parse(decodeURIComponent(userHeader));
-      if (user && user.id) {
-        const stats = db.getUserStats(user.id, user);
-        return res.json({ 
-          success: true, 
-          user: {
-            ...user,
-            stats,
-            rank: stats.rank
-          } 
-        });
-      }
-    } catch (e) {}
+// 4. GET /api/auth/me - เช็คข้อมูล session ปัจจุบัน พร้อม Rank ล่าสุด ผ่าน Verified Token
+router.get('/me', optionalAuth, (req, res) => {
+  if (req.user && req.user.id) {
+    const stats = db.getUserStats(req.user.id, req.user);
+    return res.json({ 
+      success: true, 
+      user: {
+        ...req.user,
+        stats,
+        rank: stats.rank
+      } 
+    });
   }
   res.json({ success: true, user: null });
 });
 
 module.exports = router;
+

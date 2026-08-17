@@ -44,15 +44,16 @@ const CONFIG = {
 
   // Tier 3: Anti-Flood / Rapid Burst Spike Detection
   ANTI_FLOOD: {
-    SPIKE_THRESHOLD: 20,        // > 20 requests in 1 second = Malicious flood attempt
+    SPIKE_THRESHOLD: 10,        // > 10 requests in 1 second = Malicious flood attempt -> Ban immediately
     SPIKE_WINDOW_MS: 1000
   },
 
-  // Penalty Durations (Graduated Escalation)
+  // Penalty Durations (Graduated Escalation & Instant Ban on Repeated Attacks)
   PENALTIES: {
-    LEVEL_1_THROTTLE_SEC: 15,   // 1st offense: Soft throttle (15s)
-    LEVEL_2_COOLDOWN_SEC: 60,   // 2nd offense: Cooldown (60s)
-    LEVEL_3_HARD_BAN_SEC: 300   // 3rd offense / Severe Flood: 5-minute ban
+    LEVEL_1_THROTTLE_SEC: 60,   // 1st offense: 1-minute ban (60s)
+    LEVEL_2_COOLDOWN_SEC: 300,  // 2nd offense: 5-minute ban (300s)
+    LEVEL_3_HARD_BAN_SEC: 1800, // 3rd offense / Flood: 30-minute ban (1800s)
+    HAMMER_BAN_SEC: 3600        // ยิงซ้ำๆ ตอนโดนแบน: แบนทันที 1 ชั่วโมง (3600s)
   },
 
   // State Store Limits (Anti Memory Exhaustion)
@@ -410,6 +411,16 @@ function rateLimiter(req, res, next) {
   // 🛑 4. Check if IP is currently under active Penalty / Ban
   if (record.bannedUntil && now < record.bannedUntil) {
     telemetry.totalRequestsThrottled += 1;
+    
+    // 🔨 ตรวจจับการยิงซ้ำๆ ตอนโดนแบน (Repeated Hammering while Banned) -> ยืดเวลาแบนเป็น 1 ชั่วโมงทันที!
+    record.bannedHammerCount = (record.bannedHammerCount || 0) + 1;
+    if (record.bannedHammerCount >= 3) {
+      record.bannedUntil = Math.max(record.bannedUntil, now + (CONFIG.PENALTIES.HAMMER_BAN_SEC * 1000));
+      record.currentPenaltySec = CONFIG.PENALTIES.HAMMER_BAN_SEC;
+      record.lastViolationReason = '🚨 ตรวจพบการยิงซ้ำๆ อย่างต่อเนื่องขณะติดแบน (ระบบทำการแบนเพิ่ม 1 ชั่วโมง)';
+      telemetry.totalHardBansEnforced += 1;
+    }
+
     const remainingSeconds = Math.max(1, Math.ceil((record.bannedUntil - now) / 1000));
     const rayId = record.lastRayId || generateRayId();
 
@@ -424,9 +435,9 @@ function rateLimiter(req, res, next) {
 
     return res.status(429).json({
       success: false,
-      error: 'RATE_LIMIT_EXCEEDED',
-      code: 'WAF_THROTTLE_TRIGGERED',
-      message: `ระบบตรวจพบอัตราการส่งคำขอสูงเกินมาตรฐานความปลอดภัย การเชื่อมต่อของคุณถูกระงับชั่วคราวอีก ${remainingSeconds} วินาที`,
+      error: 'IP_BANNED_REPEATED_ATTACK',
+      code: 'WAF_HAMMER_BAN_ENFORCED',
+      message: `🚫 IP ของคุณถูกระงับการใช้งานเนื่องจากส่งคำขอยิงซ้ำๆ อย่างต่อเนื่อง (เหลือเวลาแบนอีก ${remainingSeconds} วินาที)`,
       banned: true,
       penaltySeconds: record.currentPenaltySec,
       remainingSeconds: remainingSeconds,

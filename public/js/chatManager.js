@@ -637,14 +637,18 @@ class ChatManager {
           <div class="chat-bubble-footer">
             ${isMe && !isAnnouncement ? `<span class="chat-time">${timeStr}</span>` : ''}
             ${editedBadge}
-            ${canManage ? `
+            ${isMe ? `
               <div class="chat-msg-actions">
-                <button class="chat-action-btn btn-edit-msg" onclick="window.chatManager.editMessage('${m.id}')" title="แก้ไขข้อความ">✏️ แก้ไข</button>
-                <button class="chat-action-btn btn-delete-msg" onclick="window.chatManager.deleteMessage('${m.id}')" title="ยกเลิก/ลบข้อความ">🗑️ ลบ</button>
+                <button class="chat-action-btn btn-edit-msg" onclick="window.chatManager.editMessage('${m.id}')" title="แก้ไขข้อความของคุณ">✏️ แก้ไข</button>
+                <button class="chat-action-btn btn-delete-msg" onclick="window.chatManager.deleteMessage('${m.id}')" title="ยกเลิก/ลบข้อความของคุณ">🗑️ ลบ</button>
+              </div>
+            ` : (isDev ? `
+              <div class="chat-msg-actions">
+                <button class="chat-action-btn btn-delete-msg" onclick="window.chatManager.deleteMessage('${m.id}')" title="สิทธิ์ Dev: ลบข้อความที่ผิดกฎ">🗑️ ลบ</button>
               </div>
             ` : `
               <button class="chat-report-btn" onclick="window.chatManager.openReportMessageModal('${m.id}')" title="รายงานข้อความนี้">🚩 รีพอร์ต</button>
-            `}
+            `)}
           </div>
         </div>
       </div>

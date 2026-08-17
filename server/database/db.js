@@ -1033,17 +1033,19 @@ class Database {
     return { success: true, message: newMsg };
   }
 
-  // ✏️ แก้ไขข้อความในแชต
+  // ✏️ แก้ไขข้อความในแชต (เฉพาะเจ้าของข้อความเท่านั้น!)
   editChatMessage(messageId, newText, user) {
     if (!this.data.chat_messages) return { success: false, error: 'ไม่พบข้อมูลข้อความ' };
     const msg = this.data.chat_messages.find(m => m.id === messageId);
     if (!msg) return { success: false, error: 'ไม่พบข้อความที่ต้องการแก้ไข' };
 
-    const isDev = user.isDev === true || (user.email && user.email.toLowerCase() === 'java5263@gmail.com');
-    const isOwner = msg.senderId === user.id || (user.email && msg.senderEmail === user.email);
+    // 🔒 ตรวจสอบความเป็นเจ้าของ: แก้ไขได้เฉพาะข้อความของตัวเองเท่านั้น
+    const isOwner = msg.senderId === user.id ||
+      (user.email && msg.senderEmail && user.email.toLowerCase() === msg.senderEmail.toLowerCase()) ||
+      (user.id && msg.realSenderId === user.id);
 
-    if (!isDev && !isOwner) {
-      return { success: false, error: 'คุณไม่มีสิทธิ์แก้ไขข้อความของผู้อื่น' };
+    if (!isOwner) {
+      return { success: false, error: 'คุณสามารถแก้ไขได้เฉพาะข้อความของตัวเองเท่านั้น' };
     }
 
     msg.text = newText.trim();

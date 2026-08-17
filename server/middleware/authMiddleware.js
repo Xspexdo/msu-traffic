@@ -1,48 +1,40 @@
+const { verifyToken } = require('../services/jwtService');
+
+const DEV_EMAIL = (process.env.DEV_EMAIL || 'java5263@gmail.com').toLowerCase().trim();
+
 /**
  * Authentication Middleware
- * บังคับ Login เฉพาะการเขียนข้อมูล (POST/VOTE)
- * แต่การอ่าน (GET) เปิดให้ทุกคนเข้าดูได้อิสระ
+ * ปลอดภัย 100%: ตรวจสอบผ่าน Signed Token ที่ออกจาก Server เท่านั้น
+ * ป้องกันการปลอมแปลง Header (x-user-data bypass)
  */
-
 function parseUserFromReq(req) {
   const authHeader = req.headers['authorization'];
-  const userHeader = req.headers['x-user-data'];
-  let user = null;
-
-  if (userHeader) {
-    try {
-      user = JSON.parse(decodeURIComponent(userHeader));
-    } catch (e) {
-      try {
-        user = JSON.parse(userHeader);
-      } catch (err) {}
-    }
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
   }
 
-  if (!user && authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    try {
-      const parts = token.split('.');
-      if (parts.length === 3) {
-        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
-        user = {
-          id: payload.sub || payload.id || `user-${Date.now()}`,
-          name: payload.name || 'ผู้ใช้ Google',
-          email: payload.email || 'user@msu.ac.th',
-          picture: payload.picture || null
-        };
-      }
-    } catch (e) {}
+  const token = authHeader.substring(7).trim();
+  if (!token) return null;
+
+  // ตรวจสอบความถูกต้องของ Token ผ่าน Server Signature
+  const payload = verifyToken(token);
+  if (!payload || !payload.id) {
+    return null;
   }
 
-  if (user) {
-    if (user.email === 'java5263@gmail.com' || user.role === 'dev') {
-      user.isDev = true;
-      user.role = 'dev';
-    }
-  }
+  const email = (payload.email || '').toLowerCase().trim();
+  const isDev = payload.isDev === true || email === DEV_EMAIL;
 
-  return user;
+  return {
+    id: payload.id,
+    name: payload.name || 'ผู้ใช้งาน',
+    email: email,
+    picture: payload.picture || null,
+    role: isDev ? 'dev' : (payload.role || (email.endsWith('@msu.ac.th') ? 'student' : 'member')),
+    isDev: isDev,
+    isMsuStudent: email.endsWith('@msu.ac.th'),
+    badge: isDev ? '👑 Dev' : (email.endsWith('@msu.ac.th') ? '🎓 MSU' : '👤 Member')
+  };
 }
 
 function requireAuth(req, res, next) {
@@ -52,7 +44,7 @@ function requireAuth(req, res, next) {
     return res.status(401).json({
       success: false,
       error: 'AUTH_REQUIRED',
-      message: 'กรุณาเข้าสู่ระบบด้วย Google หรือ @msu.ac.th ก่อนทำรายการ'
+      message: 'กรุณาเข้าสู่ระบบก่อนทำรายการ (Session หมดอายุหรือไม่ถูกต้อง)'
     });
   }
 
@@ -72,3 +64,4 @@ module.exports = {
   requireAuth,
   optionalAuth
 };
+
