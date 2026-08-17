@@ -652,21 +652,21 @@ class DevManager {
               </span>
             </label>
           </td>
-          <td>
-            <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
-              <button class="btn btn-outline btn-xs" onclick="window.devManager.quickRenameUser('${u.id}', '${this.escapeHtml(u.name)}')" title="เปลี่ยนชื่อผู้ใช้" style="font-weight: 700; color: #0284C7; border-color: #BAE6FD; background: #F0F9FF;">
+          <td style="white-space: nowrap; padding: 0.35rem 0.55rem;">
+            <div style="display: inline-flex; gap: 0.25rem; align-items: center;">
+              <button class="btn btn-outline btn-xs" onclick="window.devManager.quickRenameUser('${u.id}', '${this.escapeHtml(u.name)}')" title="เปลี่ยนชื่อผู้ใช้" style="padding: 3px 7px; font-size: 0.68rem; font-weight: 700; color: #0284C7; border-color: #BAE6FD; background: #F0F9FF; border-radius: 6px; white-space: nowrap;">
                 ✏️ เปลี่ยนชื่อ
               </button>
-              <button class="btn btn-outline btn-xs" onclick="window.devManager.openRoleEditModal('${u.id}')" style="font-weight: 700; color: #2563EB; border-color: #BFDBFE; background: #EFF6FF;">
+              <button class="btn btn-outline btn-xs" onclick="window.devManager.openRoleEditModal('${u.id}')" title="ปรับยศและสิทธิ์" style="padding: 3px 7px; font-size: 0.68rem; font-weight: 700; color: #2563EB; border-color: #BFDBFE; background: #EFF6FF; border-radius: 6px; white-space: nowrap;">
                 🎖️ ปรับยศ/สิทธิ์
               </button>
               ${!isDev && !isBanned ? `
-                <button class="btn btn-outline btn-xs" onclick="window.devManager.quickBanUser('${u.id}', '${this.escapeHtml(u.name)}')" style="color: #DC2626; border-color: #FECACA;">
+                <button class="btn btn-outline btn-xs" onclick="window.devManager.quickBanUser('${u.id}', '${this.escapeHtml(u.name)}')" title="แบนผู้ใช้" style="padding: 3px 6px; font-size: 0.68rem; color: #DC2626; border-color: #FECACA; border-radius: 6px;">
                   🚫
                 </button>
               ` : ''}
               ${isBanned ? `
-                <button class="btn btn-outline btn-xs" onclick="window.devManager.unbanUser('${u.id}', '${this.escapeHtml(u.name)}')" style="color: #059669; border-color: #A7F3D0;">
+                <button class="btn btn-outline btn-xs" onclick="window.devManager.unbanUser('${u.id}', '${this.escapeHtml(u.name)}')" title="ปลดแบน" style="padding: 3px 6px; font-size: 0.68rem; color: #059669; border-color: #A7F3D0; border-radius: 6px;">
                   🔓
                 </button>
               ` : ''}
