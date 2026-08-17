@@ -118,6 +118,9 @@ class DevManager {
 
     // 4. โหลดข้อความประชาสัมพันธ์ตัววิ่ง (Announcement Ticker)
     this.loadAnnouncementSetting();
+
+    // 5. โหลดรายการหมวดหมู่ & ตัวกรอง (Categories & Filter Words)
+    this.loadCategoriesList();
   }
 
   async loadAnnouncementSetting() {
@@ -306,6 +309,115 @@ class DevManager {
       console.error('Error toggling chat room:', e);
       alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
       this.loadChatRoomsSettings();
+    }
+  }
+
+  // ============================================================================
+  // 🏷️ CATEGORIES & FILTER WORDS MANAGEMENT (Dev Only)
+  // ============================================================================
+  async loadCategoriesList() {
+    const container = document.getElementById('devCategoriesListContainer');
+    if (!container) return;
+
+    container.innerHTML = '<div style="text-align: center; color: #94A3B8; font-size: 0.8rem; padding: 0.75rem;">⏳ กำลังโหลดรายการหมวดหมู่...</div>';
+
+    try {
+      const res = await fetch('/api/reports/categories');
+      const data = await res.json();
+
+      if (data.success && Array.isArray(data.data)) {
+        if (data.data.length === 0) {
+          container.innerHTML = '<div style="text-align: center; color: #94A3B8; font-size: 0.8rem; padding: 0.75rem;">ยังไม่มีหมวดหมู่</div>';
+          return;
+        }
+
+        container.innerHTML = data.data.map(cat => {
+          return `
+            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.6rem 0.85rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1;">
+                <span style="font-size: 1.25rem;">${cat.icon || '📍'}</span>
+                <div>
+                  <strong style="font-size: 0.85rem; color: #0F172A;">${cat.name}</strong>
+                  <span style="font-size: 0.72rem; color: #64748B; margin-left: 0.35rem;">(${cat.key})</span>
+                  ${cat.sub ? `<div style="font-size: 0.72rem; color: #94A3B8;">${cat.sub}</div>` : ''}
+                </div>
+              </div>
+              <button type="button" class="btn btn-outline btn-xs" onclick="window.devManager.handleDeleteCategory('${cat.key}')" style="color: #DC2626; border-color: #FECACA; font-weight: 700;" title="ลบหมวดหมู่นี้">
+                🗑️ ลบ
+              </button>
+            </div>
+          `;
+        }).join('');
+      }
+    } catch (e) {
+      console.error('Error loading categories:', e);
+      container.innerHTML = '<div style="color: #EF4444; font-size: 0.8rem;">❌ ไม่สามารถโหลดหมวดหมู่ได้</div>';
+    }
+  }
+
+  async handleAddCategory(event) {
+    if (event) event.preventDefault();
+    const iconInput = document.getElementById('devCatIconInput');
+    const nameInput = document.getElementById('devCatNameInput');
+    const subInput = document.getElementById('devCatSubInput');
+
+    const icon = iconInput?.value.trim() || '📍';
+    const name = nameInput?.value.trim();
+    const sub = subInput?.value.trim() || '';
+
+    if (!name) {
+      alert('กรุณากรอกชื่อหมวดหมู่');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/reports/categories', {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ icon, name, sub })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        if (window.app) {
+          window.app.showNotification(`✅ เพิ่มหมวดหมู่ [${name}] สำเร็จแล้ว`, 'success');
+          if (window.app.loadCategories) window.app.loadCategories();
+        }
+        if (iconInput) iconInput.value = '';
+        if (nameInput) nameInput.value = '';
+        if (subInput) subInput.value = '';
+        this.loadCategoriesList();
+      } else {
+        alert(data.error || 'ไม่สามารถเพิ่มหมวดหมู่ได้');
+      }
+    } catch (e) {
+      console.error('Error adding category:', e);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    }
+  }
+
+  async handleDeleteCategory(key) {
+    if (!confirm(`ยืนยันการลบหมวดหมู่นี้หรือไม่?`)) return;
+
+    try {
+      const res = await fetch(`/api/reports/categories/${key}`, {
+        method: 'DELETE',
+        headers: this.getHeaders()
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        if (window.app) {
+          window.app.showNotification(`🗑️ ลบหมวดหมู่เรียบร้อยแล้ว`, 'info');
+          if (window.app.loadCategories) window.app.loadCategories();
+        }
+        this.loadCategoriesList();
+      } else {
+        alert(data.error || 'ไม่สามารถลบหมวดหมู่นี้ได้');
+      }
+    } catch (e) {
+      console.error('Error deleting category:', e);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
     }
   }
 

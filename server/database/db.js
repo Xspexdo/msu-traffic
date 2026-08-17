@@ -319,6 +319,67 @@ class Database {
   }
 
   // ----------------------------------------------------
+  // 🏷️ Dynamic Categories & Filter Words Engine (Dev Configurable)
+  // ----------------------------------------------------
+  getCategories() {
+    if (!this.data.categories || !Array.isArray(this.data.categories) || this.data.categories.length === 0) {
+      this.data.categories = [
+        { key: "helmet", name: "หมวก/ใบขับขี่", icon: "👮‍♂️", sub: "ใบขับขี่ / อุปกรณ์ส่วนควบ" },
+        { key: "alcohol", name: "เป่าแอล", icon: "🍺", sub: "เป่าแอลกอฮอล์ยามค่ำคืน" },
+        { key: "security", name: "ตรวจค้น", icon: "🚔", sub: "ตรวจค้นสิ่งผิดกฎหมาย" },
+        { key: "traffic", name: "รถติด", icon: "🚗", sub: "ชะลอตัวช่วงเร่งด่วน" },
+        { key: "accident", name: "อุบัติเหตุ", icon: "⚠️", sub: "โปรดระมัดระวัง" }
+      ];
+      this.saveData();
+    }
+    return this.data.categories;
+  }
+
+  saveCategories(categories, userId = 'dev_java5263') {
+    if (Array.isArray(categories) && categories.length > 0) {
+      this.data.categories = categories;
+      this.saveData();
+      this.logAudit('UPDATE_CATEGORIES', userId, 'system', `อัปเดตรายการหมวดหมู่/คำค้นหา (${categories.length} รายการ)`);
+      if (this.io) {
+        this.io.emit('categories_updated', this.data.categories);
+      }
+      return this.data.categories;
+    }
+    return this.getCategories();
+  }
+
+  addCategory(category, userId = 'dev_java5263') {
+    const list = this.getCategories();
+    const cleanKey = (category.key || category.name || '').toLowerCase().trim().replace(/[^a-z0-9_]/g, '_') || `cat_${Date.now()}`;
+    
+    // Check if key already exists
+    const existsIndex = list.findIndex(c => c.key === cleanKey);
+    const newEntry = {
+      key: cleanKey,
+      name: category.name || 'หมวดหมู่ใหม่',
+      icon: category.icon || '📍',
+      sub: category.sub || category.name || 'หมวดหมู่เพิ่มเติม'
+    };
+
+    if (existsIndex >= 0) {
+      list[existsIndex] = newEntry;
+    } else {
+      list.push(newEntry);
+    }
+
+    return this.saveCategories(list, userId);
+  }
+
+  deleteCategory(key, userId = 'dev_java5263') {
+    let list = this.getCategories();
+    if (list.length <= 1) {
+      throw new Error('ต้องมีหมวดหมู่อย่างน้อย 1 รายการ');
+    }
+    list = list.filter(c => c.key !== key);
+    return this.saveCategories(list, userId);
+  }
+
+  // ----------------------------------------------------
   // ⏱️ Pin Decay Lifecycle Engine (หมดอายุอัตโนมัติ)
   // ----------------------------------------------------
   checkPinDecay() {
@@ -574,6 +635,71 @@ class Database {
 
   getPinById(id) {
     return this.data.pins.find(p => p.id === id) || null;
+  }
+
+  // 🔒 ตรวจสอบโควตาการปักหมุด: 1 คน ต่อ 1 หมุด ต่อ 1 ชั่วโมง และไม่เกิน 3 หมุดต่อวัน (ยกเว้น Dev)
+  checkUserPinQuota(userId, userEmail, isDev = false) {
+    const cleanEmail = (userEmail || '').toLowerCase().trim();
+    if (isDev || cleanEmail === 'java5263@gmail.com') {
+      return { allowed: true, isDev: true, countToday: 0, maxPerDay: 3, remainingToday: 999 };
+    }
+
+    const now = Date.now();
+
+    // 1. กรองหมุดทั้งหมดที่สร้างโดยผู้ใช้นี้ (ตาม ID หรือ Email)
+    const userPins = this.data.pins.filter(p => {
+      if (p.status === 'deleted') return false;
+      const isMatchId = userId && (p.reporterId === userId || p.realReporter?.id === userId);
+      const isMatchEmail = cleanEmail && (
+        (p.realReporter?.email && p.realReporter.email.toLowerCase().trim() === cleanEmail) ||
+        (p.reporter?.email && p.reporter.email.toLowerCase().trim() === cleanEmail)
+      );
+      return isMatchId || isMatchEmail;
+    }).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    // 2. ตรวจสอบเงื่อนไข 1 ชั่วโมง (1 หมุด ต่อ 1 ชม.)
+    if (userPins.length > 0) {
+      const lastPin = userPins[0];
+      const elapsedMs = now - (lastPin.createdAt || 0);
+      const COOLDOWN_MS = 60 * 60 * 1000; // 1 ชั่วโมง (3,600,000 ms)
+
+      if (elapsedMs < COOLDOWN_MS) {
+        const remainingMs = COOLDOWN_MS - elapsedMs;
+        const remainingMinutes = Math.ceil(remainingMs / (60 * 1000));
+        return {
+          allowed: false,
+          reason: 'PIN_COOLDOWN_1HOUR',
+          message: `⏱️ คุณสามารถปักหมุดได้ 1 หมุด ต่อ 1 ชั่วโมง (กรุณารออีก ${remainingMinutes} นาที)`,
+          remainingMinutes,
+          nextAllowedTime: (lastPin.createdAt || now) + COOLDOWN_MS
+        };
+      }
+    }
+
+    // 3. ตรวจสอบเงื่อนไขรายวัน (ไม่เกิน 3 หมุดต่อวัน - รีเซ็ตเที่ยงคืนเวลาไทย)
+    const thaiNow = new Date(now + (7 * 3600 * 1000));
+    thaiNow.setUTCHours(0, 0, 0, 0);
+    const startOfDayTimestamp = thaiNow.getTime() - (7 * 3600 * 1000);
+
+    const todayPins = userPins.filter(p => (p.createdAt || 0) >= startOfDayTimestamp);
+
+    if (todayPins.length >= 3) {
+      return {
+        allowed: false,
+        reason: 'PIN_DAILY_LIMIT_EXCEEDED',
+        message: '🚫 คุณปักหมุดครบโควตาสูงสุด 3 หมุดสำหรับวันนี้แล้ว (ระบบรีเซ็ตโควตาทุกเที่ยงคืน)',
+        countToday: todayPins.length,
+        maxPerDay: 3,
+        remainingToday: 0
+      };
+    }
+
+    return {
+      allowed: true,
+      countToday: todayPins.length,
+      maxPerDay: 3,
+      remainingToday: 3 - todayPins.length
+    };
   }
 
   addPin(pinData) {

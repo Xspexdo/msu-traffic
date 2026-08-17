@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#1E293B"/>
+    </linearGradient>
+    <linearGradient id="coneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBBF24"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+  </defs>
+  <!-- Background rounded circle/squircle -->
+  <rect width="64" height="64" rx="16" fill="url(#bgGrad)"/>
+  <rect x="1" y="1" width="62" height="62" rx="15" fill="none" stroke="#F59E0B" stroke-width="2" stroke-opacity="0.4"/>
+  
+  <!-- Traffic Cone / Checkpoint Icon -->
+  <path d="M28 10h8l6 36h-20z" fill="url(#coneGrad)"/>
+  <path d="M25 24h14l1.5 8h-17z" fill="#FFFFFF"/>
+  <rect x="12" y="46" width="40" height="8" rx="4" fill="#F59E0B"/>
+  <circle cx="32" cy="18" r="2.5" fill="#FEF3C7"/>
+</svg>

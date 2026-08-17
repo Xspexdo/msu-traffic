@@ -550,6 +550,10 @@ class MSUMapManager {
   }
 
   getTypeIcon(type) {
+    if (window.app && Array.isArray(window.app.categories)) {
+      const found = window.app.categories.find(c => c.key === type);
+      if (found && found.icon) return found.icon;
+    }
     switch (type) {
       case 'helmet': return '👮‍♂️';
       case 'alcohol': return '🍺';
@@ -563,6 +567,10 @@ class MSUMapManager {
   }
 
   getTypeShortLabel(type) {
+    if (window.app && Array.isArray(window.app.categories)) {
+      const found = window.app.categories.find(c => c.key === type);
+      if (found && found.name) return found.name;
+    }
     switch (type) {
       case 'helmet': return 'ด่านหมวก/ใบขับขี่';
       case 'alcohol': return 'ด่านเป่าแอล';

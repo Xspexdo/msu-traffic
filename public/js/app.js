@@ -24,6 +24,7 @@ class MSUApp {
     this.currentTab = 'map';
     this.reports = [];
     this.zones = [];
+    this.categories = [];
     this.socket = null;
     this.activeFilter = 'all';
     this.searchQuery = '';
@@ -46,6 +47,7 @@ class MSUApp {
 
     // 3. Load Data in parallel
     await Promise.all([
+      this.loadCategories(),
       this.loadReports(),
       this.loadZones(),
       this.loadStats(),
@@ -243,6 +245,19 @@ class MSUApp {
         this.applyAnnouncement(ann);
       });
 
+      // 🏷️ Categories & Filter Words Real-time Updates
+      this.socket.on('categories_updated', (cats) => {
+        if (Array.isArray(cats)) {
+          this.categories = cats;
+          this.renderFilterChips();
+          this.renderReportTypeOptions();
+          this.renderReportsList();
+          if (window.devManager && window.devManager.loadCategoriesList) {
+            window.devManager.loadCategoriesList();
+          }
+        }
+      });
+
       // Pass socket to managers
       if (window.rankManager) window.rankManager.bindSocketEvents(this.socket);
       if (window.chatManager) window.chatManager.bindSocketEvents(this.socket);
@@ -250,6 +265,81 @@ class MSUApp {
     } catch (e) {
       console.warn('Socket.io connection warning:', e);
     }
+  }
+
+  // ----------------------------------------------------
+  // 🏷️ Categories & Filter Chips Dynamic Loader
+  // ----------------------------------------------------
+  async loadCategories() {
+    try {
+      const res = await fetch('/api/reports/categories');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        this.categories = data.data;
+        this.renderFilterChips();
+        this.renderReportTypeOptions();
+      }
+    } catch (e) {
+      console.warn('Error loading categories:', e);
+    }
+  }
+
+  renderFilterChips() {
+    const container = document.querySelector('.filter-chips-scroll');
+    if (!container || !this.categories || this.categories.length === 0) return;
+
+    const activeKey = this.activeFilter || 'all';
+
+    container.innerHTML = `
+      <button class="filter-chip ${activeKey === 'all' ? 'active' : ''}" data-type="all">ทั้งหมด</button>
+      ${this.categories.map(cat => `
+        <button class="filter-chip ${activeKey === cat.key ? 'active' : ''}" data-type="${cat.key}">
+          <span>${cat.icon || '📍'}</span> ${cat.name}
+        </button>
+      `).join('')}
+    `;
+
+    // Bind Click Listener on all filter chips
+    container.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        container.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        this.activeFilter = chip.dataset.type || 'all';
+        this.renderReportsList();
+      });
+    });
+  }
+
+  renderReportTypeOptions() {
+    const container = document.querySelector('.type-selection-grid');
+    if (!container || !this.categories || this.categories.length === 0) return;
+
+    const checkedRadio = document.querySelector('input[name="checkpointType"]:checked');
+    const currentSelected = checkedRadio ? checkedRadio.value : (this.categories[0]?.key || 'helmet');
+
+    container.innerHTML = this.categories.map((cat, idx) => {
+      const isSelected = (cat.key === currentSelected) || (!currentSelected && idx === 0);
+      return `
+        <label class="type-option-card ${isSelected ? 'selected' : ''}">
+          <input type="radio" name="checkpointType" value="${cat.key}" ${isSelected ? 'checked' : ''} style="display: none;">
+          <span class="type-option-icon">${cat.icon || '📍'}</span>
+          <div class="type-option-text">
+            <span class="type-option-title">${cat.name}</span>
+            <span class="type-option-sub">${cat.sub || cat.name}</span>
+          </div>
+        </label>
+      `;
+    }).join('');
+
+    // Bind selection cards click
+    container.querySelectorAll('.type-option-card').forEach(card => {
+      card.addEventListener('click', () => {
+        container.querySelectorAll('.type-option-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        const radio = card.querySelector('input[type="radio"]');
+        if (radio) radio.checked = true;
+      });
+    });
   }
 
   // ----------------------------------------------------
@@ -570,6 +660,10 @@ class MSUApp {
   }
 
   getTypeName(type) {
+    if (this.categories && Array.isArray(this.categories)) {
+      const found = this.categories.find(c => c.key === type);
+      if (found) return found.name;
+    }
     switch (type) {
       case 'helmet': return 'ด่านหมวก/ใบขับขี่';
       case 'alcohol': return 'ด่านเป่าแอล';
@@ -862,6 +956,58 @@ class MSUApp {
     }
     const annToggle = document.getElementById('reportIsAnnouncement');
     if (annToggle) annToggle.checked = false;
+
+    // ⏱️ Update Quota Badge UI
+    this.updateReportQuotaUI();
+  }
+
+  async updateReportQuotaUI() {
+    const quotaBadge = document.getElementById('pinQuotaRemainingBadge');
+    const quotaBanner = document.getElementById('pinQuotaBanner');
+    if (!quotaBadge || !quotaBanner) return;
+
+    const isDev = window.authManager?.isDev();
+    if (isDev) {
+      quotaBanner.style.background = '#FEF3C7';
+      quotaBanner.style.borderColor = '#FDE68A';
+      quotaBanner.style.color = '#B45309';
+      quotaBadge.style.background = '#FEF3C7';
+      quotaBadge.style.borderColor = '#F59E0B';
+      quotaBadge.style.color = '#B45309';
+      quotaBadge.textContent = '👑 ไม่จำกัด (Dev)';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/reports/quota', {
+        headers: window.authManager ? window.authManager.getAuthHeader() : {}
+      });
+      const data = await res.json();
+      if (data.success && data.quota) {
+        const q = data.quota;
+        if (!q.allowed) {
+          quotaBanner.style.background = '#FEF2F2';
+          quotaBanner.style.borderColor = '#FECACA';
+          quotaBanner.style.color = '#991B1B';
+          quotaBadge.style.background = '#FEE2E2';
+          quotaBadge.style.borderColor = '#EF4444';
+          quotaBadge.style.color = '#DC2626';
+          quotaBadge.textContent = q.reason === 'PIN_COOLDOWN_1HOUR' 
+            ? `รออีก ${q.remainingMinutes} นาที` 
+            : 'ครบ 3/3 หมุดแล้ว';
+        } else {
+          quotaBanner.style.background = '#F0FDF4';
+          quotaBanner.style.borderColor = '#BBF7D0';
+          quotaBanner.style.color = '#166534';
+          quotaBadge.style.background = '#DCFCE7';
+          quotaBadge.style.borderColor = '#86EFAC';
+          quotaBadge.style.color = '#15803D';
+          quotaBadge.textContent = `เหลือ ${q.remainingToday}/3 หมุดวันนี้`;
+        }
+      }
+    } catch (e) {
+      console.warn('Quota fetch error:', e);
+    }
   }
 
   closeReportModal() {

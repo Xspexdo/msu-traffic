@@ -1,11 +1,47 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
-const { requireAuth, optionalAuth } = require('../middleware/authMiddleware');
+const { requireAuth, requireDev, optionalAuth } = require('../middleware/authMiddleware');
 const { requirePoW } = require('../middleware/powSecurity');
 const profanityFilter = require('../services/profanityFilter');
 
 module.exports = function(io) {
+  // 🏷️ GET /api/reports/categories - ดึงรายการหมวดหมู่/ประเภทด่านทั้งหมด (Dynamic)
+  router.get('/categories', (req, res) => {
+    try {
+      const categories = db.getCategories();
+      res.json({ success: true, data: categories });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 🏷️ POST /api/reports/categories - เพิ่มหรือแก้ไขหมวดหมู่ด่าน (เฉพาะ Dev)
+  router.post('/categories', requireDev, (req, res) => {
+    try {
+      const { key, name, icon, sub } = req.body;
+      if (!name || !name.trim()) {
+        return res.status(400).json({ success: false, error: 'กรุณาระบุชื่อหมวดหมู่' });
+      }
+
+      const updated = db.addCategory({ key, name: name.trim(), icon: icon || '📍', sub: sub || name }, req.user.id);
+      res.json({ success: true, message: `เพิ่ม/แก้ไขหมวดหมู่ [${name}] เรียบร้อยแล้ว`, data: updated });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 🏷️ DELETE /api/reports/categories/:key - ลบหมวดหมู่ด่าน (เฉพาะ Dev)
+  router.delete('/categories/:key', requireDev, (req, res) => {
+    try {
+      const { key } = req.params;
+      const updated = db.deleteCategory(key, req.user.id);
+      res.json({ success: true, message: `ลบหมวดหมู่เรียบร้อยแล้ว`, data: updated });
+    } catch (err) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  });
+
   // GET /api/reports - ดึงหมุดทั้งหมด
   router.get('/', (req, res) => {
     try {
@@ -45,6 +81,27 @@ module.exports = function(io) {
     }
   });
 
+  // GET /api/reports/quota - ตรวจสอบโควตาการปักหมุดของผู้ใช้ปัจจุบัน
+  router.get('/quota', optionalAuth, (req, res) => {
+    try {
+      if (!req.user || !req.user.id) {
+        return res.json({
+          success: true,
+          quota: { allowed: true, countToday: 0, maxPerDay: 3, remainingToday: 3 }
+        });
+      }
+      const userEmail = (req.user.email || '').toLowerCase().trim();
+      const isDev = req.user.isDev === true || userEmail === 'java5263@gmail.com';
+      const quota = db.checkUserPinQuota(req.user.id, userEmail, isDev);
+      res.json({
+        success: true,
+        quota
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // POST /api/reports - สร้างหมุดรายงานด่านใหม่
   router.post('/', requireAuth, requirePoW, (req, res) => {
     try {
@@ -55,6 +112,20 @@ module.exports = function(io) {
           success: false,
           error: 'ACCOUNT_BANNED',
           message: `🚫 บัญชีของคุณถูกระงับการใช้งาน (${checkUser.banReason || 'ละเมิดข้อกำหนด'})`
+        });
+      }
+
+      const userEmail = (req.user.email || '').toLowerCase().trim();
+      const isDev = req.user.isDev === true || userEmail === 'java5263@gmail.com';
+
+      // 🔒 ตรวจสอบโควตา: 1 คน ต่อ 1 หมุด ต่อ 1 ชม. และไม่เกิน 3 หมุดต่อวัน (ยกเว้น Dev)
+      const quota = db.checkUserPinQuota(req.user.id, userEmail, isDev);
+      if (!quota.allowed) {
+        return res.status(429).json({
+          success: false,
+          error: quota.reason,
+          message: quota.message,
+          quota: quota
         });
       }
 
@@ -69,8 +140,6 @@ module.exports = function(io) {
       }
 
       const isAnon = isAnonymous === true;
-      const userEmail = (req.user.email || '').toLowerCase().trim();
-      const isDev = req.user.isDev === true || userEmail === 'java5263@gmail.com';
       const isMsu = userEmail.endsWith('@msu.ac.th');
 
       let cleanCustomLocation = customLocation || '';
